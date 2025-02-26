@@ -1,9 +1,12 @@
 import React, { useState } from "react";
 import TopHeader from "../components/TopHeader";
 import SidebarPage from "./SidebarPage";
+import useAuth from "../hooks/userAuth";
 const HomePage = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-
+  const { email, roles } = useAuth();
+  console.log("email in HomePage", email);
+  console.log("roles in HomePage", roles);
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
@@ -11,7 +14,7 @@ const HomePage = () => {
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
       <TopHeader />
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
         <SidebarPage
           isSidebarOpen={isSidebarOpen}
           toggleSidebar={toggleSidebar}

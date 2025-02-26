@@ -10,6 +10,10 @@ import UsersPage from "./pages/UsersPage";
 import LoginPage from "./pages/LoginPage";
 import SidebarPage from "./pages/SidebarPage";
 import HomePage from "./pages/HomePage";
+import TasksPage from "./pages/TasksPage";
+import DataManagementPage from "./pages/DataManagementPage";
+import DashboardPage from "./pages/DashboardPage";
+import ActivitiesPage from "./pages/ActivitiesPage";
 
 const App = () => {
   return (
@@ -22,33 +26,51 @@ const App = () => {
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: (
-      <ProtectedRoute allowedRoles={["PM", "PMO", "DEPUTY", "ADMIN", "USER"]} />
-    ),
-    children: [
-      {
-        path: "/home",
-        element: <HomePage />,
-      },
-      {
-        path: "/sidebar",
-        element: (
-          <ProtectedRoute
-            allowedRoles={["PM", "PMO", "DEPUTY", "ADMIN", "USER"]}
-          />
-        ),
-        children: [
-          {
-            path: "/sidebar",
-            element: <SidebarPage />,
-          },
-        ],
-      },
-    ],
+    element: <LoginPage />,
   },
   {
-    path: "/login",
-    element: <LoginPage />,
+    path: "/home",
+    element: (
+      <ProtectedRoute allowedRoles={["PM", "PMO", "DEPUTY", "ADMIN", "USER"]}>
+        <HomePage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/tasks",
+    element: (
+      <ProtectedRoute allowedRoles={["PM", "PMO"]}>
+        <TasksPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/data-management",
+    element: (
+      <ProtectedRoute allowedRoles={["PMO", "DEPUTY"]}>
+        <DataManagementPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/dashboard",
+    element: (
+      <ProtectedRoute allowedRoles={["USER"]}>
+        <DashboardPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/activities",
+    element: (
+      <ProtectedRoute allowedRoles={["PMO", "ADMIN"]}>
+        <ActivitiesPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/test",
+    element: <Test />,
   },
 ]);
 

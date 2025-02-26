@@ -30,14 +30,13 @@ const SIDEBAR_ITEMS = [
   },
 ];
 
-const SidebarPage = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+const SidebarPage = ({ isSidebarOpen, toggleSidebar }) => {
   const [language, setLanguage] = useState("en");
   const location = useLocation();
   const { roles } = useAuth();
 
   const handleToggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
+    toggleSidebar();
   };
 
   const handleLanguageChange = (lang) => {
@@ -50,7 +49,7 @@ const SidebarPage = () => {
   );
 
   return (
-    <div className="fixed top-19 left-0 z-40 h-screen">
+    <div className={`h-screen`}>
       <div className="absolute top-4 left-2 p-2 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
         <button
           onClick={handleToggleSidebar}

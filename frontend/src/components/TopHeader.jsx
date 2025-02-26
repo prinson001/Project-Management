@@ -11,11 +11,13 @@ import {
 } from "lucide-react";
 import logo from "../assets/rakias-logo.png";
 import userPicture from "../assets/userlogo.png";
+import useAuth from "../hooks/userAuth";
 
 const TopHeader = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAppsOpen, setIsAppsOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const { email, roles } = useAuth();
 
   const profileRef = useRef(null);
   const appsRef = useRef(null);
@@ -90,6 +92,11 @@ const TopHeader = () => {
           </div>
 
           <div className="flex items-center lg:order-2">
+            {/* User Role */}
+            <span className="mr-3 font-bold text-gray-600 dark:text-gray-400">
+              {roles}
+            </span>
+
             {/* Notifications */}
             <button
               type="button"
@@ -182,10 +189,7 @@ const TopHeader = () => {
                 >
                   <div className="py-3 px-4">
                     <span className="block text-sm font-semibold text-gray-900 dark:text-white">
-                      Neil Sims
-                    </span>
-                    <span className="block text-sm text-gray-500 truncate dark:text-gray-400">
-                      name@flowbite.com
+                      {email}
                     </span>
                   </div>
                   <ul

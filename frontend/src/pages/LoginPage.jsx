@@ -23,7 +23,7 @@ const LoginPage = () => {
         const data = response.data;
         console.log("Data", data);
         setToken(data.token);
-        navigate("/sidebar");
+        navigate("/home"); // Redirect to the home page after successful login
       } else {
         console.error("Login failed");
       }

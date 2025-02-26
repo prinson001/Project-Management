@@ -1,17 +1,21 @@
 import React from "react";
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import useAuth from "../hooks/userAuth";
 
-const ProtectedRoute = ({ allowedRoles }) => {
-  const { roles } = useAuth();
-  console.log("roles in ProtectedRoute", roles);
+const ProtectedRoute = ({ allowedRoles, children }) => {
+  const { roles, token } = useAuth();
+
+  if (!token) {
+    return <Navigate to="/" />;
+  }
+
   const hasAccess = allowedRoles.includes(roles);
 
   if (!hasAccess) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/" />;
   }
 
-  return <Outlet />;
+  return children;
 };
 
 export default ProtectedRoute;
