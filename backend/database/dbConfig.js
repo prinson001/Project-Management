@@ -88,10 +88,25 @@ const createVendorTable = async (req, res) => {
   }
 };
 
+const createTableRole = async (req, res) => {
+  try {
+    const result = await sql`CREATE TABLE role (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(50) UNIQUE NOT NULL 
+    )`;
+    res.status(200);
+    res.json({ status: "success", result });
+  } catch (e) {
+    res.status(500);
+    throw new Error("Error creating role table");
+  }
+};
+
 module.exports = {
   createUsersTable,
   createInitiativeTable,
   createDepartmentTable,
   createObjectiveTable,
   createVendorTable,
+  createTableRole,
 };
