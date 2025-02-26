@@ -14,7 +14,7 @@ import TasksPage from "./pages/TasksPage";
 import DataManagementPage from "./pages/DataManagementPage";
 import DashboardPage from "./pages/DashboardPage";
 import ActivitiesPage from "./pages/ActivitiesPage";
-
+import Test from "./pages/Test";
 const App = () => {
   return (
     <div>
