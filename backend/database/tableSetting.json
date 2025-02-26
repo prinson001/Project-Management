@@ -1,0 +1,35 @@
+{
+  "tableName": "initiative",
+  "setting": [
+    {
+      "columnName": "Initiative Id",
+      "dbColumn": "id",
+      "columnOrder": 0,
+      "isVisible": true
+    },
+    {
+      "columnName": "English Name",
+      "dbColumn": "name",
+      "columnOrder": 1,
+      "isVisible": true
+    },
+    {
+      "columnName": "Arabic Name",
+      "dbColumn": "name",
+      "columnOrder": 2,
+      "isVisible": true
+    },
+    {
+      "columnName": "CreatedDate",
+      "dbColumn": "created_at",
+      "columnOrder": 3,
+      "isVisible": true
+    },
+    {
+      "columnName": "Status",
+      "dbColumn": "status",
+      "columnOrder": 4,
+      "isVisible": true
+    }
+  ]
+}
