@@ -10,6 +10,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 app.use("/auth", require("./routes/authRoute"));
+app.use("/admin", require("./routes/adminRoute"));
+app.use("/db", require("./routes/tempdbConfigRoute"));
 
 //Error handler middleware to handle and structure the errror
 app.use(errorHandler);
