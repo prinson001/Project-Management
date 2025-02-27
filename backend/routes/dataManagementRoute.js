@@ -5,10 +5,16 @@ const {
   getSetting,
   getFilteredData,
 } = require("../controllers/dataManagementController");
-const { addInitiative } = require("../controllers/initiativeController");
+const {
+  addInitiative,
+  updateInitiative,
+  deleteInitiative,
+} = require("../controllers/initiativeController");
 
 router.post("/setting", getSetting);
 router.post("/data", getData);
 router.post("/filtereddata", getFilteredData);
 router.post("/addinitiative", addInitiative);
+router.post("/updateinitiative", updateInitiative);
+router.post("/deleteinitiative", deleteInitiative);
 module.exports = router;
