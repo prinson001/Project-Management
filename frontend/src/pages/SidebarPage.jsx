@@ -2,7 +2,9 @@ import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Menu, ListChecks, ChartPie, Database, Clock5 } from "lucide-react";
 import useAuth from "../hooks/userAuth";
-
+import usEnglishIcon from '../assets/usenglish.png';
+import arabicIcon from '../assets/arabic.png';
+import saudiIcon from '../assets/saudi.png'
 const SIDEBAR_ITEMS = [
   {
     name: "Tasks",
@@ -51,7 +53,7 @@ const SidebarPage = ({ isSidebarOpen, toggleSidebar }) => {
   return (
     // Remove the fixed positioning and top value to prevent overlap
     <div className="h-full">
-      <div className="absolute top-4 left-2 p-2 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 z-50">
+      <div className="absolute top-2 left-2 p-2 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 z-50">
         <button
           onClick={handleToggleSidebar}
           className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
@@ -97,11 +99,11 @@ const SidebarPage = ({ isSidebarOpen, toggleSidebar }) => {
                 language === "en" ? "border-blue-500" : "border-transparent"
               } overflow-hidden`}
             >
-              {/* <img
+              <img
                 src={usEnglishIcon}
                 alt="English"
                 className="w-full h-full object-cover"
-              /> */}
+              />
             </button>
             <button
               onClick={() => handleLanguageChange("ar")}
@@ -114,6 +116,11 @@ const SidebarPage = ({ isSidebarOpen, toggleSidebar }) => {
                 alt="Arabic"
                 className="w-full h-full object-cover"
               /> */}
+                            <img
+                src={saudiIcon}
+                alt="Arabic"
+                className="w-full h-full object-cover"
+              />
             </button>
           </div>
         </div>

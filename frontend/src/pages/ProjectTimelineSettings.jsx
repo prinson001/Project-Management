@@ -17,7 +17,8 @@ const ArrowIcon = ({
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      style={{
+      style={
+        {
         transform: direction === "up" ? "rotate(180deg)" : "rotate(0deg)",
       }}
     >
