@@ -9,7 +9,12 @@ const login = asyncHandler(async (req, res) => {
     throw new Error("email and password required");
   }
 
-  const user = await sql`select * from "users" where email =${req.body.email}`;
+  const user = await sql`
+    SELECT users.first_name , users.email,users.password , role.name  as role
+    FROM users 
+    JOIN role ON users.role_id = role.id 
+    WHERE users.email = ${req.body.email}
+    ;`;
   console.log(user);
   if (user.length == 0) {
     res.status(400);
@@ -28,7 +33,14 @@ const login = asyncHandler(async (req, res) => {
 });
 
 const generatejsonWebToken = (data) => {
-  return jwt.sign({ data }, process.env.JWT_SECRET);
+  const { password, ...userData } = data;
+  console.log(userData);
+  const token = jwt.sign(
+    { userData },
+    process.env.JWT_SECRET,
+    { expiresIn: "1h" } // Token will expire in 1 hour
+  );
+  return token;
 };
 
 const updateUserData = async (req, res) => {
