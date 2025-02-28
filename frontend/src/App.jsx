@@ -44,14 +44,14 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
-  {
-    path: "/data-management",
-    element: (
-      <ProtectedRoute allowedRoles={["PMO", "DEPUTY"]}>
-        <DataManagementPage />
-      </ProtectedRoute>
-    ),
-  },
+  // {
+  //   path: "/data-management",
+  //   element: (
+  //     <ProtectedRoute allowedRoles={["PMO", "DEPUTY"]}>
+  //       <DataManagementPage />
+  //     </ProtectedRoute>
+  //   ),
+  // },
   {
     path: "/dashboard",
     element: (
@@ -71,6 +71,10 @@ export const router = createBrowserRouter([
   {
     path: "/test",
     element: <Test />,
+  },
+  {
+    path: "/data-management",
+    element: <DataManagementPage />,
   },
 ]);
 

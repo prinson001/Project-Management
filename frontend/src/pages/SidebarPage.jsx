@@ -33,7 +33,7 @@ const SIDEBAR_ITEMS = [
 const SidebarPage = ({ isSidebarOpen, toggleSidebar }) => {
   const [language, setLanguage] = useState("en");
   const location = useLocation();
-  const { roles } = useAuth();
+  const { role } = useAuth();
 
   const handleToggleSidebar = () => {
     toggleSidebar();
@@ -45,12 +45,13 @@ const SidebarPage = ({ isSidebarOpen, toggleSidebar }) => {
   };
 
   const filteredSidebarItems = SIDEBAR_ITEMS.filter((item) =>
-    item.roles.includes(roles)
+    item.roles.includes(role)
   );
 
   return (
-    <div className={`h-screen`}>
-      <div className="absolute top-4 left-2 p-2 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
+    // Remove the fixed positioning and top value to prevent overlap
+    <div className="h-full">
+      <div className="absolute top-4 left-2 p-2 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 z-50">
         <button
           onClick={handleToggleSidebar}
           className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
@@ -59,12 +60,12 @@ const SidebarPage = ({ isSidebarOpen, toggleSidebar }) => {
         </button>
       </div>
       <div
-        className={`h-full pt-16 overflow-y-auto transition-transform ${
+        className={`h-full overflow-y-auto transition-all duration-300 ${
           isSidebarOpen ? "w-64" : "w-20"
-        } bg-white dark:bg-gray-800`}
+        } bg-white dark:bg-gray-800 shadow-lg`}
       >
         <div className="h-full flex flex-col justify-between">
-          <nav className="mt-8 flex-grow">
+          <nav className="mt-16 flex-grow">
             <ul className="space-y-2 font-medium">
               {filteredSidebarItems.map((item) => (
                 <li key={item.href}>

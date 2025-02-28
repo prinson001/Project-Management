@@ -17,7 +17,7 @@ const TopHeader = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAppsOpen, setIsAppsOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const { email, roles } = useAuth();
+  const { email, role } = useAuth();
 
   const profileRef = useRef(null);
   const appsRef = useRef(null);
@@ -94,7 +94,7 @@ const TopHeader = () => {
           <div className="flex items-center lg:order-2">
             {/* User Role */}
             <span className="mr-3 font-bold text-gray-600 dark:text-gray-400">
-              {roles}
+              {role}
             </span>
 
             {/* Notifications */}

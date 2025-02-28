@@ -4,9 +4,9 @@ import SidebarPage from "./SidebarPage";
 import useAuth from "../hooks/userAuth";
 const HomePage = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const { email, roles } = useAuth();
+  const { email, role } = useAuth();
   console.log("email in HomePage", email);
-  console.log("roles in HomePage", roles);
+  console.log("role in HomePage", role);
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };

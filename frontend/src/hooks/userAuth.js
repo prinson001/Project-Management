@@ -10,21 +10,23 @@ const useAuth = () => {
     let isAdmin = false;
     let isUser = false;
     let status = 'Employee';
-    let roles = '';
+    let role = '';
 
     if (token) {
         try {
+            console.log('token in auth', token)
             let decoded = jwtDecode(token);
-            decoded = decoded.data;
-            const { roles: decodedRoles, email: decodedEmail } = decoded;
-            roles = decodedRoles || '';
+
+            decoded=decoded.userData;
+            const { role: decodedRoles, email: decodedEmail } = decoded;
+            role = decodedRoles || '';
             email = decodedEmail || '';
 
-            isPM = roles === 'PM';
-            isPMO = roles === 'PMO';
-            isDeputy = roles === 'DEPUTY';
-            isAdmin = roles === 'ADMIN';
-            isUser = roles === 'USER';
+            isPM = role === 'PM';
+            isPMO = role === 'PMO';
+            isDeputy = role === 'DEPUTY';
+            isAdmin = role === 'ADMIN';
+            isUser = role === 'USER';
 
             if (isPM) status = 'PM';
             if (isPMO) status = 'PMO';
@@ -32,14 +34,14 @@ const useAuth = () => {
             if (isAdmin) status = 'ADMIN';
             if (isUser) status = 'USER';
 
-            return { email, roles, status, isPM, isPMO, isDeputy, isAdmin, isUser, token };
+            return { email, role, status, isPM, isPMO, isDeputy, isAdmin, isUser, token };
         } catch (error) {
             console.error("Error decoding token:", error);
-            return { email: '', roles: '', status: 'Employee', isPM: false, isPMO: false, isDeputy: false, isAdmin: false, isUser: false, token: null };
+            return { email: '', role: '', status: 'Employee', isPM: false, isPMO: false, isDeputy: false, isAdmin: false, isUser: false, token: null };
         }
     }
 
-    return { email: '', roles: '', status: 'Employee', isPM: false, isPMO: false, isDeputy: false, isAdmin: false, isUser: false, token: null };
+    return { email: '', role: '', status: 'Employee', isPM: false, isPMO: false, isDeputy: false, isAdmin: false, isUser: false, token: null };
 };
 
 export default useAuth;
