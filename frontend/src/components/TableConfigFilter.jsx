@@ -250,9 +250,7 @@ const TableConfigFilter = ({
             {/* Dropdown Button */}
             <button
               onClick={toggleDropdown2}
-              className="text-white bg-blue-700 hover:bg-blue-800  focus:outline-none 
-           font-medium rounded-lg text-sm ml-4 px-5 py-2.5 text-center 
-          inline-flex items-center dark:bg-blue-600 dark:hover:bg-blue-700 "
+              className="text-white bg-blue-700 hover:bg-blue-800 focus:outline-none font-medium rounded-lg text-sm ml-4 px-5 py-2.5 text-center inline-flex items-center dark:bg-blue-600 dark:hover:bg-blue-700"
             >
               {selectedOption}
               <svg
@@ -274,41 +272,34 @@ const TableConfigFilter = ({
 
             {/* Dropdown Menu */}
             {isOpen2 && (
-              <div
-                className="absolute left-0 mt-2 w-44 bg-white divide-y divide-gray-100 rounded-lg shadow-sm 
-            dark:bg-gray-700 z-10"
-              >
-                <ul className="py-2 text-sm text-gray-700 dark:text-gray-200">
-                  <li
-                    onClick={() => DaysFilterOptionClickHandler("last7days")}
-                    className="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
-                  >
-                    Last 7 days
-                  </li>
-                  <li
-                    onClick={() => DaysFilterOptionClickHandler("currentMonth")}
-                    className="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
-                  >
-                    1 month
-                  </li>
-                  <li
-                    onClick={() => DaysFilterOptionClickHandler("last2months")}
-                    className="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
-                  >
-                    2 months
-                  </li>
-                  <li
-                    onClick={() => DaysFilterOptionClickHandler("last3months")}
-                    className="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
-                  >
-                    3 months
-                  </li>
-                  <li
-                    onClick={() => DaysFilterOptionClickHandler("all")}
-                    className="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
-                  >
-                    All
-                  </li>
+              <div className="absolute left-0 mt-2 w-96 bg-white divide-y divide-gray-100 rounded-lg shadow-lg dark:bg-gray-700 z-10">
+                <ul className="grid grid-cols-2 gap-2 p-2">
+                  {[
+                    { label: "Today", value: "Today" },
+                    { label: "This Week", value: "This Week" },
+                    { label: "This Month", value: "This Month" },
+                    { label: "Last 3 Months", value: "Last 3 Months" },
+                    { label: "All", value: "all" },
+                  ].map((option) => (
+                    <li
+                      key={option.value}
+                      onClick={() => DaysFilterOptionClickHandler(option.value)}
+                      className={`
+              p-3 text-sm rounded-md cursor-pointer transition-all
+              flex items-center justify-center
+              border-2
+              ${
+                selectedOption === option.label
+                  ? "border-blue-500 bg-blue-50 dark:bg-gray-600"
+                  : "border-transparent hover:border-gray-200"
+              }
+              hover:bg-gray-100 dark:hover:bg-gray-600
+              dark:text-gray-200 dark:hover:text-white
+            `}
+                    >
+                      {option.label}
+                    </li>
+                  ))}
                 </ul>
               </div>
             )}
