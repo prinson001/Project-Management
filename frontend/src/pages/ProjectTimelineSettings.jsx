@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 
 // ArrowIcon Component
 const ArrowIcon = ({
@@ -14,11 +15,10 @@ const ArrowIcon = ({
       viewBox="0 0 24 24"
       fill="none"
       stroke={color}
-      strokeWidth="2"
+      strokeWidth="3"
       strokeLinecap="round"
       strokeLinejoin="round"
-      style={
-        {
+      style={{
         transform: direction === "up" ? "rotate(180deg)" : "rotate(0deg)",
       }}
     >
@@ -32,7 +32,18 @@ const ArrowIcon = ({
 const WeekDropdown = ({
   value,
   onChange,
-  options = ["1 weeks", "2 weeks", "4 weeks", "5 weeks", "7 weeks", "10 weeks"],
+  options = [
+    "1 weeks",
+    "2 weeks",
+    "3 weeks",
+    "4 weeks",
+    "5 weeks",
+    "6 weeks",
+    "7 weeks",
+    "8 weeks",
+    "9 weeks",
+    "10 weeks",
+  ],
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -51,7 +62,7 @@ const WeekDropdown = ({
       </div>
 
       {isOpen && (
-        <div className="absolute z-10 mt-1 w-full bg-white border rounded shadow-lg">
+        <div className="absolute z-10 mt-1 w-full h-[200px] bg-white border rounded shadow-lg overflow-y-scroll">
           {options.map((option) => (
             <div
               key={option}
@@ -73,14 +84,7 @@ const WeekDropdown = ({
 };
 
 // RangeSettingsDropdown Component
-const RangeSettingsDropdown = ({ isOpen, onClose, onSave }) => {
-  const [ranges, setRanges] = useState([
-    { id: 1, name: "Range 1", min: 0, max: 1 },
-    { id: 2, name: "Range 2", min: 1, max: 3 },
-    { id: 3, name: "Range 3", min: 3, max: 6 },
-    { id: 4, name: "Range 4", min: 6, max: null },
-  ]);
-
+const RangeSettingsDropdown = ({ isOpen, onClose, onSave, budgetRanges }) => {
   const handleInputChange = (e, index, field) => {
     const value = e.target.value;
     if (!isNaN(value) || value === "") {
@@ -91,11 +95,11 @@ const RangeSettingsDropdown = ({ isOpen, onClose, onSave }) => {
   };
 
   const handleSave = () => {
-    if (ranges.some((range) => range.min >= range.max)) {
+    if (budgetRanges.some((range) => range.min >= range.max)) {
       alert("Invalid range: Min must be less than Max.");
       return;
     }
-    onSave(ranges);
+    onSave(budgetRanges);
     onClose();
   };
 
@@ -123,7 +127,7 @@ const RangeSettingsDropdown = ({ isOpen, onClose, onSave }) => {
         {/* Body */}
         <div className="p-3">
           <div className="space-y-2">
-            {ranges.map((range, index) => (
+            {budgetRanges.map((range, index) => (
               <div
                 key={range.id}
                 className="grid grid-cols-12 gap-1 items-center"
@@ -218,52 +222,38 @@ const ProjectTimelineSettings = () => {
   const [selectedTab, setSelectedTab] = useState(
     "Expected activities duration"
   );
+  let range = [];
   const [showRangeSettings, setShowRangeSettings] = useState(false);
+  const [budgetRanges, setbudgetRanges] = useState([]);
+  const [timelineData, setTimelineData] = useState([]);
+  const [changesToSave, setChangesToSave] = useState([]);
+  useEffect(() => {
+    const fetchranges = async () => {
+      try {
+        const result = await axios.get("http://localhost:4000/db/rbudgetrange");
+        console.log("Fetched Data:", result.data.data);
+        setbudgetRanges(result.data.data.map((item) => ({ ...item })));
+      } catch (e) {
+        console.log(e);
+      }
+    };
+    const fetchPhaseData = async () => {
+      try {
+        const result = await axios.get(
+          "http://localhost:4000/db/rphaseduration"
+        );
+        console.log("the fetched data");
+        console.log(result);
+        setTimelineData(result.data.data.map((item) => ({ ...item })));
+      } catch (e) {
+        console.log(e);
+      }
+    };
+    fetchranges();
+    fetchPhaseData();
+  }, []);
 
-  const [timelineData, setTimelineData] = useState([
-    {
-      phase: "Prepare RFP",
-      budgetUnder1M: "2 weeks",
-      budget1Mto3M: "5 weeks",
-      budget3Mto6M: "7 weeks",
-      budgetOver6M: "10 weeks",
-    },
-    {
-      phase: "RFP Releasing Procedures",
-      budgetUnder1M: "2 weeks",
-      budget1Mto3M: "2 weeks",
-      budget3Mto6M: "2 weeks",
-      budgetOver6M: "2 weeks",
-    },
-    {
-      phase: "Bidding Duration",
-      budgetUnder1M: "2 weeks",
-      budget1Mto3M: "4 weeks",
-      budget3Mto6M: "7 weeks",
-      budgetOver6M: "4 weeks",
-    },
-    {
-      phase: "Technical and financial evaluation",
-      budgetUnder1M: "1 weeks",
-      budget1Mto3M: "2 weeks",
-      budget3Mto6M: "2 weeks",
-      budgetOver6M: "2 weeks",
-    },
-    {
-      phase: "Contract preparation",
-      budgetUnder1M: "2 weeks",
-      budget1Mto3M: "2 weeks",
-      budget3Mto6M: "2 weeks",
-      budgetOver6M: "2 weeks",
-    },
-    {
-      phase: "Waiting period before execution starts",
-      budgetUnder1M: "1 weeks",
-      budget1Mto3M: "1 weeks",
-      budget3Mto6M: "1 weeks",
-      budgetOver6M: "1 weeks",
-    },
-  ]);
+  // Track when state is updated
 
   const tabs = [
     "Main Roles",
@@ -272,16 +262,63 @@ const ProjectTimelineSettings = () => {
     "Expected activities duration",
   ];
 
-  const handleWeekChange = (rowIndex, columnKey, newValue) => {
-    const updatedData = [...timelineData];
-    updatedData[rowIndex][columnKey] = newValue;
-    setTimelineData(updatedData);
+  const handleWeekChange = (phaseId, rangeId, newValue) => {
+    setTimelineData((prevData) =>
+      prevData.map((phase) => {
+        if (phase.phase_id === phaseId) {
+          return {
+            ...phase,
+            budget_durations: {
+              ...phase.budget_durations,
+              [rangeId]: {
+                ...phase.budget_durations?.[rangeId],
+                duration_weeks: parseInt(newValue) || 0,
+              },
+            },
+          };
+        }
+        return phase;
+      })
+    );
+    setChangesToSave((prevChanges) => {
+      // Remove existing entry if present
+      const filtered = prevChanges.filter(
+        (change) =>
+          !(change.phase_id === phaseId && change.range_id === rangeId)
+      );
+
+      // Add new entry
+      return [
+        ...filtered,
+        {
+          phase_id: phaseId,
+          range_id: rangeId,
+          duration_weeks: Number(newValue.split(" ")[0]),
+        },
+      ];
+    });
+    console.log(changesToSave);
   };
 
   const handleRangeSettingsSave = (ranges) => {
     console.log("Saved ranges:", ranges);
     // Here you would update your application state with the new ranges
   };
+
+  async function saveData() {
+    console.log("save button clicked");
+    try {
+      const result = await axios.post(
+        "http://localhost:4000/db/updatephaseduration",
+        {
+          updates: changesToSave,
+        }
+      );
+      console.log(result);
+    } catch (e) {
+      console.log(e);
+    }
+  }
 
   return (
     <div className="max-w-6xl mx-auto p-4 bg-white">
@@ -329,58 +366,44 @@ const ProjectTimelineSettings = () => {
                   <th className="border p-2 bg-gray-50 text-left text-sm font-medium text-gray-700">
                     Phase
                   </th>
-                  <th className="border p-2 bg-gray-50 text-left text-sm font-medium text-gray-700">
-                    Budget &lt; 1M
-                  </th>
-                  <th className="border p-2 bg-gray-50 text-left text-sm font-medium text-gray-700">
-                    1M &gt; Budget &lt; 3M
-                  </th>
-                  <th className="border p-2 bg-gray-50 text-left text-sm font-medium text-gray-700">
-                    3M &gt; Budget &lt; 6M
-                  </th>
-                  <th className="border p-2 bg-gray-50 text-left text-sm font-medium text-gray-700">
-                    Budget &gt; 6M
-                  </th>
+                  {budgetRanges.map((range, index) => {
+                    return (
+                      <th
+                        key={index}
+                        className="border p-2 bg-gray-50 text-left text-sm font-medium text-gray-700"
+                      >
+                        {index === 0
+                          ? `Budget < ${range.min}`
+                          : index === budgetRanges.length - 1
+                          ? `Budget > ${range.min}`
+                          : `${range.min} < Budget < ${range.max}`}
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
+
               <tbody>
                 {timelineData.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
+                  <tr key={row.phase_id}>
+                    {/* Better to use unique ID instead of rowIndex */}
                     <td className="border p-2 text-sm text-blue-600 font-medium">
-                      {row.phase}
+                      {row.phase_name}
                     </td>
-                    <td className="border p-2">
-                      <WeekDropdown
-                        value={row.budgetUnder1M}
-                        onChange={(value) =>
-                          handleWeekChange(rowIndex, "budgetUnder1M", value)
-                        }
-                      />
-                    </td>
-                    <td className="border p-2">
-                      <WeekDropdown
-                        value={row.budget1Mto3M}
-                        onChange={(value) =>
-                          handleWeekChange(rowIndex, "budget1Mto3M", value)
-                        }
-                      />
-                    </td>
-                    <td className="border p-2">
-                      <WeekDropdown
-                        value={row.budget3Mto6M}
-                        onChange={(value) =>
-                          handleWeekChange(rowIndex, "budget3Mto6M", value)
-                        }
-                      />
-                    </td>
-                    <td className="border p-2">
-                      <WeekDropdown
-                        value={row.budgetOver6M}
-                        onChange={(value) =>
-                          handleWeekChange(rowIndex, "budgetOver6M", value)
-                        }
-                      />
-                    </td>
+                    {budgetRanges.map((range) => (
+                      <td key={range.id} className="border p-2 bg-amber-50">
+                        {" "}
+                        {/* Added key */}
+                        <WeekDropdown
+                          value={`${
+                            row.budget_durations[range.id]?.duration_weeks || 0
+                          } weeks`}
+                          onChange={(value) =>
+                            handleWeekChange(row.phase_id, range.id, value)
+                          }
+                        />
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>
@@ -397,7 +420,10 @@ const ProjectTimelineSettings = () => {
 
           {/* Save Button */}
           <div className="mt-4">
-            <button className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded text-sm">
+            <button
+              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded text-sm"
+              onClick={saveData}
+            >
               Save
             </button>
           </div>
@@ -407,6 +433,7 @@ const ProjectTimelineSettings = () => {
       {/* Range Settings Modal */}
       <RangeSettingsDropdown
         isOpen={showRangeSettings}
+        budgetRanges={budgetRanges}
         onClose={() => setShowRangeSettings(false)}
         onSave={handleRangeSettingsSave}
       />

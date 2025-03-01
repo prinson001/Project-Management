@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { format, differenceInCalendarDays } from "date-fns";
+import { constructFromSymbol } from "date-fns/constants";
+import axios from "axios";
 
 const TableData = ({ tableData, showDate, sortTableData, columnSetting }) => {
   const [openAccordion, setOpenAccordion] = useState(null);
-
+  const [changedinput, setChangedinput] = useState({});
   const toggleAccordion = (index) => {
     setOpenAccordion(openAccordion === index ? null : index);
   };
@@ -31,6 +33,36 @@ const TableData = ({ tableData, showDate, sortTableData, columnSetting }) => {
     console.log(name, order);
   }
 
+  function handleInputDataChange(e) {
+    const { dbcolumn } = e.target.dataset;
+    const rowId = e.target.dataset.rowid;
+    const value = e.target.value;
+
+    setChangedinput((prev) => ({
+      ...prev,
+      [rowId]: {
+        ...prev[rowId], // Preserve existing changes for this row
+        [dbcolumn]: value,
+      },
+    }));
+    console.log(changedinput);
+  }
+
+  async function handleBackendSubmit(e) {
+    e.preventDefault();
+    console.log(changedinput);
+    try {
+      const result = await axios.post(
+        "http://localhost:4000/admin/updateactivityduration",
+        {
+          data: changedinput,
+        }
+      );
+      console.log(result);
+    } catch (e) {
+      console.log(e);
+    }
+  }
   return (
     <>
       <div className="relative flex-1 overflow-x-auto rounded-lg shadow-md">
@@ -86,12 +118,12 @@ const TableData = ({ tableData, showDate, sortTableData, columnSetting }) => {
               key={index}
               className="border-b border-gray-200 dark:border-gray-700"
             >
-              <button
+              {/* <button
                 onClick={() => toggleAccordion(index)}
                 className="w-full text-left bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                <div className="grid grid-cols-7 gap-4 px-6 py-4">
-                  {/* {columnSetting.map(
+              > */}
+              <div className="grid grid-cols-7 gap-4 px-6 py-4">
+                {/* {columnSetting.map(
                     (current) =>
                       current.isVisible && (
                         <div
@@ -119,36 +151,75 @@ const TableData = ({ tableData, showDate, sortTableData, columnSetting }) => {
                         </div>
                       )
                   )} */}
-                  {columnSetting.map(
-                    (current) =>
-                      current.isVisible && (
-                        <div
-                          key={current.dbColumn}
-                          className={`${
-                            current.dbColumn === "status" ||
-                            current.dbColumn === "projectName"
-                              ? "font-bold"
-                              : ""
-                          } ${
-                            current.dbColumn === "status"
-                              ? item.status === "Done"
-                                ? "text-green-500"
-                                : item.status === "Open"
-                                ? "text-yellow-500"
-                                : "text-red-500"
-                              : ""
-                          }`}
-                        >
-                          {current.dbColumn === "created_at"
-                            ? showDate
-                              ? item[current.dbColumn]
-                              : getRelativeDate(item[current.dbColumn])
-                            : item[current.dbColumn]}
-                        </div>
-                      )
-                  )}
+                {columnSetting.map(
+                  (current) =>
+                    current.isVisible && (
+                      <div
+                        className={
+                          // Check if this field has changes
+                          changedinput[item.id]?.[current.dbColumn] !==
+                            undefined &&
+                          changedinput[item.id][current.dbColumn] !==
+                            item[current.dbColumn]
+                            ? "bg-amber-100 border-2 border-amber-500"
+                            : ""
+                        }
+                        key={current.dbColumn}
+                        // className={`${
+                        //   current.dbColumn === "status" ||
+                        //   current.dbColumn === "projectName"
+                        //     ? "font-bold"
+                        //     : ""
+                        // } ${
+                        //   current.dbColumn === "status"
+                        //     ? item.status === "Done"
+                        //       ? "text-green-500"
+                        //       : item.status === "Open"
+                        //       ? "text-yellow-500"
+                        //       : "text-red-500"
+                        //     : ""
+                        // }`}
+                      >
+                        {current.isInput ? (
+                          current.dbColumn === "created_at" ? (
+                            showDate ? (
+                              item[current.dbColumn]
+                            ) : (
+                              getRelativeDate(item[current.dbColumn])
+                            )
+                          ) : (
+                            <input
+                              className="w-full h-full"
+                              type={current.type}
+                              data-dbcolumn={current.dbColumn}
+                              data-rowid={item.id} // Add unique row identifier
+                              onChange={handleInputDataChange}
+                              value={
+                                changedinput[item.id]?.[current.dbColumn] ?? // Access by row ID
+                                item[current.dbColumn]
+                              }
+                              key={`${item.id}-${current.dbColumn}`} // Unique key per row
+                            />
+                          )
+                        ) : current.dbColumn === "created_at" ? (
+                          showDate ? (
+                            item[current.dbColumn]
+                          ) : (
+                            getRelativeDate(item[current.dbColumn])
+                          )
+                        ) : (
+                          item[current.dbColumn]
+                        )}
+                      </div>
+                    )
+                )}
+                <div>
+                  <button>Edit</button>
+                  <button>Delete</button>
+                  <button onClick={() => toggleAccordion(index)}>Expand</button>
                 </div>
-              </button>
+              </div>
+              {/* </button> */}
 
               {/* Accordion Content */}
               <div
@@ -167,6 +238,7 @@ const TableData = ({ tableData, showDate, sortTableData, columnSetting }) => {
           ))}
         </div>
       </div>
+      <button onClick={(e) => handleBackendSubmit(e)}>Submit your data</button>
     </>
   );
 };

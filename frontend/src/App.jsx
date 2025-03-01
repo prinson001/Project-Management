@@ -14,6 +14,8 @@ import TasksPage from "./pages/TasksPage";
 import DataManagementPage from "./pages/DataManagementPage";
 import DashboardPage from "./pages/DashboardPage";
 import ActivitiesPage from "./pages/ActivitiesPage";
+import ProjectTimeLineSettings from "./pages/ProjectTimelineSettings";
+import Expected from "./pages/Expected";
 import Test from "./pages/Test";
 const App = () => {
   return (
@@ -75,6 +77,14 @@ export const router = createBrowserRouter([
   {
     path: "/data-management",
     element: <DataManagementPage />,
+  },
+  {
+    path: "/expected",
+    element: <Expected />,
+  },
+  {
+    path: "/phase",
+    element: <ProjectTimeLineSettings />,
   },
 ]);
 

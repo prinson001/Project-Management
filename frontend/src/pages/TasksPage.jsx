@@ -13,7 +13,7 @@ let tablefilters = {};
 let sortClause = {};
 let dateFilter = null;
 let page = 1;
-const TasksPage = () => {
+const TasksPage = ({ tableName }) => {
   const [columnSetting, setColumnSetting] = useState([]);
   const [tableData, setTableData] = useState([]);
   const [showDate, setShowDate] = useState(false);
@@ -24,9 +24,9 @@ const TasksPage = () => {
     async function getSetting() {
       try {
         const result = await axios.post(
-          "http://localhost:4000/data-management/setting",
+          `http://localhost:4000/data-management/setting`,
           {
-            tableName: "initiative",
+            tableName,
             userId: 1,
           }
         );
@@ -42,7 +42,7 @@ const TasksPage = () => {
         const result = await axios.post(
           "http://localhost:4000/data-management/data",
           {
-            tableName: "initiative",
+            tableName,
             userId: 1,
           }
         );
@@ -68,7 +68,7 @@ const TasksPage = () => {
       const result = await axios.post(
         "http://localhost:4000/data-management/filtereddata",
         {
-          tableName: "initiative",
+          tableName,
           userId: 1,
           filters: tablefilters,
           sort: sortClause,
