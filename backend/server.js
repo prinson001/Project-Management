@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const errorHandler = require("./middlewares/errorHandler");
+const cronJob = require("./services/cronJob");
 
 const app = express();
 console.log(process.env.PORT);
@@ -20,16 +21,17 @@ app.use(errorHandler);
 
 app.listen(port, (req, res) => {
   console.log(`App listening at port ${port}`);
+  cronJob();
 });
-process.on("SIGINT", () => {
-  console.log("Shutting down server gracefully...");
-  server.close(() => {
-    console.log("Server closed. Exiting process...");
-    process.exit(0);
-  });
-});
+// process.on("SIGINT", () => {
+//   console.log("Shutting down server gracefully...");
+//   server.close(() => {
+//     console.log("Server closed. Exiting process...");
+//     process.exit(0);
+//   });
+// });
 
-process.on("SIGTERM", () => {
-  console.log("Process terminated.");
-  server.close(() => process.exit(0));
-});
+// process.on("SIGTERM", () => {
+//   console.log("Process terminated.");
+//   server.close(() => process.exit(0));
+// });
