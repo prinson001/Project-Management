@@ -187,7 +187,7 @@ const TableConfigFilter = ({
             
             <button
               onClick={toggleDropdown}
-              className="text-white bg-blue-600 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+              className="text-white bg-[#546dc4] hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:bg-[#4C556C] dark:hover:bg-blue-700 dark:focus:ring-blue-800"
             >
               Filters
               <svg
@@ -209,7 +209,7 @@ const TableConfigFilter = ({
 
            
             {isOpen && (
-              <div className="absolute left-0 mt-2 w-[800px] h-[420px] bg-white divide-y divide-gray-200 rounded-2xl shadow-2xl z-20 p-6">
+              <div className="absolute left-0 mt-2 w-[800px] h-[420px] bg-white divide-y divide-gray-200 rounded-2xl shadow-2xl z-20 p-6 dark:bg-gray-700 dark:text-white">
                 <div className="grid grid-cols-3 gap-8">
                  
                   {columnSetting.map((current) => {
@@ -238,7 +238,7 @@ const TableConfigFilter = ({
                   </button>
                   <button
                     onClick={handleApply}
-                    className="bg-blue-500 hover:bg-blue-600 text-white py-3 px-6 rounded-xl shadow-md transition"
+                    className="bg-[#546dc4] hover:bg-blue-600 text-white py-3 px-6 rounded-xl shadow-md transition"
                   >
                     Apply
                   </button>
@@ -314,7 +314,7 @@ const TableConfigFilter = ({
                 {/* Dropdown Button */}
                 <button
                   onClick={toggleCustomSettingDropdown}
-                  className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+                  className="text-white bg-[#546dc4] hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:bg-[#4C556C] dark:hover:bg-blue-700 dark:focus:ring-blue-800"
                 >
                   Column Setting
                   <svg

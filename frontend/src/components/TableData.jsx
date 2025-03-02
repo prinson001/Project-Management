@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { format, differenceInCalendarDays } from "date-fns";
 import { constructFromSymbol } from "date-fns/constants";
 import axios from "axios";
@@ -6,6 +6,33 @@ import axios from "axios";
 const TableData = ({ tableData, showDate, sortTableData, columnSetting }) => {
   const [openAccordion, setOpenAccordion] = useState(null);
   const [changedinput, setChangedinput] = useState({});
+  const [columnWidths, setColumnWidths] = useState({});
+  const [resizingColumn, setResizingColumn] = useState(null);
+  const [startX, setStartX] = useState(null);
+  const [startWidth, setStartWidth] = useState(null);
+  const [totalTableWidth, setTotalTableWidth] = useState(0);
+  const [visibleColumns, setVisibleColumns] = useState([]);
+  
+  // Initialize column widths and track visible columns
+  useEffect(() => {
+    const initialWidths = {};
+    const visible = [];
+    let totalWidth = 0;
+    
+    columnSetting.forEach(column => {
+      if (column.isVisible) {
+        const width = column.width || 150;
+        initialWidths[column.dbColumn] = width;
+        totalWidth += width;
+        visible.push(column.dbColumn);
+      }
+    });
+    
+    setColumnWidths(initialWidths);
+    setTotalTableWidth(totalWidth);
+    setVisibleColumns(visible);
+  }, [columnSetting]);
+
   const toggleAccordion = (index) => {
     setOpenAccordion(openAccordion === index ? null : index);
   };
@@ -63,49 +90,109 @@ const TableData = ({ tableData, showDate, sortTableData, columnSetting }) => {
       console.log(e);
     }
   }
+  // Column resize handlers
+  const handleResizeStart = (e, columnId, columnIndex) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setResizingColumn(columnId);
+    setStartX(e.clientX);
+    setStartWidth(columnWidths[columnId] || 150);
+    
+    document.addEventListener('mousemove', handleResizeMove);
+    document.addEventListener('mouseup', handleResizeEnd);
+    
+    document.body.classList.add('resize-active');
+  };
+  
+  const handleResizeMove = (e) => {
+    if (resizingColumn && startX !== null) {
+      const diff = e.clientX - startX;
+      const newWidth = Math.max(50, startWidth + diff);
+      
+      // Get the next column to adjust its width
+      const currentIndex = visibleColumns.indexOf(resizingColumn);
+      const nextColumn = currentIndex < visibleColumns.length - 1 ? visibleColumns[currentIndex + 1] : null;
+      
+      if (nextColumn) {
+        // Calculate how much width we're adding to the current column
+        const widthDiff = newWidth - columnWidths[resizingColumn];
+        
+        // Make sure the next column doesn't get too small
+        const nextColumnNewWidth = Math.max(50, columnWidths[nextColumn] - widthDiff);
+        
+        // If the next column would get too small, limit the current column's growth
+        if (nextColumnNewWidth === 50 && columnWidths[nextColumn] - widthDiff < 50) {
+          const maxGrowth = columnWidths[nextColumn] - 50;
+          const limitedNewWidth = columnWidths[resizingColumn] + maxGrowth;
+          
+          setColumnWidths(prev => ({
+            ...prev,
+            [resizingColumn]: limitedNewWidth,
+            [nextColumn]: 50
+          }));
+        } else {
+          // Otherwise adjust both columns
+          setColumnWidths(prev => ({
+            ...prev,
+            [resizingColumn]: newWidth,
+            [nextColumn]: nextColumnNewWidth
+          }));
+        }
+      } else {
+        // If it's the last column, just resize it
+        setColumnWidths(prev => ({
+          ...prev,
+          [resizingColumn]: newWidth
+        }));
+      }
+    }
+  };
+  
+  const handleResizeEnd = () => {
+    setResizingColumn(null);
+    setStartX(null);
+    setStartWidth(null);
+    
+    document.removeEventListener('mousemove', handleResizeMove);
+    document.removeEventListener('mouseup', handleResizeEnd);
+    
+    document.body.classList.remove('resize-active');
+  };
+  
+  useEffect(() => {
+    return () => {
+      document.removeEventListener('mousemove', handleResizeMove);
+      document.removeEventListener('mouseup', handleResizeEnd);
+    };
+  }, [resizingColumn]);
   return (
     <>
       <div className="relative flex-1 overflow-x-auto rounded-lg shadow-md">
-        <div className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+        <div className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-white">
           {/* Header */}
-          <div className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 px-6 py-3 grid grid-cols-7 gap-4 font-bold">
-            {columnSetting.map((current) => {
+          <div className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-[#090b0d] dark:text-gray-400 px-6 py-3 flex font-bold">
+            {columnSetting.map((current, index) => {
               return (
                 current.isVisible && (
                   <div
                     key={current.columnName}
-                    className="cursor-pointer flex items-center justify-between"
-                    data-sort="ASC"
-                    data-name={current.dbColumn}
-                    onClick={(e) => sortDataHandler(e)}
+                    className="flex items-center justify-between relative px-2 h-full"
+                    style={{ 
+                      width: `${columnWidths[current.dbColumn]}px`,
+                      minWidth: '50px',
+                      overflow: 'hidden',
+                      borderRight: '1px solid #d1d5db' // Light mode border
+                    }}
                   >
-                    {current.columnName}
-                    <svg
-                      className="w-3 h-3 ms-1.5 inline cursor-pointer"
-                      aria-hidden="true"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
+                    <div className="truncate pr-4">{current.columnName}</div>
+                    <div
+                      className={`absolute right-0 top-0 h-full w-4 cursor-col-resize hover:bg-gray-300 dark:hover:bg-gray-600 ${
+                        resizingColumn === current.dbColumn ? 'bg-blue-400 opacity-50' : ''
+                      }`}
+                      onMouseDown={(e) => handleResizeStart(e, current.dbColumn, index)}
                     >
-                      <path d="M8.574 11.024h6.852a2.075 2.075 0 0 0 1.847-1.086 1.9 1.9 0 0 0-.11-1.986L13.736 2.9a2.122 2.122 0 0 0-3.472 0L6.837 7.952a1.9 1.9 0 0 0-.11 1.986 2.074 2.074 0 0 0 1.847 1.086Zm6.852 1.952H8.574a2.072 2.072 0 0 0-1.847 1.087 1.9 1.9 0 0 0 .11 1.985l3.426 5.05a2.123 2.123 0 0 0 3.472 0l3.427-5.05a1.9 1.9 0 0 0 .11-1.985 2.074 2.074 0 0 0-1.846-1.087Z" />
-                    </svg>
-                    <svg
-                      width="5"
-                      height="30"
-                      viewBox="0 0 5 30"
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="cursor-col-resize"
-                    >
-                      <line
-                        x1="2.5"
-                        y1="0"
-                        x2="2.5"
-                        y2="30"
-                        stroke="black"
-                        strokeWidth="5"
-                        strokeLinecap="round"
-                      />
-                    </svg>
+                      {/* <div className="h-full w-1 bg-gray-400 dark:bg-gray-500 mx-auto"></div> */}
+                    </div>
                   </div>
                 )
               );
@@ -118,68 +205,31 @@ const TableData = ({ tableData, showDate, sortTableData, columnSetting }) => {
               key={index}
               className="border-b border-gray-200 dark:border-gray-700"
             >
-              {/* <button
-                onClick={() => toggleAccordion(index)}
-                className="w-full text-left bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              > */}
-              <div className="grid grid-cols-7 gap-4 px-6 py-4">
-                {/* {columnSetting.map(
-                    (current) =>
-                      current.isVisible && (
-                        <div
-                          key={current.columnName}
-                          className={`${
-                            current.columnName === "status" ||
-                            current.columnName === "projectName"
-                              ? "font-bold"
-                              : ""
-                          } ${
-                            current.columnName === "status"
-                              ? item.status === "Done"
-                                ? "text-green-500"
-                                : item.status === "Open"
-                                ? "text-yellow-500"
-                                : "text-red-500"
-                              : ""
-                          }`}
-                        >
-                          {current.columnName === "createdDate"
-                            ? showDate
-                              ? item[current.columnName]
-                              : getRelativeDate(item[current.columnName])
-                            : item[current.columnName]}
-                        </div>
-                      )
-                  )} */}
+              <div className="flex px-6 ">
                 {columnSetting.map(
                   (current) =>
                     current.isVisible && (
                       <div
-                        className={
-                          // Check if this field has changes
+                        className={` truncate px-2 h-full ${
                           changedinput[item.id]?.[current.dbColumn] !==
                             undefined &&
                           changedinput[item.id][current.dbColumn] !==
                             item[current.dbColumn]
                             ? "bg-amber-100 border-2 border-amber-500"
                             : ""
-                        }
+                        }`}
                         key={current.dbColumn}
-                        // className={`${
-                        //   current.dbColumn === "status" ||
-                        //   current.dbColumn === "projectName"
-                        //     ? "font-bold"
-                        //     : ""
-                        // } ${
-                        //   current.dbColumn === "status"
-                        //     ? item.status === "Done"
-                        //       ? "text-green-500"
-                        //       : item.status === "Open"
-                        //       ? "text-yellow-500"
-                        //       : "text-red-500"
-                        //     : ""
-                        // }`}
+                        style={{ 
+                          width: `${columnWidths[current.dbColumn]}px`,
+                          minWidth: '50px',
+                          overflow: 'hidden',
+                          borderRight: '1px solid #000000', // Black border for data cells
+                          height: '5rem',
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}
                       >
+                        {/* Cell content remains the same */}
                         {current.isInput ? (
                           current.dbColumn === "created_at" ? (
                             showDate ? (
@@ -192,13 +242,13 @@ const TableData = ({ tableData, showDate, sortTableData, columnSetting }) => {
                               className="w-full h-full"
                               type={current.type}
                               data-dbcolumn={current.dbColumn}
-                              data-rowid={item.id} // Add unique row identifier
+                              data-rowid={item.id}
                               onChange={handleInputDataChange}
                               value={
-                                changedinput[item.id]?.[current.dbColumn] ?? // Access by row ID
+                                changedinput[item.id]?.[current.dbColumn] ?? 
                                 item[current.dbColumn]
                               }
-                              key={`${item.id}-${current.dbColumn}`} // Unique key per row
+                              key={`${item.id}-${current.dbColumn}`}
                             />
                           )
                         ) : current.dbColumn === "created_at" ? (
@@ -219,7 +269,6 @@ const TableData = ({ tableData, showDate, sortTableData, columnSetting }) => {
                   <button onClick={() => toggleAccordion(index)}>Expand</button>
                 </div>
               </div>
-              {/* </button> */}
 
               {/* Accordion Content */}
               <div
@@ -231,7 +280,6 @@ const TableData = ({ tableData, showDate, sortTableData, columnSetting }) => {
                   <div className="text-gray-600 text-center dark:text-gray-300">
                     {item.details}
                   </div>
-                  {/* Add any additional content you want to show in the expanded section */}
                 </div>
               </div>
             </div>
@@ -239,6 +287,22 @@ const TableData = ({ tableData, showDate, sortTableData, columnSetting }) => {
         </div>
       </div>
       <button onClick={(e) => handleBackendSubmit(e)}>Submit your data</button>
+      {/* Add some CSS for the resizer */}
+      <style jsx>{`
+        .cursor-col-resize {
+          cursor: col-resize;
+        }
+        
+        :global(.resize-active) {
+          cursor: col-resize !important;
+          user-select: none !important;
+          -webkit-user-select: none !important;
+        }
+        
+        .cursor-col-resize:hover .bg-gray-400 {
+          width: 2px !important;
+        }
+      `}</style>
     </>
   );
 };
