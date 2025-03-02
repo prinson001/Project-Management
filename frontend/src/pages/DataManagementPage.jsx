@@ -18,6 +18,7 @@ let dateFilter = null;
 let page = 1;
 const DataManagementPage = () => {
   const [activeTab, setActiveTab] = useState("initiatives");
+  const [activeTab, setActiveTab] = useState("initiatives");
   const [columnSetting, setColumnSetting] = useState([]);
   const [tableData, setTableData] = useState([]);
   const [showDate, setShowDate] = useState(false);
@@ -182,6 +183,7 @@ const DataManagementPage = () => {
         "http://localhost:4000/data-management/filtereddata",
         {
           tableName: activeTab.slice(0, -1), // Remove 's' from the end to get singular form
+          tableName: activeTab.slice(0, -1), // Remove 's' from the end to get singular form
           userId: 1,
           filters: tablefilters,
           sort: sortClause,
@@ -227,11 +229,13 @@ const DataManagementPage = () => {
     page = NavigatePage;
     await getFilteredData();
   }
+  
   function updateShowDateFunctionality() {
     setShowDate((state) => !state);
   }
   return (
     <>
+      <DataManagementTabs activeTab={activeTab} setActiveTab={setActiveTab} />
       <DataManagementTabs activeTab={activeTab} setActiveTab={setActiveTab} />
       <div className="flex-1 overflow-auto relative z-10 p-5 h-full">
         {/* Add button row - removed table settings button */}
