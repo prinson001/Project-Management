@@ -75,7 +75,7 @@ const TopHeader = () => {
 
   return (
     <header className="antialiased">
-      <nav className="bg-white border-gray-200 px-4 lg:px-6 py-2.5 dark:bg-gray-800">
+      <nav className="bg-white border-gray-200 px-4 lg:px-6 py-2.5 dark:bg-[#1D1D1D]">
         <div className="flex flex-wrap justify-between items-center">
           <div className="flex justify-start items-center">
             {/* Logo */}

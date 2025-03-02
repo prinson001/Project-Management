@@ -2,9 +2,9 @@ import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Menu, ListChecks, ChartPie, Database, Clock5 } from "lucide-react";
 import useAuth from "../hooks/userAuth";
-import usEnglishIcon from '../assets/usenglish.png';
-import arabicIcon from '../assets/arabic.png';
-import saudiIcon from '../assets/saudi.png'
+import usEnglishIcon from "../assets/usenglish.png";
+import arabicIcon from "../assets/arabic.png";
+import saudiIcon from "../assets/saudi.png";
 const SIDEBAR_ITEMS = [
   {
     name: "Tasks",
@@ -64,7 +64,7 @@ const SidebarPage = ({ isSidebarOpen, toggleSidebar }) => {
       <div
         className={`h-full overflow-y-auto transition-all duration-300 ${
           isSidebarOpen ? "w-64" : "w-20"
-        } bg-white dark:bg-gray-800 shadow-lg`}
+        } bg-white dark:bg-[#1D1D1D] shadow-lg`}
       >
         <div className="h-full flex flex-col justify-between">
           <nav className="mt-16 flex-grow">
@@ -86,18 +86,35 @@ const SidebarPage = ({ isSidebarOpen, toggleSidebar }) => {
                           : "text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
                       }`}
                     />
-                    {isSidebarOpen && <span className="ml-3">{item.name}</span>}
+                    <span
+                      className={`ml-3 whitespace-nowrap transition-all duration-300 ${
+                        isSidebarOpen
+                          ? "opacity-100 max-width-[200px] transform translate-x-0"
+                          : "opacity-0 max-width-0 transform -translate-x-10 pointer-events-none"
+                      }`}
+                      style={{
+                        transitionDelay: isSidebarOpen ? "150ms" : "0ms",
+                        maxWidth: isSidebarOpen ? "200px" : "0px",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {item.name}
+                    </span>
                   </Link>
                 </li>
               ))}
             </ul>
           </nav>
-          <div className="flex justify-end p-4">
+          <div
+            className={`flex justify-end p-4 transition-all duration-300 ${
+              isSidebarOpen ? "opacity-100" : "opacity-0 overflow-hidden"
+            }`}
+          >
             <button
               onClick={() => handleLanguageChange("en")}
-              className={`w-10 h-10 rounded-full border-2 ${
+              className={`w-10 h-10 rounded-full border-2 transition-all duration-300 ${
                 language === "en" ? "border-blue-500" : "border-transparent"
-              } overflow-hidden`}
+              } overflow-hidden ${isSidebarOpen ? "scale-100" : "scale-0"}`}
             >
               <img
                 src={usEnglishIcon}
@@ -107,16 +124,11 @@ const SidebarPage = ({ isSidebarOpen, toggleSidebar }) => {
             </button>
             <button
               onClick={() => handleLanguageChange("ar")}
-              className={`w-10 h-10 rounded-full border-2 ml-2 ${
+              className={`w-10 h-10 rounded-full border-2 ml-2 transition-all duration-300 ${
                 language === "ar" ? "border-blue-500" : "border-transparent"
-              } overflow-hidden`}
+              } overflow-hidden ${isSidebarOpen ? "scale-100" : "scale-0"}`}
             >
-              {/* <img
-                src={arabicIcon}
-                alt="Arabic"
-                className="w-full h-full object-cover"
-              /> */}
-                            <img
+              <img
                 src={saudiIcon}
                 alt="Arabic"
                 className="w-full h-full object-cover"
