@@ -1,33 +1,33 @@
 {
-  "tableName": "initiative",
+  "tableName": "users",
   "setting": [
     {
-      "columnName": "Initiative Id",
-      "dbColumn": "id",
+      "columnName": "First Name",
+      "dbColumn": "first_name",
       "columnOrder": 0,
       "isVisible": true
     },
     {
-      "columnName": "English Name",
-      "dbColumn": "name",
+      "columnName": "Family Name",
+      "dbColumn": "family_name",
       "columnOrder": 1,
       "isVisible": true
     },
     {
-      "columnName": "Arabic Name",
-      "dbColumn": "name",
+      "columnName": "Arabic First Name",
+      "dbColumn": "arabic_first_name",
       "columnOrder": 2,
       "isVisible": true
     },
     {
-      "columnName": "CreatedDate",
-      "dbColumn": "created_at",
+      "columnName": "Arabic Family Name",
+      "dbColumn": "arabic_family_name",
       "columnOrder": 3,
       "isVisible": true
     },
     {
-      "columnName": "Status",
-      "dbColumn": "status",
+      "columnName": "Email",
+      "dbColumn": "email",
       "columnOrder": 4,
       "isVisible": true
     }

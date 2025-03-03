@@ -1,5 +1,7 @@
 const sql = require("../database/db");
 
+//  @Description add new Initiative
+//  @Route site.com/data-management/addinitiative
 const addInitiative = async (req, res) => {
   // Check if data exists in the request body
   if (!req.body || !req.body.data || typeof req.body.data !== "object") {
@@ -76,6 +78,9 @@ const addInitiative = async (req, res) => {
     });
   }
 };
+
+//  @Description update exisiting initiative
+//  @Route site.com/data-management/updateinitiative
 const updateInitiative = async (req, res) => {
   // Check if id and data exist in the request body
   if (
@@ -183,6 +188,9 @@ const updateInitiative = async (req, res) => {
     });
   }
 };
+
+//  @Description delete exisiting initiative
+//  @Route site.com/data-management/deleteinitiative
 const deleteInitiative = async (req, res) => {
   // Check if id exists in the request body
   if (!req.body || !req.body.id) {
