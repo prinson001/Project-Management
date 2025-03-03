@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 
-const DataManagementTabs = () => {
-  const [activeTab, setActiveTab] = useState("initiatives");
-
+const DataManagementTabs = ({ activeTab, setActiveTab }) => {
   const tabs = [
     { id: "initiatives", label: "Initiatives", disabled: false },
     { id: "portfolio", label: "Portfolio", disabled: false },
@@ -15,31 +13,7 @@ const DataManagementTabs = () => {
     { id: "documents", label: "Documents", disabled: false },
   ];
 
-  const getTabContent = (tabId) => {
-    switch (tabId) {
-      case "initiatives":
-        return <div className="p-4">Initiatives content goes here</div>;
-      case "portfolio":
-        return <div className="p-4">Portfolio content goes here</div>;
-      case "programs":
-        return <div className="p-4">Programs content goes here</div>;
-      case "projects":
-        return <div className="p-4">Projects content goes here</div>;
-      case "objectives":
-        return <div className="p-4">Objectives content goes here</div>;
-      case "departments":
-        return <div className="p-4">Departments content goes here</div>;
-      case "vendors":
-        return <div className="p-4">Vendors content goes here</div>;
-      case "team":
-        return <div className="p-4">Team content goes here</div>;
-      case "documents":
-        return <div className="p-4">Documents content goes here</div>;
-      default:
-        return <div className="p-4">Select a tab to view content</div>;
-    }
-  };
-
+  // Remove the getTabContent function as we'll handle content in the parent component
   return (
     <div className="w-full max-w-6xl mx-auto">
       <div className="text-sm font-medium text-center text-gray-500 border-b border-gray-200 dark:text-gray-400 dark:border-gray-700">
@@ -70,9 +44,6 @@ const DataManagementTabs = () => {
             </li>
           ))}
         </ul>
-      </div>
-      <div className="mt-4 bg-white rounded-b-lg shadow-sm dark:bg-gray-800">
-        {getTabContent(activeTab)}
       </div>
     </div>
   );

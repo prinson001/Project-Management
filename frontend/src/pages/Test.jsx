@@ -3,6 +3,7 @@ import TopHeader from "../components/TopHeader";
 import SidebarPage from "./SidebarPage";
 import useAuth from "../hooks/userAuth";
 import DataManagementPage from "./DataManagementPage";
+import Accordion from "../components/Accordion"; // Import the new Accordion component
 
 const HomePage = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -14,16 +15,28 @@ const HomePage = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-col h-screen overflow-hidden bg-gray-50 dark:bg-black">
       <TopHeader />
-      {/* Add pt-14 to create space for the TopHeader which is approximately 3.75rem tall */}
-      <div className="flex flex-1 overflow-hidden relative ">
+      <div className="flex flex-1 overflow-hidden relative">
         <SidebarPage
           isSidebarOpen={isSidebarOpen}
           toggleSidebar={toggleSidebar}
         />
         <main className="flex-1 overflow-auto p-4">
-          <DataManagementPage />
+          <Accordion
+            title="Data Management"
+            defaultOpen={true}
+            className="mb-4"
+          >
+            <DataManagementPage />
+          </Accordion>
+
+          {/* You can add more accordions with other content */}
+          {/* 
+          <Accordion title="Another Section" defaultOpen={false} className="mb-4">
+            <OtherComponent />
+          </Accordion>
+          */}
         </main>
       </div>
     </div>
