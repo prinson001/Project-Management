@@ -4,6 +4,7 @@ import SidebarPage from "./SidebarPage";
 import useAuth from "../hooks/userAuth";
 import DataManagementPage from "./DataManagementPage";
 import Accordion from "../components/Accordion"; // Import the new Accordion component
+import { Toaster } from "sonner";
 
 const HomePage = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -16,6 +17,7 @@ const HomePage = () => {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-gray-50 dark:bg-black">
+      <Toaster position="top-center" richColors/>
       <TopHeader />
       <div className="flex flex-1 overflow-hidden relative">
         <SidebarPage
