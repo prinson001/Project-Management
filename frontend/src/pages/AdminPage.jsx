@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import TopHeader from "../components/TopHeader";
 import SidebarPage from "./SidebarPage";
 import useAuth from "../hooks/userAuth";
-import DataManagementPage from "./DataManagementPage";
 import Accordion from "../components/Accordion"; // Import the new Accordion component
 import TasksPage from "./TasksPage";
 import SystemSettingsPage from "./SystemSettingsPage";

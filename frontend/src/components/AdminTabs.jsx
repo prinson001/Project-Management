@@ -44,4 +44,4 @@ const AdminTabs = ({ activeTab, setActiveTab }) => {
   );
 };
 
-export default DataManagementTabs;
+export default AdminTabs;

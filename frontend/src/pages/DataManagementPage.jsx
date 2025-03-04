@@ -905,12 +905,12 @@ const DataManagementPage = () => {
         ></TableConfigFilter>
         {/* Add a container with overflow handling for the resizable table */}
         <div className="overflow-x-auto">
-          <TableData
+          {/* <TableData
             tableData={tableData}
             showDate={showDate}
             sortTableData={sortTableData}
             columnSetting={columnSetting}
-          ></TableData>
+          ></TableData> */}
         </div>
         {/* <Pagination pagination={pagination} getPageData={getPageData} /> */}
         {/* Add global CSS for resizable columns */}
