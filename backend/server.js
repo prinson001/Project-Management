@@ -15,6 +15,7 @@ app.use("/auth", require("./routes/authRoute"));
 app.use("/admin", require("./routes/adminRoute"));
 app.use("/db", require("./routes/tempdbConfigRoute"));
 app.use("/data-management", require("./routes/dataManagementRoute"));
+app.use("/pm", require("./routes/pmRoute"));
 
 //Error handler middleware to handle and structure the errror
 app.use(errorHandler);

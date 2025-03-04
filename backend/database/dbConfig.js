@@ -597,6 +597,181 @@ const createTableProgram = async (req, res) => {
   }
 };
 
+const createTypeProjectCategory = async (req, res) => {
+  try {
+    const result = await sql`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'project_category') THEN
+          CREATE TYPE project_category AS ENUM ('capex', 'opex');
+        END IF;
+      END$$;
+    `;
+
+    res.status(200).json({
+      status: "success",
+      message: "Created type project_category successfully",
+      result,
+    });
+  } catch (e) {
+    res.status(500).json({ status: "failure", message: e.message });
+  }
+};
+
+// Create project_type table
+const createTableProjectType = async (req, res) => {
+  try {
+    const result = await sql`CREATE TABLE IF NOT EXISTS project_type (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(50) UNIQUE NOT NULL,
+      description TEXT
+    )`;
+
+    res.status(200).json({
+      status: "success",
+      message: "Created table project_type successfully",
+      result,
+    });
+  } catch (e) {
+    res.status(500).json({ status: "failure", message: e.message });
+  }
+};
+
+// Create project_phase table
+const createTableProjectPhase = async (req, res) => {
+  try {
+    const result = await sql`CREATE TABLE IF NOT EXISTS project_phase (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(50) UNIQUE NOT NULL,
+      description TEXT,
+      order_position INT
+    )`;
+
+    res.status(200).json({
+      status: "success",
+      message: "Created table project_phase successfully",
+      result,
+    });
+  } catch (e) {
+    res.status(500).json({ status: "failure", message: e.message });
+  }
+};
+
+// Create project table
+const createTableProject = async (req, res) => {
+  try {
+    const result = await sql`CREATE TABLE IF NOT EXISTS project (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      arabic_name VARCHAR(255) ,
+      description TEXT ,
+      project_type_id INT REFERENCES project_type(id) ,
+      current_phase_id INT REFERENCES project_phase(id) ,
+      category project_category NOT NULL,
+      project_manager_id INT REFERENCES users(id) NOT NULL,
+      alternative_project_manager_id INT REFERENCES users(id),
+      execution_start_date DATE NOT NULL,
+      execution_duration INTERVAL NOT NULL,
+      maintenance_duration INTERVAL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`;
+
+    res.status(200).json({
+      status: "success",
+      message: "Created table project successfully",
+      result,
+    });
+  } catch (e) {
+    res.status(500).json({ status: "failure", message: e.message });
+  }
+};
+
+// Create timestamp update trigger for project table
+const createProjectTimestampTrigger = async (req, res) => {
+  try {
+    const result = await sql`
+      CREATE OR REPLACE FUNCTION update_timestamp()
+      RETURNS TRIGGER AS $$
+      BEGIN
+        NEW.updated_at = NOW();
+        RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+      
+      DROP TRIGGER IF EXISTS update_project_timestamp ON project;
+      
+      CREATE TRIGGER update_project_timestamp
+      BEFORE UPDATE ON project
+      FOR EACH ROW
+      EXECUTE FUNCTION update_timestamp();
+    `;
+
+    res.status(200).json({
+      status: "success",
+      message: "Created timestamp trigger for project table successfully",
+      result,
+    });
+  } catch (e) {
+    res.status(500).json({ status: "failure", message: e.message });
+  }
+};
+
+const createTableItem = async (req, res) => {
+  try {
+    const result = await sql`CREATE TABLE item (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    unit  VARCHAR(100) NOT NULL,
+    quantity NUMERIC(15,3) NOT NULL CHECK (quantity > 0),
+    unit_amount NUMERIC(15,2) NOT NULL CHECK (unit_amount >= 0),
+    total NUMERIC(15,2) GENERATED ALWAYS AS (quantity * unit_amount) STORED,
+    type VARCHAR(50),
+    project_id INT REFERENCES project(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);`;
+    res.status(200).json({
+      status: "success",
+      message: "created table item",
+      result,
+    });
+  } catch (e) {
+    res.status(500).json({
+      status: "failure",
+      message: "failed to create item table",
+      result: e.message,
+    });
+  }
+};
+
+const createTableDeliverable = async (req, res) => {
+  try {
+    const result = await sql`CREATE TABLE deliverable (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    Amount NUMERIC(15,3) NOT NULL,
+    start_date DATE ,
+    end_date DATE ,
+    Duration INTERVAL,
+    item_id INT REFERENCES item(id) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);`;
+    res.status(200).json({
+      status: "success",
+      message: "created table deliverable",
+      result,
+    });
+  } catch (e) {
+    res.status(500).json({
+      status: "failure",
+      message: "failed to create deliverable table",
+      result: e.message,
+    });
+  }
+};
+
 module.exports = {
   createUsersTable,
   createInitiativeTable,
@@ -619,4 +794,10 @@ module.exports = {
   createTableTask,
   createTablePortfolio,
   createTableProgram,
+  createTypeProjectCategory,
+  createTableProjectType,
+  createTableProjectPhase,
+  createTableProject,
+  createTableItem,
+  createTableDeliverable,
 };

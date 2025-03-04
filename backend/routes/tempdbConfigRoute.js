@@ -22,6 +22,12 @@ const {
   createTableTask,
   createTablePortfolio,
   createTableProgram,
+  createTypeProjectCategory,
+  createTableProjectType,
+  createTableProjectPhase,
+  createTableProject,
+  createTableItem,
+  createTableDeliverable,
 } = require("../database/dbConfig");
 
 router.get("/cuser", createUsersTable);
@@ -45,5 +51,11 @@ router.post("/updatephaseduration", updatePhaseDurations);
 router.get("/ctask", createTableTask);
 router.get("/cportfolio", createTablePortfolio);
 router.get("/cprogram", createTableProgram);
+router.get("/cEnumProjectCategory", createTypeProjectCategory);
+router.get("/cprojectType", createTableProjectType);
+router.get("/cprojectphase", createTableProjectPhase);
+router.get("/cproject", createTableProject);
+router.get("/citem", createTableItem);
+router.get("/cdeliverable", createTableDeliverable);
 
 module.exports = router;

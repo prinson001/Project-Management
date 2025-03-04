@@ -1,33 +1,39 @@
 {
-  "tableName": "users",
+  "tableName": "item",
   "setting": [
     {
-      "columnName": "First Name",
-      "dbColumn": "first_name",
+      "columnName": "Name",
+      "dbColumn": "name",
       "columnOrder": 0,
       "isVisible": true
     },
     {
-      "columnName": "Family Name",
-      "dbColumn": "family_name",
+      "columnName": "Unit",
+      "dbColumn": "unit",
       "columnOrder": 1,
       "isVisible": true
     },
     {
-      "columnName": "Arabic First Name",
-      "dbColumn": "arabic_first_name",
+      "columnName": "Quantity",
+      "dbColumn": "quantity",
       "columnOrder": 2,
       "isVisible": true
     },
     {
-      "columnName": "Arabic Family Name",
-      "dbColumn": "arabic_family_name",
+      "columnName": "Unit Amount",
+      "dbColumn": "unit_amount",
       "columnOrder": 3,
       "isVisible": true
     },
     {
-      "columnName": "Email",
-      "dbColumn": "email",
+      "columnName": "Total",
+      "dbColumn": "total",
+      "columnOrder": 4,
+      "isVisible": true
+    },
+    {
+      "columnName": "Type",
+      "dbColumn": "type",
       "columnOrder": 4,
       "isVisible": true
     }
