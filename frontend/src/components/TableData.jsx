@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import { format, differenceInCalendarDays } from "date-fns";
 import { constructFromSymbol } from "date-fns/constants";
+import UserAccordion from "./UserAccordion";
+import UserAccordion from "./UserAccordion";
 import axios from "axios";
-import { Edit, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Edit, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 
 const TableData = ({ tableData, showDate, sortTableData, columnSetting }) => {
   const [openAccordion, setOpenAccordion] = useState(null);
@@ -13,14 +15,17 @@ const TableData = ({ tableData, showDate, sortTableData, columnSetting }) => {
   const [startWidth, setStartWidth] = useState(null);
   const [totalTableWidth, setTotalTableWidth] = useState(0);
   const [visibleColumns, setVisibleColumns] = useState([]);
-  
+
+
   // Initialize column widths and track visible columns
   useEffect(() => {
     const initialWidths = {};
     const visible = [];
     let totalWidth = 0;
-    
-    columnSetting.forEach(column => {
+
+    columnSetting.forEach((column) => {
+
+    columnSetting.forEach((column) => {
       if (column.isVisible) {
         const width = column.width || 150;
         initialWidths[column.dbColumn] = width;
@@ -28,7 +33,8 @@ const TableData = ({ tableData, showDate, sortTableData, columnSetting }) => {
         visible.push(column.dbColumn);
       }
     });
-    
+
+
     setColumnWidths(initialWidths);
     setTotalTableWidth(totalWidth);
     setVisibleColumns(visible);
@@ -98,75 +104,122 @@ const TableData = ({ tableData, showDate, sortTableData, columnSetting }) => {
     setResizingColumn(columnId);
     setStartX(e.clientX);
     setStartWidth(columnWidths[columnId] || 150);
-    
-    document.addEventListener('mousemove', handleResizeMove);
-    document.addEventListener('mouseup', handleResizeEnd);
-    
-    document.body.classList.add('resize-active');
+
+    document.addEventListener("mousemove", handleResizeMove);
+    document.addEventListener("mouseup", handleResizeEnd);
+
+    document.body.classList.add("resize-active");
+
+    document.addEventListener("mousemove", handleResizeMove);
+    document.addEventListener("mouseup", handleResizeEnd);
+
+    document.body.classList.add("resize-active");
   };
-  
+
+
   const handleResizeMove = (e) => {
     if (resizingColumn && startX !== null) {
       const diff = e.clientX - startX;
       const newWidth = Math.max(50, startWidth + diff);
-      
+
+
       // Get the next column to adjust its width
       const currentIndex = visibleColumns.indexOf(resizingColumn);
-      const nextColumn = currentIndex < visibleColumns.length - 1 ? visibleColumns[currentIndex + 1] : null;
-      
+      const nextColumn =
+        currentIndex < visibleColumns.length - 1
+          ? visibleColumns[currentIndex + 1]
+          : null;
+
+      const nextColumn =
+        currentIndex < visibleColumns.length - 1
+          ? visibleColumns[currentIndex + 1]
+          : null;
+
       if (nextColumn) {
         // Calculate how much width we're adding to the current column
         const widthDiff = newWidth - columnWidths[resizingColumn];
-        
+
+
         // Make sure the next column doesn't get too small
-        const nextColumnNewWidth = Math.max(50, columnWidths[nextColumn] - widthDiff);
-        
+        const nextColumnNewWidth = Math.max(
+          50,
+          columnWidths[nextColumn] - widthDiff
+        );
+
+        const nextColumnNewWidth = Math.max(
+          50,
+          columnWidths[nextColumn] - widthDiff
+        );
+
         // If the next column would get too small, limit the current column's growth
-        if (nextColumnNewWidth === 50 && columnWidths[nextColumn] - widthDiff < 50) {
+        if (
+          nextColumnNewWidth === 50 &&
+          columnWidths[nextColumn] - widthDiff < 50
+        ) {
+        if (
+          nextColumnNewWidth === 50 &&
+          columnWidths[nextColumn] - widthDiff < 50
+        ) {
           const maxGrowth = columnWidths[nextColumn] - 50;
           const limitedNewWidth = columnWidths[resizingColumn] + maxGrowth;
-          
-          setColumnWidths(prev => ({
+
+          setColumnWidths((prev) => ({
+
+          setColumnWidths((prev) => ({
             ...prev,
             [resizingColumn]: limitedNewWidth,
-            [nextColumn]: 50
+            [nextColumn]: 50,
+            [nextColumn]: 50,
           }));
         } else {
           // Otherwise adjust both columns
-          setColumnWidths(prev => ({
+          setColumnWidths((prev) => ({
+          setColumnWidths((prev) => ({
             ...prev,
             [resizingColumn]: newWidth,
-            [nextColumn]: nextColumnNewWidth
+            [nextColumn]: nextColumnNewWidth,
+            [nextColumn]: nextColumnNewWidth,
           }));
         }
       } else {
         // If it's the last column, just resize it
-        setColumnWidths(prev => ({
+        setColumnWidths((prev) => ({
+        setColumnWidths((prev) => ({
           ...prev,
-          [resizingColumn]: newWidth
+          [resizingColumn]: newWidth,
+          [resizingColumn]: newWidth,
         }));
       }
     }
   };
-  
+
+
   const handleResizeEnd = () => {
     setResizingColumn(null);
     setStartX(null);
     setStartWidth(null);
-    
-    document.removeEventListener('mousemove', handleResizeMove);
-    document.removeEventListener('mouseup', handleResizeEnd);
-    
-    document.body.classList.remove('resize-active');
+
+    document.removeEventListener("mousemove", handleResizeMove);
+    document.removeEventListener("mouseup", handleResizeEnd);
+
+    document.body.classList.remove("resize-active");
+
+    document.removeEventListener("mousemove", handleResizeMove);
+    document.removeEventListener("mouseup", handleResizeEnd);
+
+    document.body.classList.remove("resize-active");
   };
-  
+
+
   useEffect(() => {
     return () => {
-      document.removeEventListener('mousemove', handleResizeMove);
-      document.removeEventListener('mouseup', handleResizeEnd);
+      document.removeEventListener("mousemove", handleResizeMove);
+      document.removeEventListener("mouseup", handleResizeEnd);
+      document.removeEventListener("mousemove", handleResizeMove);
+      document.removeEventListener("mouseup", handleResizeEnd);
     };
   }, [resizingColumn]);
-  
+
   return (
     <>
       <div className="relative flex-1 overflow-x-auto rounded-lg shadow-md">
@@ -179,19 +232,33 @@ const TableData = ({ tableData, showDate, sortTableData, columnSetting }) => {
                   <div
                     key={current.columnName}
                     className="flex items-center justify-between relative px-2 h-full"
-                    style={{ 
+                    style={{
+                    style={{
                       width: `${columnWidths[current.dbColumn]}px`,
-                      minWidth: '50px',
-                      overflow: 'hidden',
-                      borderRight: '1px solid #d1d5db' // Light mode border
+                      minWidth: "50px",
+                      overflow: "hidden",
+                      borderRight: "1px solid #d1d5db", // Light mode border
+                      minWidth: "50px",
+                      overflow: "hidden",
+                      borderRight: "1px solid #d1d5db", // Light mode border
                     }}
                   >
                     <div className="truncate pr-4">{current.columnName}</div>
                     <div
                       className={`absolute right-0 top-0 h-full w-4 cursor-col-resize hover:bg-gray-300 dark:hover:bg-gray-600 ${
-                        resizingColumn === current.dbColumn ? 'bg-blue-400 opacity-50' : ''
+                        resizingColumn === current.dbColumn
+                          ? "bg-blue-400 opacity-50"
+                          : ""
+                        resizingColumn === current.dbColumn
+                          ? "bg-blue-400 opacity-50"
+                          : ""
                       }`}
-                      onMouseDown={(e) => handleResizeStart(e, current.dbColumn, index)}
+                      onMouseDown={(e) =>
+                        handleResizeStart(e, current.dbColumn, index)
+                      }
+                      onMouseDown={(e) =>
+                        handleResizeStart(e, current.dbColumn, index)
+                      }
                     >
                       {/* <div className="h-full w-1 bg-gray-400 dark:bg-gray-500 mx-auto"></div> */}
                     </div>
@@ -221,14 +288,21 @@ const TableData = ({ tableData, showDate, sortTableData, columnSetting }) => {
                             : ""
                         }`}
                         key={current.dbColumn}
-                        style={{ 
+                        style={{
+                        style={{
                           width: `${columnWidths[current.dbColumn]}px`,
-                          minWidth: '50px',
-                          overflow: 'hidden',
-                          borderRight: '1px solid #e5e7eb', // Black border for data cells
-                          height: '5rem',
-                          display: 'flex',
-                          alignItems: 'center'
+                          minWidth: "50px",
+                          overflow: "hidden",
+                          borderRight: "1px solid #000000", // Black border for data cells
+                          height: "5rem",
+                          display: "flex",
+                          alignItems: "center",
+                          minWidth: "50px",
+                          overflow: "hidden",
+                          borderRight: "1px solid #000000", // Black border for data cells
+                          height: "5rem",
+                          display: "flex",
+                          alignItems: "center",
                         }}
                       >
                         {/* Cell content remains the same */}
@@ -247,7 +321,8 @@ const TableData = ({ tableData, showDate, sortTableData, columnSetting }) => {
                               data-rowid={item.id}
                               onChange={handleInputDataChange}
                               value={
-                                changedinput[item.id]?.[current.dbColumn] ?? 
+                                changedinput[item.id]?.[current.dbColumn] ??
+                                changedinput[item.id]?.[current.dbColumn] ??
                                 item[current.dbColumn]
                               }
                               key={`${item.id}-${current.dbColumn}`}
@@ -266,24 +341,28 @@ const TableData = ({ tableData, showDate, sortTableData, columnSetting }) => {
                     )
                 )}
                 <div className="flex items-center space-x-2 ml-4">
-                  <button 
+                  <button
                     className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-full transition-colors"
                     title="Edit"
                   >
                     <Edit size={18} />
                   </button>
-                  <button 
+                  <button
                     className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-100 rounded-full transition-colors"
                     title="Delete"
                   >
                     <Trash2 size={18} />
                   </button>
-                  <button 
+                  <button
                     onClick={() => toggleAccordion(index)}
                     className="p-1.5 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-colors"
                     title="Expand"
                   >
-                    {openAccordion === index ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                    {openAccordion === index ? (
+                      <ChevronUp size={18} />
+                    ) : (
+                      <ChevronDown size={18} />
+                    )}
                   </button>
                 </div>
               </div>
@@ -296,7 +375,8 @@ const TableData = ({ tableData, showDate, sortTableData, columnSetting }) => {
               >
                 <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700">
                   <div className="text-gray-600 text-center dark:text-gray-300">
-                    {item.details}
+                    <DeliverableAccordion itemId={item.id} />
+                    <DeliverableAccordion itemId={item.id} />
                   </div>
                 </div>
               </div>
@@ -304,7 +384,7 @@ const TableData = ({ tableData, showDate, sortTableData, columnSetting }) => {
           ))}
         </div>
       </div>
-      <button 
+      <button
         onClick={(e) => handleBackendSubmit(e)}
         className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm transition-colors duration-200"
       >
@@ -314,13 +394,15 @@ const TableData = ({ tableData, showDate, sortTableData, columnSetting }) => {
         .cursor-col-resize {
           cursor: col-resize;
         }
-        
+
+
         :global(.resize-active) {
           cursor: col-resize !important;
           user-select: none !important;
           -webkit-user-select: none !important;
         }
-        
+
+
         .cursor-col-resize:hover .bg-gray-400 {
           width: 2px !important;
         }
