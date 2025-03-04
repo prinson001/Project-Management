@@ -16,6 +16,7 @@ import DashboardPage from "./pages/DashboardPage";
 import ActivitiesPage from "./pages/ActivitiesPage";
 import ProjectTimeLineSettings from "./pages/ProjectTimelineSettings";
 import Expected from "./pages/Expected";
+import UserAccordion from "./components/UserAccordion";
 import Test from "./pages/Test";
 const App = () => {
   return (
@@ -85,6 +86,10 @@ export const router = createBrowserRouter([
   {
     path: "/phase",
     element: <ProjectTimeLineSettings />,
+  },
+  {
+    path: "/user",
+    element: <UserAccordion />,
   },
 ]);
 

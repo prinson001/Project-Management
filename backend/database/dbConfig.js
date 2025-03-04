@@ -94,7 +94,8 @@ const createTableRole = async (req, res) => {
   try {
     const result = await sql`CREATE TABLE role (
             id SERIAL PRIMARY KEY,
-            name VARCHAR(50) UNIQUE NOT NULL 
+            name VARCHAR(50) UNIQUE NOT NULL ,
+            arabic_name VARCHAR(50) UNIQUE NOT NULL
     )`;
     res.status(200);
     res.json({ status: "success", result });
@@ -178,6 +179,424 @@ const insertTableSetting = async (req, res) => {
     res.json({ status: "failure", message: "failed to insert table data" });
   }
 };
+
+const connectUserWithRole = async (req, res) => {
+  try {
+    const result = await sql`
+      ALTER TABLE users 
+      ADD COLUMN role_id INT,
+      ADD CONSTRAINT fk_role FOREIGN KEY (role_id) REFERENCES role(id) ON DELETE SET NULL
+    `;
+
+    console.log(result);
+    res.status(200).json({
+      status: "success",
+      message: "Foreign key added to users table successfully",
+      result,
+    });
+  } catch (e) {
+    res.status(500).json({ status: "failure", message: e.message });
+  }
+};
+
+const connectUserWithDepartment = async (req, res) => {
+  try {
+    const result = await sql`
+      ALTER TABLE users 
+      ADD COLUMN department_id INT,
+      ADD CONSTRAINT fk_department FOREIGN KEY (department_id) REFERENCES department(id) ON DELETE SET NULL
+    `;
+
+    console.log(result);
+    res.status(200).json({
+      status: "success",
+      message: "Foreign key added to users table successfully",
+      result,
+    });
+  } catch (e) {
+    res.status(500).json({ status: "failure", message: e.message });
+  }
+};
+
+const createTableActivityDuration = async (req, res) => {
+  try {
+    const result = await sql`CREATE TABLE activity_duration (
+        id SERIAL PRIMARY KEY,
+        activity_name VARCHAR(255) NOT NULL,
+        from_role VARCHAR(100) NOT NULL,
+        to_role VARCHAR(100) NOT NULL,
+        duration VARCHAR(100) NOT NULL,
+        last_modified DATE
+    )`;
+
+    console.log(result);
+    res.status(200).json({
+      status: "success",
+      message: "Created table activity_duration successfully",
+      result,
+    });
+  } catch (e) {
+    res.status(500).json({ status: "failure", message: e.message });
+  }
+};
+
+const createTablePhase = async (req, res) => {
+  try {
+    const result = await sql`CREATE TABLE phase (
+        id SERIAL PRIMARY KEY,
+        phase_name VARCHAR(255) NOT NULL,
+        phase_order INTEGER NOT NULL
+    )`;
+
+    res.status(200).json({
+      status: "success",
+      message: "Created table phase successfully",
+      result,
+    });
+  } catch (e) {
+    res.status(500).json({ status: "failure", message: e.message });
+  }
+};
+
+const createTableBudgetRange = async (req, res) => {
+  try {
+    const result = await sql`CREATE TABLE budget_range (
+        id SERIAL PRIMARY KEY,
+        label VARCHAR(255) NOT NULL,
+        min_budget NUMERIC,
+        max_budget NUMERIC,
+        budget_order INTEGER NOT NULL
+    )`;
+
+    res.status(200).json({
+      status: "success",
+      message: "Created table budget_range successfully",
+      result,
+    });
+  } catch (e) {
+    res.status(500).json({ status: "failure", message: e.message });
+  }
+};
+
+const createTablePhaseDuration = async (req, res) => {
+  try {
+    const result = await sql`CREATE TABLE phase_duration (
+        id SERIAL PRIMARY KEY,
+        phase_id INTEGER REFERENCES phase(id) NOT NULL,
+        range_id INTEGER REFERENCES budget_range(id) NOT NULL,
+        duration_weeks INTEGER NOT NULL,
+        UNIQUE(phase_id, range_id)
+    )`;
+
+    res.status(200).json({
+      status: "success",
+      message: "Created table phase_duration successfully",
+      result,
+    });
+  } catch (e) {
+    res.status(500).json({ status: "failure", message: e.message });
+  }
+};
+const setDefaultPhases = async (req, res) => {
+  try {
+    const defaultPhases = [
+      "Prepare RFP",
+      "RFP Releasing Procedures",
+      "Bidding Duration",
+      "Technical and financial evaluation",
+      "Contract preparation",
+      "Waiting period before execution starts",
+    ];
+
+    const results = [];
+
+    for (const [index, phaseName] of defaultPhases.entries()) {
+      const result = await sql`
+        INSERT INTO phase (phase_name, phase_order)
+        VALUES (${phaseName}, ${index + 1})
+        RETURNING *
+      `;
+      results.push(result);
+    }
+
+    res.status(201).json({
+      status: "success",
+      message: "Default phases seeded successfully",
+      data: results,
+    });
+  } catch (e) {
+    res.status(500).json({
+      status: "failure",
+      message: `Failed to seed phases: ${e.message}`,
+    });
+  }
+};
+const getPhaseDurations = async (req, res) => {
+  try {
+    const result = await sql`
+    SELECT 
+      p.id AS phase_id,
+      p.phase_name,
+      p.phase_order,
+      COALESCE(
+        JSON_OBJECT_AGG(
+          br.id,
+          JSON_BUILD_OBJECT(
+            'name', COALESCE(br.label, 'Default Range'),
+            'min', COALESCE(br.min_budget, 0),
+            'max', COALESCE(br.max_budget, NULL),
+            'duration_weeks', COALESCE(pd.duration_weeks, 0)
+          )
+        ) FILTER (WHERE br.id IS NOT NULL),
+        '{}'::json
+      ) AS budget_durations
+    FROM phase p
+    LEFT JOIN phase_duration pd ON p.id = pd.phase_id
+    LEFT JOIN budget_range br ON pd.range_id = br.id
+    GROUP BY p.id, p.phase_name, p.phase_order
+    ORDER BY p.phase_order;
+  `;
+
+    res.status(200).json({
+      status: "success",
+      message: "Phase durations retrieved successfully",
+      data: result,
+    });
+  } catch (e) {
+    res.status(500).json({
+      status: "failure",
+      message: `Failed to fetch phase durations: ${e.message}`,
+    });
+  }
+};
+const getBudgetRanges = async (req, res) => {
+  try {
+    const result = await sql`
+      SELECT 
+        id,
+        label as name,
+        min_budget AS min,
+        max_budget AS max
+      FROM budget_range
+      ORDER BY budget_order;
+    `;
+
+    res.status(200).json({
+      status: "success",
+      message: "Budget ranges retrieved successfully",
+      data: result,
+    });
+  } catch (e) {
+    res.status(500).json({
+      status: "failure",
+      message: `Failed to fetch budget ranges: ${e.message}`,
+    });
+  }
+};
+
+const updatePhaseDurations = async (req, res) => {
+  try {
+    // Validate request body structure
+    if (!Array.isArray(req.body?.updates)) {
+      return res.status(400).json({
+        status: "failure",
+        message: "Required field missing: updates array is required",
+      });
+    }
+
+    const { updates } = req.body;
+    const validationErrors = [];
+
+    // Phase 1: Pre-transaction validation
+    updates.forEach((change, index) => {
+      const errorPrefix = `Change ${index + 1}:`;
+
+      if (!Number.isInteger(change.phase_id)) {
+        validationErrors.push(`${errorPrefix} Invalid or missing phase_id`);
+      }
+      if (!Number.isInteger(change.range_id)) {
+        validationErrors.push(`${errorPrefix} Invalid or missing range_id`);
+      }
+      if (!Number.isInteger(change.duration_weeks)) {
+        validationErrors.push(`${errorPrefix} Invalid duration_weeks format`);
+      }
+    });
+
+    if (validationErrors.length > 0) {
+      return res.status(400).json({
+        status: "failure",
+        message: "Validation errors detected",
+        errors: validationErrors,
+      });
+    }
+
+    // Phase 2: Transaction processing
+    const result = await sql.begin(async (transaction) => {
+      const processedChanges = [];
+
+      for (const change of updates) {
+        const upsertResult = await transaction`
+          INSERT INTO phase_duration (
+            phase_id,
+            range_id,
+            duration_weeks
+          ) VALUES (
+            ${change.phase_id},
+            ${change.range_id},
+            ${change.duration_weeks}
+          )
+          ON CONFLICT (phase_id, range_id) DO UPDATE
+          SET
+            duration_weeks = EXCLUDED.duration_weeks
+          RETURNING *
+        `;
+
+        if (upsertResult.length === 0) {
+          throw new Error(
+            `Failed to upsert phase ${change.phase_id}, range ${change.range_id}`
+          );
+        }
+
+        processedChanges.push(upsertResult[0]);
+      }
+
+      return processedChanges;
+    });
+
+    return res.status(200).json({
+      status: "success",
+      message: "All changes completed atomically",
+      updated: result,
+    });
+  } catch (error) {
+    console.error("Atomic update error:", error);
+
+    // Handle unique constraint violation specifically
+    if (error.message.includes("unique constraint")) {
+      return res.status(409).json({
+        status: "failure",
+        message: "Conflict detected - please verify phase/range combinations",
+      });
+    }
+
+    return res.status(500).json({
+      status: "failure",
+      message: "Atomic update failed - all changes rolled back",
+      error: error.message,
+    });
+  }
+};
+
+const createTableTask = async (req, res) => {
+  try {
+    const result = await sql`CREATE TABLE tasks (
+      id SERIAL PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      description TEXT,
+      status VARCHAR(20) NOT NULL 
+        CHECK (status IN ('Open', 'Delayed', 'Done')),
+      due_date DATE,
+      assigned_to INTEGER REFERENCES users(id) NOT NULL,
+      related_entity_type VARCHAR(50) NOT NULL,
+      related_entity_id INTEGER NOT NULL,
+      created_date DATE DEFAULT CURRENT_DATE
+    );`;
+    res.status(200);
+    res.json({
+      status: "success",
+      message: "successfully created task object",
+      result,
+    });
+  } catch (e) {
+    res.status(500);
+    res.json({
+      status: "failure",
+      message: "Failed to create task Object",
+      result: e,
+    });
+  }
+};
+
+const createTableWorkflowRule = async (req, res) => {
+  try {
+    const result = await sql`CREATE TABLE workflow_rules (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255),
+      trigger_entity_type VARCHAR(255) NOT NULL,
+      trigger_on VARCHAR(100),
+      from_status VARCHAR(255) NOT NULL,
+      to_status  VARCHAR(255) NOT NULL,
+      task_title VARCHAR(255) NOT NULL,
+      task_description TEXT,
+      due_date_offset INTEGER,
+      assignment_path VARCHAR(255) NOT NULL
+    );`;
+
+    res.status(200).json({
+      status: "success",
+      message: "Successfully created workflow_rules table",
+      result,
+    });
+  } catch (e) {
+    res.status(500).json({
+      status: "failure",
+      message: "Failed to create workflow_rules table",
+      error: e.message,
+    });
+  }
+};
+const createTablePortfolio = async (req, res) => {
+  try {
+    const result = await sql`CREATE TABLE portfolio (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      arabic_name VARCHAR(255),
+      description TEXT,
+      arabic_description TEXT,
+      portfolio_manager INTEGER REFERENCES users(id) ,
+      created_date DATE DEFAULT CURRENT_DATE
+    );`;
+
+    res.status(200).json({
+      status: "success",
+      message: "Successfully created portfolio object",
+      result,
+    });
+  } catch (e) {
+    res.status(500).json({
+      status: "failure",
+      message: "Failed to create portfolio Object",
+      result: e.message,
+    });
+  }
+};
+
+const createTableProgram = async (req, res) => {
+  try {
+    const result = await sql`CREATE TABLE program (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      arabic_name VARCHAR(255),
+      description TEXT,
+      arabic_description TEXT,
+      program_manager INTEGER REFERENCES users(id) ,
+      created_date DATE DEFAULT CURRENT_DATE
+    );`;
+
+    res.status(200).json({
+      status: "success",
+      message: "Successfully created program object",
+      result,
+    });
+  } catch (e) {
+    res.status(500).json({
+      status: "failure",
+      message: "Failed to create program Object",
+      result: e.message,
+    });
+  }
+};
+
 module.exports = {
   createUsersTable,
   createInitiativeTable,
@@ -187,4 +606,17 @@ module.exports = {
   createTableRole,
   createTableTableSetting,
   insertTableSetting,
+  connectUserWithRole,
+  connectUserWithDepartment,
+  createTableActivityDuration,
+  createTablePhase,
+  createTableBudgetRange,
+  createTablePhaseDuration,
+  setDefaultPhases,
+  getPhaseDurations,
+  getBudgetRanges,
+  updatePhaseDurations,
+  createTableTask,
+  createTablePortfolio,
+  createTableProgram,
 };

@@ -21,8 +21,18 @@ const addNewUser = async (req, res) => {
 
 const getUsers = async (req, res) => {
   try {
-    const users =
-      await sql`select id , email,first_name , family_name , arabic_first_name , arabic_family_name , role_id  from "users"`;
+    const users = await sql`
+    SELECT 
+      u.*, 
+      r.name AS role_name, 
+      r.arabic_name AS role_arabic_name,
+      d.name AS department_name,
+      d.arabic_name AS department_arabic_name
+    FROM "users" u
+    LEFT JOIN "role" r ON u.role_id = r.id
+    LEFT JOIN "department" d ON u.department_id = d.id
+  `;
+
     res.status(200);
     res.json({ result: users });
   } catch (e) {
@@ -30,7 +40,7 @@ const getUsers = async (req, res) => {
     res.json({
       status: "failure",
       message: "failed to get users",
-      result: e,
+      result: e.message,
     });
   }
 };
@@ -71,7 +81,7 @@ const deleteUsers = async (req, res) => {
   }
 };
 
-const updateUsers = async (req, res) => {
+const updateUser = async (req, res) => {
   // Check if id and data exist in the request body
   if (
     !req.body ||
@@ -133,12 +143,13 @@ const updateUsers = async (req, res) => {
 
     // Build the complete query
     const queryText = `
-        UPDATE initiative
+        UPDATE users
         SET ${setClause}
         WHERE id = ${idPlaceholder}
         RETURNING *
       `;
-
+    console.log(queryText);
+    console.log(values);
     // Execute the query
     const result = await sql.unsafe(queryText, values);
 
@@ -179,4 +190,30 @@ const updateUsers = async (req, res) => {
   }
 };
 
-module.exports = { addNewUser, getUsers, deleteUsers, getUser };
+const getRoles = async (req, res) => {
+  try {
+    const roles = await sql`
+      SELECT r.id, r.name, r.arabic_name, COUNT(u.id) AS user_count
+      FROM "role" r
+      LEFT JOIN "users" u ON r.id = u.role_id
+      GROUP BY r.id, r.name, r.arabic_name
+    `;
+
+    return res.status(200).json({ result: roles });
+  } catch (e) {
+    return res.status(500).json({
+      status: "failure",
+      message: "Failed to get roles",
+      error: e.message,
+    });
+  }
+};
+
+module.exports = {
+  addNewUser,
+  getUsers,
+  deleteUsers,
+  getUser,
+  getRoles,
+  updateUser,
+};

@@ -5,6 +5,8 @@ const {
   getUsers,
   deleteUsers,
   getUser,
+  getRoles,
+  updateUser,
 } = require("../controllers/adminController");
 
 const {
@@ -18,5 +20,6 @@ adminRouter.delete("/deleteUser/:id", deleteUsers);
 adminRouter.get("/getactivitydurations", getActivityDurations);
 adminRouter.post("/updateactivityduration", updateActivityDurations);
 adminRouter.post("/getUser", getUser);
-
+adminRouter.get("/getRoles", getRoles);
+adminRouter.post("/updateUser", updateUser);
 module.exports = adminRouter;
