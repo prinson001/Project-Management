@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 
-const DeliverableAccordion = ({ itemId = 1, projectBudget = 10000 }) => {
+const DeliverableAccordion = ({ parentId = 1, projectBudget = 10000 }) => {
   // State management
   const [items, setItems] = useState([]);
   const [deletions, setDeletions] = useState([]);
@@ -41,7 +41,7 @@ const DeliverableAccordion = ({ itemId = 1, projectBudget = 10000 }) => {
         const { data } = await axios.post(
           "http://localhost:4000/pm/getDeliverables",
           {
-            itemId: itemId,
+            itemId: parentId,
           }
         );
         console.log(data);
@@ -64,7 +64,7 @@ const DeliverableAccordion = ({ itemId = 1, projectBudget = 10000 }) => {
     };
 
     fetchItems();
-  }, [itemId]);
+  }, [parentId]);
 
   // Function to calculate duration in months
   const calculateDuration = (start, end) => {
@@ -136,7 +136,7 @@ const DeliverableAccordion = ({ itemId = 1, projectBudget = 10000 }) => {
         item.id.toString().startsWith("temp-")
       );
       newItems = newItems.map((e) => {
-        return { ...e, item_id: Number(itemId) };
+        return { ...e, item_id: Number(parentId) };
       });
       const updates = items.filter(
         (item) => !item.id.toString().startsWith("temp-")
@@ -154,7 +154,7 @@ const DeliverableAccordion = ({ itemId = 1, projectBudget = 10000 }) => {
       const { data } = await axios.post(
         "http://localhost:4000/pm/saveDeliverables",
         {
-          itemId: itemId,
+          itemId: parentId,
           ...payload,
         }
       );

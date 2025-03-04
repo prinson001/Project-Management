@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 
-const BoqTaskAccordion = ({ projectId = 2, projectBudget = 10000 }) => {
+const BoqTaskAccordion = ({ parentId = 2, projectBudget = 10000 }) => {
   // State management
   const [items, setItems] = useState([]);
   const [deletions, setDeletions] = useState([]);
@@ -39,7 +39,7 @@ const BoqTaskAccordion = ({ projectId = 2, projectBudget = 10000 }) => {
     const fetchItems = async () => {
       try {
         const { data } = await axios.post("http://localhost:4000/pm/getItems", {
-          projectId,
+          projectId: parentId,
         });
         console.log(data);
         console.log("data");
@@ -56,7 +56,7 @@ const BoqTaskAccordion = ({ projectId = 2, projectBudget = 10000 }) => {
     };
 
     fetchItems();
-  }, [projectId]);
+  }, [parentId]);
 
   // Row operations
   const handleAddRow = () => {
@@ -92,7 +92,7 @@ const BoqTaskAccordion = ({ projectId = 2, projectBudget = 10000 }) => {
         item.id.toString().startsWith("temp-")
       );
       newItems = newItems.map((e) => {
-        return { ...e, project_id: Number(projectId) };
+        return { ...e, project_id: Number(parentId) };
       });
       const updates = items.filter(
         (item) => !item.id.toString().startsWith("temp-")
@@ -107,7 +107,7 @@ const BoqTaskAccordion = ({ projectId = 2, projectBudget = 10000 }) => {
       console.log(payload);
       // API call
       const { data } = await axios.post("http://localhost:4000/pm/saveItems", {
-        projectId,
+        projectId: parentId,
         ...payload,
       });
 

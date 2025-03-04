@@ -13,7 +13,14 @@ let tablefilters = {};
 let sortClause = {};
 let dateFilter = null;
 let page = 1;
-const TasksPage = ({ tableName }) => {
+const TasksPage = ({
+  tableName,
+  showTableData = true,
+  showTableConfig = false,
+  showTableConfigFilter = true,
+  showTablePagination = true,
+  TableComponent = null,
+}) => {
   const [columnSetting, setColumnSetting] = useState([]);
   const [tableData, setTableData] = useState([]);
   const [showDate, setShowDate] = useState(false);
@@ -123,27 +130,36 @@ const TasksPage = ({ tableName }) => {
 
   return (
     <div className="flex-1 overflow-auto relative z-10 p-5 h-full">
-      {/* <TableConfig
-        updateFilters={updateFilters}
-        filterTableData={filterTableData}
-      > */}
-      <TableConfigFilter
-        filterTable={filterTable}
-        filterBasedOnDays={filterBasedOnDays}
-        updateShowDateFunctionality={updateShowDateFunctionality}
-        showDate={showDate}
-        columnSetting={columnSetting}
-        filterTableBasedonSearchTerm={filterTableBasedonSearchTerm}
-        setColumnSetting={setColumnSetting}
-      ></TableConfigFilter>
-      {/* </TableConfig> */}
-      <TableData
-        tableData={tableData}
-        showDate={showDate}
-        sortTableData={sortTableData}
-        columnSetting={columnSetting}
-      ></TableData>
-      <Pagination pagination={pagination} getPageData={getPageData} />
+      {showTableConfig && (
+        <TableConfig
+          updateFilters={updateFilters}
+          filterTableData={filterTableData}
+        ></TableConfig>
+      )}
+
+      {showTableConfigFilter && (
+        <TableConfigFilter
+          filterTable={filterTable}
+          filterBasedOnDays={filterBasedOnDays}
+          updateShowDateFunctionality={updateShowDateFunctionality}
+          showDate={showDate}
+          columnSetting={columnSetting}
+          filterTableBasedonSearchTerm={filterTableBasedonSearchTerm}
+          setColumnSetting={setColumnSetting}
+        ></TableConfigFilter>
+      )}
+      {showTableData && (
+        <TableData
+          TableComponent={TableComponent}
+          tableData={tableData}
+          showDate={showDate}
+          sortTableData={sortTableData}
+          columnSetting={columnSetting}
+        ></TableData>
+      )}
+      {showTablePagination && (
+        <Pagination pagination={pagination} getPageData={getPageData} />
+      )}
     </div>
   );
 };

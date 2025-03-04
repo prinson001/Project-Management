@@ -467,13 +467,13 @@ const TableConfigFilter = ({
         <div className="flex justify-between mt-8">
           <p
             onClick={handleReset}
-            className="text-grey-300 py-3 px-6 cursor-pointer"
+            className="text-grey-300 py-3 px-6 cursor-pointer bg-amber-400 rounded-2xl"
           >
             clear
           </p>
           <button
             onClick={handleApply}
-            className="text-grey-300 py-3 px-6 cursor-pointer"
+            className="text-grey-300 py-3 px-6 cursor-pointer bg-amber-400 rounded-2xl"
           >
             Apply
           </button>
