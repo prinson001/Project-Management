@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { format, differenceInCalendarDays } from "date-fns";
 import { constructFromSymbol } from "date-fns/constants";
 import axios from "axios";
+import { Edit, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 
 const TableData = ({ tableData, showDate, sortTableData, columnSetting }) => {
   const [openAccordion, setOpenAccordion] = useState(null);
@@ -165,6 +166,7 @@ const TableData = ({ tableData, showDate, sortTableData, columnSetting }) => {
       document.removeEventListener('mouseup', handleResizeEnd);
     };
   }, [resizingColumn]);
+  
   return (
     <>
       <div className="relative flex-1 overflow-x-auto rounded-lg shadow-md">
@@ -223,7 +225,7 @@ const TableData = ({ tableData, showDate, sortTableData, columnSetting }) => {
                           width: `${columnWidths[current.dbColumn]}px`,
                           minWidth: '50px',
                           overflow: 'hidden',
-                          borderRight: '1px solid #000000', // Black border for data cells
+                          borderRight: '1px solid #e5e7eb', // Black border for data cells
                           height: '5rem',
                           display: 'flex',
                           alignItems: 'center'
@@ -263,10 +265,26 @@ const TableData = ({ tableData, showDate, sortTableData, columnSetting }) => {
                       </div>
                     )
                 )}
-                <div>
-                  <button>Edit</button>
-                  <button>Delete</button>
-                  <button onClick={() => toggleAccordion(index)}>Expand</button>
+                <div className="flex items-center space-x-2 ml-4">
+                  <button 
+                    className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-full transition-colors"
+                    title="Edit"
+                  >
+                    <Edit size={18} />
+                  </button>
+                  <button 
+                    className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-100 rounded-full transition-colors"
+                    title="Delete"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                  <button 
+                    onClick={() => toggleAccordion(index)}
+                    className="p-1.5 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-colors"
+                    title="Expand"
+                  >
+                    {openAccordion === index ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                  </button>
                 </div>
               </div>
 
@@ -286,8 +304,12 @@ const TableData = ({ tableData, showDate, sortTableData, columnSetting }) => {
           ))}
         </div>
       </div>
-      <button onClick={(e) => handleBackendSubmit(e)}>Submit your data</button>
-      {/* Add some CSS for the resizer */}
+      <button 
+        onClick={(e) => handleBackendSubmit(e)}
+        className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm transition-colors duration-200"
+      >
+        Submit your data
+      </button>
       <style jsx>{`
         .cursor-col-resize {
           cursor: col-resize;
