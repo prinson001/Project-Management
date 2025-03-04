@@ -324,5 +324,26 @@ const getSetting = async (req, res) => {
     });
   }
 };
-
-module.exports = { getData, getSetting, getFilteredData };
+const getUsers = async (req, res) => {
+  try {
+    const result = await sql`
+      SELECT id, first_name, family_name, email 
+      FROM users 
+      ORDER BY first_name, family_name
+    `;
+    
+    res.status(200).json({
+      status: "success",
+      message: "Users retrieved successfully",
+      result
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({
+      status: "failure",
+      message: "Error retrieving users",
+      error: e.message
+    });
+  }
+};
+module.exports = { getData, getSetting, getFilteredData,getUsers };

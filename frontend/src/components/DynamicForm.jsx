@@ -42,8 +42,8 @@ const DynamicForm = ({ title, fields, onSubmit, isEmbedded = false }) => {
                 >
                   <option value="">Select</option>
                   {options && options.map((option, i) => (
-                    <option key={i} value={option}>
-                      {option}
+                    <option key={i} value={option.value}>
+                      {option.label}
                     </option>
                   ))}
                 </select>

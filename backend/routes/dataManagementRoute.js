@@ -4,6 +4,7 @@ const {
   getData,
   getSetting,
   getFilteredData,
+  getUsers,
 } = require("../controllers/dataManagementController");
 const {
   addInitiative,
@@ -38,4 +39,5 @@ router.post("/deletePortfolio", deletePortfolio);
 router.post("/addProgram", addProgram);
 router.post("/updateProgram", updateProgram);
 router.post("/deleteProgram", deleteProgram);
+router.get("/users",getUsers);
 module.exports = router;

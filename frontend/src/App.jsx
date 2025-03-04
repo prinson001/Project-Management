@@ -16,15 +16,27 @@ import DashboardPage from "./pages/DashboardPage";
 import ActivitiesPage from "./pages/ActivitiesPage";
 import ProjectTimeLineSettings from "./pages/ProjectTimelineSettings";
 import Expected from "./pages/Expected";
-import UserAccordion from "./components/UserAccordion";
 import Test from "./pages/Test";
+import ProjectModal from "./components/ProjectModal";
+import TasksAccordion from "./components/TasksAccordion";
+import { Toaster } from "sonner";
+import PMPage from "./pages/PMPage";
+import AdminPage from "./pages/AdminPage";
 const App = () => {
   return (
     <div>
+      <Toaster position="top-center" richColors/>
       <Outlet />
     </div>
   );
 };
+
+const accordionItems = [
+  {
+    title: 'Tasks',
+    content: <TasksPage />
+  },
+];
 
 export const router = createBrowserRouter([
   {
@@ -43,7 +55,7 @@ export const router = createBrowserRouter([
     path: "/tasks",
     element: (
       <ProtectedRoute allowedRoles={["PM", "PMO"]}>
-        <TasksPage />
+       <PMPage />
       </ProtectedRoute>
     ),
   },
@@ -87,10 +99,14 @@ export const router = createBrowserRouter([
     path: "/phase",
     element: <ProjectTimeLineSettings />,
   },
-  {
-    path: "/user",
-    element: <UserAccordion />,
-  },
+{
+  path:"project",
+  element:<ProjectModal/>
+},
+{
+  path:"admin",
+  element:<AdminPage/>
+}
 ]);
 
 export default App;
