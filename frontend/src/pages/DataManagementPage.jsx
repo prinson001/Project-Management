@@ -528,8 +528,8 @@
 
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { X,Users, Plus } from "lucide-react"; // Added Plus icon
-import { Calendar, ChevronDown, ChevronUp, Download } from 'lucide-react';
+import { X, Users, Plus } from "lucide-react"; // Added Plus icon
+import { Calendar, ChevronDown, ChevronUp, Download } from "lucide-react";
 import useAuthStore from "../store/authStore";
 
 import Pagination from "../components/Pagination";
@@ -544,12 +544,14 @@ import DynamicForm from "../components/DynamicForm";
 import DocumentFormModal from "../components/DocumentFormModal";
 import DataManagementTabs from "../components/datamanagementtabs";
 import ProjectModal from "../components/ProjectModal";
+import TasksPage from "./TasksPage";
 let tablefilters = {};
 let sortClause = {};
 let dateFilter = null;
 let page = 1;
 const DataManagementPage = () => {
   const [activeTab, setActiveTab] = useState("initiatives");
+  let processedCategory = activeTab.replace(/s$/, "");
   const [columnSetting, setColumnSetting] = useState([]);
   const [tableData, setTableData] = useState([]);
   const [showDate, setShowDate] = useState(false);
@@ -558,13 +560,15 @@ const DataManagementPage = () => {
   const [showDocumentForm, setShowDocumentForm] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
   // Get users from auth store
-  const { users ,setUsers} = useAuthStore();
+  const { users, setUsers } = useAuthStore();
   let originalTableData = [];
   // Fetch users when component mounts
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await axios.get("http://localhost:4000/data-management/users");
+        const response = await axios.get(
+          "http://localhost:4000/data-management/users"
+        );
         if (response.data.status === "success") {
           setUsers(response.data.result);
         }
@@ -573,67 +577,260 @@ const DataManagementPage = () => {
         toast.error("Failed to load users");
       }
     };
-    
+
     fetchUsers();
   }, [setUsers]);
-  
+
   // Form field definitions for different tabs
   const getFormFields = () => ({
     initiative: [
-      { name: "initiativeEnglishName", label: "Initiative English Name", type: "text", required: true, columnSpan: 1 },
-      { name: "initiativeArabicName", label: "اسم المبادرة بالعربي", type: "text", required: true, columnSpan: 1, className: "text-right" },
-      { name: "descriptionEnglish", label: "Description in English", type: "textarea", required: true, columnSpan: 2 },
-      { name: "descriptionArabic", label: "الوصف بالعربي", type: "textarea", required: true, columnSpan: 2, className: "text-right" }
+      {
+        name: "initiativeEnglishName",
+        label: "Initiative English Name",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
+      {
+        name: "initiativeArabicName",
+        label: "اسم المبادرة بالعربي",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+        className: "text-right",
+      },
+      {
+        name: "descriptionEnglish",
+        label: "Description in English",
+        type: "textarea",
+        required: true,
+        columnSpan: 2,
+      },
+      {
+        name: "descriptionArabic",
+        label: "الوصف بالعربي",
+        type: "textarea",
+        required: true,
+        columnSpan: 2,
+        className: "text-right",
+      },
     ],
     portfolio: [
-      { name: "portfolioEnglishName", label: "Portfolio English Name", type: "text", required: true, columnSpan: 1 },
-      { name: "portfolioArabicName", label: "اسم المحفظة بالعربي", type: "text", required: true, columnSpan: 1, className: "text-right" },
-      { 
-        name: "portfolioManager", 
-        label: "Portfolio Manager", 
-        type: "select", 
-        required: true, 
-        columnSpan: 1, 
-        options: users && users.length > 0 ? users.map(user => ({
-          value: user.id.toString(),
-          label: `${user.first_name} ${user.family_name || ''}`
-        })) : []
+      {
+        name: "portfolioEnglishName",
+        label: "Portfolio English Name",
+        type: "text",
+        required: true,
+        columnSpan: 1,
       },
-      { name: "descriptionEnglish", label: "Description in English", type: "textarea", required: true, columnSpan: 2 },
-      { name: "descriptionArabic", label: "الوصف بالعربي", type: "textarea", required: true, columnSpan: 2, className: "text-right" }
+      {
+        name: "portfolioArabicName",
+        label: "اسم المحفظة بالعربي",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+        className: "text-right",
+      },
+      {
+        name: "portfolioManager",
+        label: "Portfolio Manager",
+        type: "select",
+        required: true,
+        columnSpan: 1,
+        options:
+          users && users.length > 0
+            ? users.map((user) => ({
+                value: user.id.toString(),
+                label: `${user.first_name} ${user.family_name || ""}`,
+              }))
+            : [],
+      },
+      {
+        name: "descriptionEnglish",
+        label: "Description in English",
+        type: "textarea",
+        required: true,
+        columnSpan: 2,
+      },
+      {
+        name: "descriptionArabic",
+        label: "الوصف بالعربي",
+        type: "textarea",
+        required: true,
+        columnSpan: 2,
+        className: "text-right",
+      },
     ],
     objective: [
-      { name: "objectiveEnglishName", label: "Objective English Name", type: "text", required: true, columnSpan: 1 },
-      { name: "objectiveArabicName", label: "اسم الهدف بالعربي", type: "text", required: true, columnSpan: 1 },
-      { name: "descriptionEnglish", label: "Description in English", type: "textarea", required: true, columnSpan: 2 },
-      { name: "descriptionArabic", label: "الوصف بالعربي", type: "textarea", required: true, columnSpan: 2 }
+      {
+        name: "objectiveEnglishName",
+        label: "Objective English Name",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
+      {
+        name: "objectiveArabicName",
+        label: "اسم الهدف بالعربي",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
+      {
+        name: "descriptionEnglish",
+        label: "Description in English",
+        type: "textarea",
+        required: true,
+        columnSpan: 2,
+      },
+      {
+        name: "descriptionArabic",
+        label: "الوصف بالعربي",
+        type: "textarea",
+        required: true,
+        columnSpan: 2,
+      },
     ],
     program: [
-      { name: "programEnglish", label: "Program English Name", type: "text", required: true, columnSpan: 1 },
-      { name: "programArabic", label: "اسم البرنامج بالعربي", type: "text", required: true, columnSpan: 1 },
-      { name: "programManager", label: "Program Manager", type: "select", options: ["Manager 1", "Manager 2"], required: true, columnSpan: 1 },
-      { name: "descriptionEnglish", label: "Description in English", type: "textarea", required: true, columnSpan: 2 },
-      { name: "descriptionArabic", label: "الوصف بالعربي", type: "textarea", required: true, columnSpan: 2 }
+      {
+        name: "programEnglish",
+        label: "Program English Name",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
+      {
+        name: "programArabic",
+        label: "اسم البرنامج بالعربي",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
+      {
+        name: "programManager",
+        label: "Program Manager",
+        type: "select",
+        options: ["Manager 1", "Manager 2"],
+        required: true,
+        columnSpan: 1,
+      },
+      {
+        name: "descriptionEnglish",
+        label: "Description in English",
+        type: "textarea",
+        required: true,
+        columnSpan: 2,
+      },
+      {
+        name: "descriptionArabic",
+        label: "الوصف بالعربي",
+        type: "textarea",
+        required: true,
+        columnSpan: 2,
+      },
     ],
     department: [
-      { name: "departmentEnglish", label: "Department English Name", type: "text", required: true, columnSpan: 1 },
-      { name: "departmentArabic", label: "اسم الإدارة بالعربي", type: "text", required: true, columnSpan: 1 }
+      {
+        name: "departmentEnglish",
+        label: "Department English Name",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
+      {
+        name: "departmentArabic",
+        label: "اسم الإدارة بالعربي",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
     ],
     vendor: [
-      { name: "vendorEnglish", label: "Vendor English Name", type: "text", required: true, columnSpan: 1 },
-      { name: "vendorArabic", label: "اسم المورد بالعربي", type: "text", required: true, columnSpan: 1 }
+      {
+        name: "vendorEnglish",
+        label: "Vendor English Name",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
+      {
+        name: "vendorArabic",
+        label: "اسم المورد بالعربي",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
     ],
     member: [
-      { name: "firstNameEnglish", label: "First Name in English", type: "text", required: true, columnSpan: 1 },
-      { name: "firstNameArabic", label: "الاسم الأول للمستخدم بالعربي", type: "text", required: true, columnSpan: 1, className: "text-right" },
-      { name: "familyNameEnglish", label: "Family Name in English", type: "text", required: true, columnSpan: 1 },
-      { name: "familyNameArabic", label: "اسم العائلة للمستخدم بالعربي", type: "text", required: true, columnSpan: 1, className: "text-right" },
-      { name: "email", label: "Email Address", type: "email", required: true, columnSpan: 1 },
-      { name: "password", label: "Password", type: "password", required: true, columnSpan: 1 },
-      { name: "rewritePassword", label: "Re-write Password", type: "password", required: true, columnSpan: 1, className: "col-start-2" },
-      { name: "department", label: "User Department", type: "select", required: true, columnSpan: 1, options: ["HR", "Engineering", "Marketing"] },
-      { name: "role", label: "User Role", type: "select", required: true, columnSpan: 1, options: ["Admin", "Program Manager", "User"] }
-    ]
+      {
+        name: "firstNameEnglish",
+        label: "First Name in English",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
+      {
+        name: "firstNameArabic",
+        label: "الاسم الأول للمستخدم بالعربي",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+        className: "text-right",
+      },
+      {
+        name: "familyNameEnglish",
+        label: "Family Name in English",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
+      {
+        name: "familyNameArabic",
+        label: "اسم العائلة للمستخدم بالعربي",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+        className: "text-right",
+      },
+      {
+        name: "email",
+        label: "Email Address",
+        type: "email",
+        required: true,
+        columnSpan: 1,
+      },
+      {
+        name: "password",
+        label: "Password",
+        type: "password",
+        required: true,
+        columnSpan: 1,
+      },
+      {
+        name: "rewritePassword",
+        label: "Re-write Password",
+        type: "password",
+        required: true,
+        columnSpan: 1,
+        className: "col-start-2",
+      },
+      {
+        name: "department",
+        label: "User Department",
+        type: "select",
+        required: true,
+        columnSpan: 1,
+        options: ["HR", "Engineering", "Marketing"],
+      },
+      {
+        name: "role",
+        label: "User Role",
+        type: "select",
+        required: true,
+        columnSpan: 1,
+        options: ["Admin", "Program Manager", "User"],
+      },
+    ],
   });
   // Reset state when tab changes
   useEffect(() => {
@@ -653,7 +850,7 @@ const DataManagementPage = () => {
 
   useEffect(() => {
     console.log("Component Mounted!");
-  
+
     return () => {
       console.log("Component Unmounted!");
     };
@@ -674,11 +871,11 @@ const DataManagementPage = () => {
     } else if (activeTab === "documents") {
       return "document";
     }
-    
+
     // Regular case - remove 's' from the end
-    return activeTab.endsWith('s') ? activeTab.slice(0, -1) : activeTab;
+    return activeTab.endsWith("s") ? activeTab.slice(0, -1) : activeTab;
   };
-  
+
   // Handle add button click - now opens the appropriate form
   const handleAddButtonClick = () => {
     if (activeTab === "documents") {
@@ -692,18 +889,18 @@ const DataManagementPage = () => {
   // Handle form submission
   const handleFormSubmit = async (data) => {
     console.log(`${getSingularTabName()} Data:`, data);
-    
+
     try {
-      let endpoint = '';
-      if (activeTab === 'portfolios') {
-        endpoint = 'addportfolio';
-      } else if (activeTab === 'initiatives') {
-        endpoint = 'addinitiative';
+      let endpoint = "";
+      if (activeTab === "portfolios") {
+        endpoint = "addportfolio";
+      } else if (activeTab === "initiatives") {
+        endpoint = "addinitiative";
       } else {
         endpoint = `add${getSingularTabName()}`;
       }
       // For portfolio, ensure portfolioManager is sent as an integer
-      if (activeTab === 'portfolios' && data.portfolioManager) {
+      if (activeTab === "portfolios" && data.portfolioManager) {
         data.portfolioManager = parseInt(data.portfolioManager, 10);
       }
       const result = await axios.post(
@@ -713,20 +910,24 @@ const DataManagementPage = () => {
           userId: 1,
         }
       );
-      
+
       console.log("Form submission result:", result);
-      
+
       // Show success toast notification
       toast.success(`${getSingularTabName()} added successfully!`);
-      
+
       // Refresh data after successful submission
       getData();
-      
+
       // Close the form
       setShowForm(false);
     } catch (e) {
       console.log("Error submitting form:", e);
-      toast.error(`Failed to add ${getSingularTabName()}: ${e.response?.data?.message || e.message}`);
+      toast.error(
+        `Failed to add ${getSingularTabName()}: ${
+          e.response?.data?.message || e.message
+        }`
+      );
     }
   };
   async function getSetting() {
@@ -815,7 +1016,7 @@ const DataManagementPage = () => {
     page = NavigatePage;
     await getFilteredData();
   }
-  
+
   function updateShowDateFunctionality() {
     setShowDate((state) => !state);
   }
@@ -836,13 +1037,15 @@ const DataManagementPage = () => {
             </button>
           </div>
         </div>
-        
+
         {/* Dynamic Form Modal */}
         {showForm && (
           <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 z-50">
             <div className="max-w-3xl bg-white p-6 rounded-lg shadow-lg w-full mx-4">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Add {getSingularTabName()}</h2>
+                <h2 className="text-xl font-semibold">
+                  Add {getSingularTabName()}
+                </h2>
                 <button
                   onClick={() => setShowForm(false)}
                   className="text-gray-500 hover:text-gray-700"
@@ -863,10 +1066,10 @@ const DataManagementPage = () => {
                   </svg>
                 </button>
               </div>
-              <DynamicForm 
-                title={`Add ${getSingularTabName()}`} 
-                fields={getFormFields()[getSingularTabName()] || []} 
-                onSubmit={handleFormSubmit} 
+              <DynamicForm
+                title={`Add ${getSingularTabName()}`}
+                fields={getFormFields()[getSingularTabName()] || []}
+                onSubmit={handleFormSubmit}
                 isEmbedded={true}
               />
             </div>
@@ -876,13 +1079,13 @@ const DataManagementPage = () => {
         {showDocumentForm && (
           <DocumentFormModal onClose={() => setShowDocumentForm(false)} />
         )}
-        
+
         {/* Project Modal */}
         {showProjectModal && (
           <div className="fixed inset-0 flex justify-center items-start bg-black bg-opacity-50 z-50 overflow-y-auto p-4">
             <div className="my-4 mx-auto w-full max-w-6xl">
               <div className="relative">
-                <button 
+                <button
                   onClick={() => setShowProjectModal(false)}
                   className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10"
                 >
@@ -893,8 +1096,8 @@ const DataManagementPage = () => {
             </div>
           </div>
         )}
-        
-        <TableConfigFilter
+
+        {/* <TableConfigFilter
           filterTable={filterTable}
           filterBasedOnDays={filterBasedOnDays}
           updateShowDateFunctionality={updateShowDateFunctionality}
@@ -903,17 +1106,18 @@ const DataManagementPage = () => {
           filterTableBasedonSearchTerm={filterTableBasedonSearchTerm}
           setColumnSetting={setColumnSetting}
         ></TableConfigFilter>
-        {/* Add a container with overflow handling for the resizable table */}
+          
         <div className="overflow-x-auto">
-          {/* <TableData
+          <TableData
             tableData={tableData}
             showDate={showDate}
             sortTableData={sortTableData}
             columnSetting={columnSetting}
-          ></TableData> */}
-        </div>
+          ></TableData>
+        </div> */}
         {/* <Pagination pagination={pagination} getPageData={getPageData} /> */}
         {/* Add global CSS for resizable columns */}
+        <TasksPage tableName="users" />
         <style jsx global>{`
           .resizer {
             position: absolute;
@@ -926,7 +1130,7 @@ const DataManagementPage = () => {
             user-select: none;
             touch-action: none;
           }
-          
+
           .resizer.isResizing {
             background: rgba(0, 0, 0, 0.3);
           }

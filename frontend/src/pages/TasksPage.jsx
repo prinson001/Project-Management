@@ -19,13 +19,32 @@ const TasksPage = ({
   showTableConfig = false,
   showTableConfigFilter = true,
   showTablePagination = true,
-  TableComponent = null,
+  accordionComponentName = null,
 }) => {
   const [columnSetting, setColumnSetting] = useState([]);
   const [tableData, setTableData] = useState([]);
   const [showDate, setShowDate] = useState(false);
   const [pagination, setPagination] = useState({});
   let originalTableData = [];
+  async function getData() {
+    try {
+      const result = await axios.post(
+        "http://localhost:4000/data-management/data",
+        {
+          tableName,
+          userId: 1,
+          limit: 10,
+        }
+      );
+      console.log("the data");
+      console.log(result);
+      originalTableData = result.data.result;
+      setTableData((state) => result.data.result);
+      setPagination((state) => result.data.pagination);
+    } catch (e) {
+      console.log(e);
+    }
+  }
   useEffect(() => {
     console.log("Component Mounted!");
     async function getSetting() {
@@ -40,24 +59,6 @@ const TasksPage = ({
         console.log(result.data.result[0].setting.setting);
         const data = result.data.result[0].setting.setting;
         setColumnSetting((state) => data);
-      } catch (e) {
-        console.log(e);
-      }
-    }
-    async function getData(page) {
-      try {
-        const result = await axios.post(
-          "http://localhost:4000/data-management/data",
-          {
-            tableName,
-            userId: 1,
-          }
-        );
-        console.log("the data");
-        console.log(result);
-        originalTableData = result.data.result;
-        setTableData((state) => result.data.result);
-        setPagination((state) => result.data.pagination);
       } catch (e) {
         console.log(e);
       }
@@ -150,11 +151,12 @@ const TasksPage = ({
       )}
       {showTableData && (
         <TableData
-          TableComponent={TableComponent}
           tableData={tableData}
+          getData={getData}
           showDate={showDate}
           sortTableData={sortTableData}
           columnSetting={columnSetting}
+          accordionComponentName={accordionComponentName}
         ></TableData>
       )}
       {showTablePagination && (

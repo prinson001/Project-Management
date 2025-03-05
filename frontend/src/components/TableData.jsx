@@ -2,14 +2,16 @@ import React, { useState, useRef, useEffect } from "react";
 import { format, differenceInCalendarDays } from "date-fns";
 import { constructFromSymbol } from "date-fns/constants";
 import { Edit, Trash2, ChevronDown } from "lucide-react";
+import UserAccordion from "./UserAccordion";
 import axios from "axios";
 
 const TableData = ({
+  getData,
   tableData,
   showDate,
   sortTableData,
   columnSetting,
-  TableComponent,
+  accordionComponentName,
 }) => {
   const [openAccordion, setOpenAccordion] = useState(null);
   const [changedinput, setChangedinput] = useState({});
@@ -174,6 +176,9 @@ const TableData = ({
 
     document.body.classList.remove("resize-active");
   };
+  const closeAccordion = (index) => {
+    setOpenAccordion(openAccordion === index ? null : index);
+  };
 
   useEffect(() => {
     return () => {
@@ -305,10 +310,22 @@ const TableData = ({
               >
                 <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700">
                   <div className="text-gray-600 text-center dark:text-gray-300">
-                    <TableComponent
-                      userPersonalData={item}
-                      parentId={item.id}
-                    />
+                    {/* {TableComponent && (
+                        <TableComponent
+                          userPersonalData={item}
+                          parentId={item.id}
+                          getData={getData}
+                        />
+                      )} */}
+                    {accordionComponentName === "userAccordion" && (
+                      <UserAccordion
+                        userPersonalData={item}
+                        parentId={item.id}
+                        getData={getData}
+                        closeAccordion={closeAccordion}
+                        index={index}
+                      />
+                    )}
                   </div>
                 </div>
               </div>
@@ -316,7 +333,11 @@ const TableData = ({
           ))}
         </div>
       </div>
-      <button onClick={(e) => handleBackendSubmit(e)}>Submit your data</button>
+      {
+        <button onClick={(e) => handleBackendSubmit(e)}>
+          Submit your data
+        </button>
+      }
       <style jsx>{`
         .cursor-col-resize {
           cursor: col-resize;

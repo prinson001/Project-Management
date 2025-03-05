@@ -3,7 +3,11 @@ import TasksPage from "./TasksPage";
 function Expected() {
   return (
     <>
-      <TasksPage tableName="activity_duration"></TasksPage>
+      <TasksPage
+        tableName="activity_duration"
+        showTableConfigFilter={false}
+        showTablePagination={false}
+      ></TasksPage>
     </>
   );
 }

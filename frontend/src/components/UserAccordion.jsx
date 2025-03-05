@@ -2,25 +2,47 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { constructNow } from "date-fns";
 
-function UserAccordion({ userPersonalData }) {
+function UserAccordion({
+  userPersonalData,
+  getData,
+  parentId,
+  closeAccordion,
+  index,
+}) {
   const [userData, setUserData] = useState({ ...userPersonalData });
   const [roles, setRoles] = useState([]);
   const [changedUserData, setChangedUserData] = useState({});
 
-  // Fetch roles and keep them updated
-  const getRoles = async () => {
-    try {
-      const result = await axios.get("http://localhost:4000/admin/getRoles");
-      setRoles(result.data.result);
-    } catch (e) {
-      console.error("Error retrieving roles:", e);
-    }
-  };
+  // const getRoles = async () => {
+  //   try {
+  //     const result = await axios.get("http://localhost:4000/admin/getRoles");
+  //     setRoles(result.data.result);
+  //   } catch (e) {
+  //     console.error("Error retrieving roles:", e);
+  //   }
+  // };
+
+  // useEffect(() => {
+  //   getRoles();
+  //   console.log("Mounted");
+  // }, [parentId]);
 
   useEffect(() => {
+    const getRoles = async () => {
+      try {
+        const result = await axios.get("http://localhost:4000/admin/getRoles");
+        setRoles(result.data.result);
+      } catch (e) {
+        console.error("Error retrieving roles:", e);
+      }
+    };
     getRoles();
-    console.log("Mounted");
-  }, []);
+  }, [parentId]);
+
+  useEffect(() => {
+    setUserData({ ...userPersonalData });
+    setChangedUserData({});
+  }, [userPersonalData]);
 
   const handleInputChange = (e) => {
     const { value } = e.target;
@@ -79,7 +101,16 @@ function UserAccordion({ userPersonalData }) {
       });
 
       // Refresh roles and user data after successful update
-      await getRoles();
+      // getData();
+      // setOpenAccordion(openAccordion === index ? null : index);
+      closeAccordion(index);
+      setChangedUserData((prev) => {});
+      setUserData((prev) => {
+        return { ...userPersonalData };
+      });
+      //await getRoles();
+      getData();
+      // setUserData({ ...userPersonalData });
       alert("User updated successfully!");
     } catch (e) {
       console.error("Error updating user:", e);

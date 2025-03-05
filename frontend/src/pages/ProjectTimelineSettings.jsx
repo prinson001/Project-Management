@@ -322,23 +322,6 @@ const ProjectTimelineSettings = () => {
 
   return (
     <div className="max-w-6xl mx-auto p-4 bg-white">
-      {/* Tabs */}
-      <div className="flex border-b mb-4">
-        {tabs.map((tab) => (
-          <div
-            key={tab}
-            className={`px-4 py-2 cursor-pointer ${
-              selectedTab === tab
-                ? "text-blue-600 border-b-2 border-blue-600"
-                : "text-gray-600"
-            }`}
-            onClick={() => setSelectedTab(tab)}
-          >
-            {tab}
-          </div>
-        ))}
-      </div>
-
       {/* Main Content */}
       <div className="border rounded shadow-sm">
         <div className="p-4">
@@ -411,7 +394,7 @@ const ProjectTimelineSettings = () => {
           </div>
 
           {/* Note */}
-          <div className="mt-4 text-sm text-gray-600">
+          <div className=" text-sm text-gray-600">
             <p>
               Changing parameters will not affect projects that are already
               created.
@@ -419,7 +402,7 @@ const ProjectTimelineSettings = () => {
           </div>
 
           {/* Save Button */}
-          <div className="mt-4">
+          <div className="mt-2">
             <button
               className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded text-sm"
               onClick={saveData}

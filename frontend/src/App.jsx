@@ -16,6 +16,10 @@ import DashboardPage from "./pages/DashboardPage";
 import ActivitiesPage from "./pages/ActivitiesPage";
 import ProjectTimeLineSettings from "./pages/ProjectTimelineSettings";
 import Expected from "./pages/Expected";
+import UserAccordion from "./components/UserAccordion";
+import BoqTaskAccordion from "./components/BoqTaskAccordion";
+import DeliverablesAccordion from "./components/DeliverableAccordion";
+import SchedulePlan from "./components/schedulePlan";
 import Test from "./pages/Test";
 import ProjectModal from "./components/ProjectModal";
 import TasksAccordion from "./components/TasksAccordion";
@@ -25,7 +29,7 @@ import AdminPage from "./pages/AdminPage";
 const App = () => {
   return (
     <div>
-      <Toaster position="top-center" richColors/>
+      <Toaster position="top-center" richColors />
       <Outlet />
     </div>
   );
@@ -33,8 +37,8 @@ const App = () => {
 
 const accordionItems = [
   {
-    title: 'Tasks',
-    content: <TasksPage />
+    title: "Tasks",
+    content: <TasksPage />,
   },
 ];
 
@@ -55,7 +59,7 @@ export const router = createBrowserRouter([
     path: "/tasks",
     element: (
       <ProtectedRoute allowedRoles={["PM", "PMO"]}>
-       <PMPage />
+        <PMPage />
       </ProtectedRoute>
     ),
   },
@@ -99,14 +103,38 @@ export const router = createBrowserRouter([
     path: "/phase",
     element: <ProjectTimeLineSettings />,
   },
-{
-  path:"project",
-  element:<ProjectModal/>
-},
-{
-  path:"admin",
-  element:<AdminPage/>
-}
+  {
+    path: "project",
+    element: <ProjectModal />,
+  },
+  {
+    path: "admin",
+    element: <AdminPage />,
+  },
+  {
+    path: "/boq",
+    element: <BoqTaskAccordion />,
+  },
+  {
+    path: "deli",
+    element: <DeliverablesAccordion />,
+  },
+  {
+    path: "sc",
+    element: <SchedulePlan />,
+  },
+  {
+    path: "/boq",
+    element: <BoqTaskAccordion />,
+  },
+  {
+    path: "deli",
+    element: <DeliverablesAccordion />,
+  },
+  {
+    path: "sc",
+    element: <SchedulePlan />,
+  },
 ]);
 
 export default App;
