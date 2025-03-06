@@ -394,6 +394,66 @@ const getBudgetRanges = async (req, res) => {
   }
 };
 
+const getPhaseDurationsByBudget = async (req, res) => {
+  try {
+    const { budget } = req.body;
+
+    if (!budget || isNaN(budget)) {
+      return res.status(400).json({
+        status: "failure",
+        message: "Invalid or missing budget parameter",
+      });
+    }
+
+    // Convert actual budget to match the scale in the database
+    const scaledBudget = budget / 1_000_000;
+
+    // Find the appropriate budget range for the given budget
+    const budgetRange = await sql`
+      SELECT id, label, min_budget, max_budget
+      FROM budget_range
+      WHERE min_budget <= ${scaledBudget} 
+        AND (max_budget IS NULL OR max_budget >= ${scaledBudget})
+      LIMIT 1;
+    `;
+
+    if (budgetRange.length === 0) {
+      return res.status(404).json({
+        status: "failure",
+        message: "No budget range found for the given budget",
+      });
+    }
+
+    const rangeId = budgetRange[0].id;
+
+    // Retrieve phase durations for the determined budget range
+    const result = await sql`
+      SELECT 
+        p.id AS phase_id,
+        p.phase_name,
+        pd.duration_weeks
+      FROM phase p
+      LEFT JOIN phase_duration pd ON p.id = pd.phase_id
+      WHERE pd.range_id = ${rangeId}
+      ORDER BY p.id;
+    `;
+
+    res.status(200).json({
+      status: "success",
+      message: "Phase durations retrieved successfully",
+      budget_range: budgetRange[0],
+      data: result,
+    });
+  } catch (e) {
+    res.status(500).json({
+      status: "failure",
+      message: `Failed to fetch phase durations: ${e.message}`,
+    });
+  }
+};
+
+
+
 const updatePhaseDurations = async (req, res) => {
   try {
     // Validate request body structure
@@ -486,6 +546,7 @@ const updatePhaseDurations = async (req, res) => {
     });
   }
 };
+
 
 const createTableTask = async (req, res) => {
   try {
@@ -790,6 +851,7 @@ module.exports = {
   setDefaultPhases,
   getPhaseDurations,
   getBudgetRanges,
+  getPhaseDurationsByBudget,
   updatePhaseDurations,
   createTableTask,
   createTablePortfolio,
