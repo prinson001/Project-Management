@@ -331,161 +331,6 @@ const setDefaultPhases = async (req, res) => {
     });
   }
 };
-const getPhaseDurations = async (req, res) => {
-  try {
-    const result = await sql`
-    SELECT 
-      p.id AS phase_id,
-      p.phase_name,
-      p.phase_order,
-      COALESCE(
-        JSON_OBJECT_AGG(
-          br.id,
-          JSON_BUILD_OBJECT(
-            'name', COALESCE(br.label, 'Default Range'),
-            'min', COALESCE(br.min_budget, 0),
-            'max', COALESCE(br.max_budget, NULL),
-            'duration_weeks', COALESCE(pd.duration_weeks, 0)
-          )
-        ) FILTER (WHERE br.id IS NOT NULL),
-        '{}'::json
-      ) AS budget_durations
-    FROM phase p
-    LEFT JOIN phase_duration pd ON p.id = pd.phase_id
-    LEFT JOIN budget_range br ON pd.range_id = br.id
-    GROUP BY p.id, p.phase_name, p.phase_order
-    ORDER BY p.phase_order;
-  `;
-
-    res.status(200).json({
-      status: "success",
-      message: "Phase durations retrieved successfully",
-      data: result,
-    });
-  } catch (e) {
-    res.status(500).json({
-      status: "failure",
-      message: `Failed to fetch phase durations: ${e.message}`,
-    });
-  }
-};
-const getBudgetRanges = async (req, res) => {
-  try {
-    const result = await sql`
-      SELECT 
-        id,
-        label as name,
-        min_budget AS min,
-        max_budget AS max
-      FROM budget_range
-      ORDER BY budget_order;
-    `;
-
-    res.status(200).json({
-      status: "success",
-      message: "Budget ranges retrieved successfully",
-      data: result,
-    });
-  } catch (e) {
-    res.status(500).json({
-      status: "failure",
-      message: `Failed to fetch budget ranges: ${e.message}`,
-    });
-  }
-};
-
-const updatePhaseDurations = async (req, res) => {
-  try {
-    // Validate request body structure
-    if (!Array.isArray(req.body?.updates)) {
-      return res.status(400).json({
-        status: "failure",
-        message: "Required field missing: updates array is required",
-      });
-    }
-
-    const { updates } = req.body;
-    const validationErrors = [];
-
-    // Phase 1: Pre-transaction validation
-    updates.forEach((change, index) => {
-      const errorPrefix = `Change ${index + 1}:`;
-
-      if (!Number.isInteger(change.phase_id)) {
-        validationErrors.push(`${errorPrefix} Invalid or missing phase_id`);
-      }
-      if (!Number.isInteger(change.range_id)) {
-        validationErrors.push(`${errorPrefix} Invalid or missing range_id`);
-      }
-      if (!Number.isInteger(change.duration_weeks)) {
-        validationErrors.push(`${errorPrefix} Invalid duration_weeks format`);
-      }
-    });
-
-    if (validationErrors.length > 0) {
-      return res.status(400).json({
-        status: "failure",
-        message: "Validation errors detected",
-        errors: validationErrors,
-      });
-    }
-
-    // Phase 2: Transaction processing
-    const result = await sql.begin(async (transaction) => {
-      const processedChanges = [];
-
-      for (const change of updates) {
-        const upsertResult = await transaction`
-          INSERT INTO phase_duration (
-            phase_id,
-            range_id,
-            duration_weeks
-          ) VALUES (
-            ${change.phase_id},
-            ${change.range_id},
-            ${change.duration_weeks}
-          )
-          ON CONFLICT (phase_id, range_id) DO UPDATE
-          SET
-            duration_weeks = EXCLUDED.duration_weeks
-          RETURNING *
-        `;
-
-        if (upsertResult.length === 0) {
-          throw new Error(
-            `Failed to upsert phase ${change.phase_id}, range ${change.range_id}`
-          );
-        }
-
-        processedChanges.push(upsertResult[0]);
-      }
-
-      return processedChanges;
-    });
-
-    return res.status(200).json({
-      status: "success",
-      message: "All changes completed atomically",
-      updated: result,
-    });
-  } catch (error) {
-    console.error("Atomic update error:", error);
-
-    // Handle unique constraint violation specifically
-    if (error.message.includes("unique constraint")) {
-      return res.status(409).json({
-        status: "failure",
-        message: "Conflict detected - please verify phase/range combinations",
-      });
-    }
-
-    return res.status(500).json({
-      status: "failure",
-      message: "Atomic update failed - all changes rolled back",
-      error: error.message,
-    });
-  }
-};
 
 const createTableTask = async (req, res) => {
   try {
@@ -771,7 +616,41 @@ const createTableDeliverable = async (req, res) => {
     });
   }
 };
+const createDocumentTemplateTable = async (req, res) => {
+  try {
+    const result = await sql`CREATE TABLE document_template (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      arabic_name VARCHAR(255),
+      description TEXT,
+      is_capex BOOLEAN DEFAULT false,
+      is_opex BOOLEAN DEFAULT false,
+      is_internal BOOLEAN DEFAULT false,
+      is_external BOOLEAN DEFAULT false,
+      phase VARCHAR(50)[] NOT NULL,
+      document_path VARCHAR(255) ,
+      document_name VARCHAR(255) ,
+      document_url TEXT,
+      isrequired BOOLEAN DEFAULT false,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );`;
 
+    res.status(200);
+    res.json({
+      status: "success",
+      message: "Successfully created document_template table",
+      result,
+    });
+  } catch (e) {
+    res.status(500);
+    res.json({
+      status: "failure",
+      message: "Failed to create document_template table",
+      error: e.message,
+    });
+  }
+};
 module.exports = {
   createUsersTable,
   createInitiativeTable,
@@ -788,9 +667,6 @@ module.exports = {
   createTableBudgetRange,
   createTablePhaseDuration,
   setDefaultPhases,
-  getPhaseDurations,
-  getBudgetRanges,
-  updatePhaseDurations,
   createTableTask,
   createTablePortfolio,
   createTableProgram,
@@ -800,4 +676,5 @@ module.exports = {
   createTableProject,
   createTableItem,
   createTableDeliverable,
+  createDocumentTemplateTable,
 };

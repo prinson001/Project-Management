@@ -14,6 +14,13 @@ const {
   updateActivityDurations,
 } = require("../controllers/activityDurationController");
 
+const {
+  getPhaseDurations,
+  getBudgetRanges,
+  updatePhaseDurations,
+  updateBudgetRanges,
+} = require("../controllers/projectTimelineController");
+
 adminRouter.post("/add", addNewUser);
 adminRouter.get("/getUsers", getUsers);
 adminRouter.delete("/deleteUser/:id", deleteUsers);
@@ -22,4 +29,8 @@ adminRouter.post("/updateactivityduration", updateActivityDurations);
 adminRouter.post("/getUser", getUser);
 adminRouter.get("/getRoles", getRoles);
 adminRouter.post("/updateUser", updateUser);
+adminRouter.post("/updatephaseduration", updatePhaseDurations);
+adminRouter.get("/getPhaseDurations", getPhaseDurations);
+adminRouter.get("/getBudgetRanges", getBudgetRanges);
+adminRouter.post("/updateBudgetRanges", updateBudgetRanges);
 module.exports = adminRouter;

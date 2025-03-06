@@ -1,4 +1,10 @@
 const express = require("express");
+const multer = require("multer");
+
+// Define storage
+const storage = multer.memoryStorage(); // Store file in memory buffer
+
+const upload = multer({ storage: storage });
 const router = express.Router();
 const {
   getData,
@@ -24,6 +30,10 @@ const {
   deleteProgram,
 } = require("../controllers/programController");
 
+const {
+  createDocumentTemplate,
+} = require("../controllers/documentTemplateController");
+
 router.post("/setting", getSetting);
 router.post("/data", getData);
 router.post("/filtereddata", getFilteredData);
@@ -39,5 +49,11 @@ router.post("/deletePortfolio", deletePortfolio);
 router.post("/addProgram", addProgram);
 router.post("/updateProgram", updateProgram);
 router.post("/deleteProgram", deleteProgram);
-router.get("/users",getUsers);
+router.get("/users", getUsers);
+
+router.post(
+  "/addDocumentTemplate",
+  upload.single("file"),
+  createDocumentTemplate
+);
 module.exports = router;

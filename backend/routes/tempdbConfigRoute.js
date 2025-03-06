@@ -16,9 +16,6 @@ const {
   createTableBudgetRange,
   createTablePhaseDuration,
   setDefaultPhases,
-  getPhaseDurations,
-  getBudgetRanges,
-  updatePhaseDurations,
   createTableTask,
   createTablePortfolio,
   createTableProgram,
@@ -28,6 +25,7 @@ const {
   createTableProject,
   createTableItem,
   createTableDeliverable,
+  createDocumentTemplateTable,
 } = require("../database/dbConfig");
 
 router.get("/cuser", createUsersTable);
@@ -45,9 +43,7 @@ router.get("/cphase", createTablePhase);
 router.get("/cbudgetrange", createTableBudgetRange);
 router.get("/cphaseduration", createTablePhaseDuration);
 router.get("/iphase", setDefaultPhases);
-router.get("/rphaseduration", getPhaseDurations);
-router.get("/rbudgetrange", getBudgetRanges);
-router.post("/updatephaseduration", updatePhaseDurations);
+
 router.get("/ctask", createTableTask);
 router.get("/cportfolio", createTablePortfolio);
 router.get("/cprogram", createTableProgram);
@@ -57,5 +53,6 @@ router.get("/cprojectphase", createTableProjectPhase);
 router.get("/cproject", createTableProject);
 router.get("/citem", createTableItem);
 router.get("/cdeliverable", createTableDeliverable);
+router.get("/cdocumenttemplate", createDocumentTemplateTable);
 
 module.exports = router;
