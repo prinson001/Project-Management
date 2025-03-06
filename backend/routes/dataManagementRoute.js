@@ -32,6 +32,7 @@ const {
 
 const {
   createDocumentTemplate,
+  getCurrentPhaseDocuments,
 } = require("../controllers/documentTemplateController");
 
 const {
@@ -50,9 +51,9 @@ router.post("/setting", getSetting);
 router.post("/data", getData);
 router.post("/filtereddata", getFilteredData);
 
-router.post("/addinitiative", addInitiative);
-router.post("/updateinitiative", updateInitiative);
-router.post("/deleteinitiative", deleteInitiative);
+router.post("/addInitiative", addInitiative);
+router.post("/updateInitiative", updateInitiative);
+router.post("/deleteInitiative", deleteInitiative);
 
 router.post("/addPortfolio", addPortfolio);
 router.post("/updatePortfolio", updatePortfolio);
@@ -68,6 +69,7 @@ router.post(
   upload.single("file"),
   createDocumentTemplate
 );
+router.post("/getCurrentPhaseDocumentTemplates", getCurrentPhaseDocuments);
 
 router.get("/users", getUsers);
 

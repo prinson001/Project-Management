@@ -169,4 +169,35 @@ const createDocumentTemplate = async (req, res) => {
   }
 };
 
-module.exports = { createDocumentTemplate };
+const getCurrentPhaseDocuments = async (req, res) => {
+  try {
+    const { phase } = req.body;
+
+    if (!phase) {
+      return res.status(400).json({
+        status: "failure",
+        message: "Phase is required in the request body",
+      });
+    }
+
+    // Fetch documents from the database where phase matches
+    const documents = await sql`
+      SELECT * FROM document_template WHERE phase @> ${[phase]}
+    `;
+
+    res.status(200).json({
+      status: "success",
+      message: "Documents retrieved successfully",
+      data: documents,
+    });
+  } catch (error) {
+    console.error("Error fetching documents for phase:", error);
+    res.status(500).json({
+      status: "failure",
+      message: "Internal server error",
+      error: process.env.NODE_ENV === "development" ? error.message : null,
+    });
+  }
+};
+
+module.exports = { createDocumentTemplate, getCurrentPhaseDocuments };
