@@ -5,6 +5,7 @@ import Datepicker from "react-tailwindcss-datepicker";
 import ProjectDocumentSection from './ProjectDocumentSection';
 import { toast } from 'sonner';
 import useAuthStore from "../store/authStore";
+import axios from 'axios';
 
 const ProjectModal = ({ onClose }) => {
     const [activeSection, setActiveSection] = useState('all');
@@ -20,18 +21,18 @@ const ProjectModal = ({ onClose }) => {
         formState: { errors }
     } = useForm({
         defaultValues: {
-            projectEnglishName: '',
-            projectArabicName: '',
-            projectDescription: '',
-            projectType: '',
-            currentPhase: '',
-            initiativeName: '',
-            portfolioName: '',
-            programName: '',
-            projectCategory: '',
-            projectManager: '',
-            alternativeProjectManager: '',
-            vendorName: '',
+            name: '',
+            arabic_name: '',
+            description: '',
+            project_type_id: '',
+            current_phase_id: '',
+            initiative_id: '',
+            portfolio_id: '',
+            program_id: '',
+            category: '',
+            project_manager_id: '',
+            alternative_project_manager_id: '',
+            vendor_id: '',
             beneficiaryDepartments: [
                 { id: 1, name: 'Beneficiary Department One', checked: true },
                 { id: 2, name: 'Beneficiary Department Two', checked: true },
@@ -44,21 +45,21 @@ const ProjectModal = ({ onClose }) => {
                 { id: 3, text: 'Objective Three', checked: true },
                 { id: 4, text: 'Objective Four', checked: true }
             ],
-            plannedBudget: '',
-            approvedBudget: '',
-            executionStartDate: {
+            planned_budget: '',
+            approved_budget: '',
+            execution_start_date: {
                 startDate: new Date("2025-01-21"),
                 endDate: new Date("2025-01-21")
             },
-            maintenanceDate: {
+            maintenance_duration: {
                 startDate: new Date("2025-01-21"),
                 endDate: new Date("2025-01-21")
             },
-            internalStartDate: {
+            internal_start_date: {
                 startDate: new Date("2025-01-21"),
                 endDate: new Date("2025-01-21")
             },
-            executionDuration: '4 weeks',
+            execution_duration: '4 weeks',
             documents: [
                 { id: 1, name: 'Business case', required: true, filename: 'Business_case.doc', date: '5- May -23', uploaded: true },
                 { id: 2, name: 'Request for Proposal', required: true, filename: 'RFP_version_Final.pdf', date: '5- May -23', uploaded: true },
@@ -88,12 +89,117 @@ const ProjectModal = ({ onClose }) => {
         { mainPhase: 'Execution', subPhase: 'Execute phase', duration: '4 weeks', startDate: '5- May -23', endDate: '5- May -23' }
     ];
 
+    useEffect(() => {
+        const fetchPhaseDurations = async () => {
+            try {
+                const response = await axios.get('http://localhost:4000/data-management/phase-durations');
+                if (response.data && response.data.status === 'success') {
+                    setPhaseDurations(response.data.data);
+                    
+                    // Process the data to create duration options
+                    const options = [];
+                    response.data.data.forEach(phase => {
+                        const budgetDurations = phase.budget_durations;
+                        Object.keys(budgetDurations).forEach(budgetId => {
+                            const duration = budgetDurations[budgetId].duration_weeks;
+                            if (duration > 0 && !options.includes(duration)) {
+                                options.push(duration);
+                            }
+                        });
+                    });
+                    
+                    // Sort options numerically
+                    options.sort((a, b) => a - b);
+                    setDurationOptions(options);
+                }
+            } catch (error) {
+                console.error('Error fetching phase durations:', error);
+                toast.error('Failed to load duration options');
+            }
+        };
+
+        fetchPhaseDurations();
+    }, []);
+
     // Handle form submission
-    const onSubmit = (data) => {
+    const onSubmit = async (data) => {
         console.log('Form submitted:', data);
-        // Handle submission logic here
-        toast.success('Project saved successfully!');
-        if (onClose) onClose();
+        
+        try {
+            // Prepare data for submission
+            // Convert project manager IDs to integers if they exist
+            if (data.project_manager_id) {
+                data.project_manager_id = parseInt(data.project_manager_id, 10);
+            }
+            
+            if (data.alternative_project_manager_id) {
+                data.alternative_project_manager_id = parseInt(data.alternative_project_manager_id, 10);
+            }
+            
+            // Format beneficiary departments and objectives
+            const selectedDepartments = data.beneficiaryDepartments
+                .filter(dept => dept.checked)
+                .map(dept => dept.id);
+                
+            const selectedObjectives = data.objectives
+                .filter(obj => obj.checked)
+                .map(obj => obj.id);
+            
+            // Create the payload
+            const projectData = {
+                name: data.name,
+                arabic_name: data.arabic_name,
+                description: data.description,
+                project_type_id: data.project_type_id,
+                current_phase_id: data.current_phase_id,
+                initiative_id: data.initiative_id || null,
+                portfolio_id: data.portfolio_id || null,
+                program_id: data.program_id || null,
+                category: data.category,
+                project_manager_id: data.project_manager_id,
+                alternative_project_manager_id: data.alternative_project_manager_id || null,
+                vendor_id: data.vendor_id || null,
+                beneficiary_departments: selectedDepartments,
+                objectives: selectedObjectives,
+                planned_budget: data.planned_budget || null,
+                approved_budget: data.approved_budget || null,
+                execution_start_date: data.execution_start_date?.startDate || null,
+                execution_duration: data.execution_duration,
+                maintenance_duration: data.maintenance_duration?.startDate || null
+            };
+            
+            // Make API call
+            const result = await axios.post(
+                'http://localhost:4000/data-management/addProject',
+                {
+                    data: projectData,
+                    userId: 1,
+                },
+                {
+                    timeout: 10000, // 10 seconds timeout
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+            
+            // Check response
+            if (result.data && result.data.status === 'success') {
+                // Show success notification
+                toast.success('Project added successfully!');
+                
+                // Close the modal
+                if (onClose) onClose();
+            } else {
+                throw new Error(result.data?.message || 'Failed to add project');
+            }
+        } catch (error) {
+            console.error("Project submission error:", error);
+            const errorMessage = error.response?.data?.message || 
+                                error.message || 
+                                'Failed to add project';
+            toast.error(errorMessage);
+        }
     };
 
     // Helper function to determine which sections should be visible based on project type
@@ -159,12 +265,12 @@ const ProjectModal = ({ onClose }) => {
                             </label>
                             <input
                                 type="text"
-                                className={`w-full p-2 border ${errors.projectEnglishName ? 'border-red-500' : 'border-gray-300'} rounded`}
+                                className={`w-full p-2 border ${errors.name ? 'border-red-500' : 'border-gray-300'} rounded`}
                                 placeholder=""
-                                {...register('projectEnglishName', { required: "Project English name is required" })}
+                                {...register('name', { required: "Project English name is required" })}
                             />
-                            {errors.projectEnglishName && (
-                                <p className="text-red-500 text-xs mt-1">{errors.projectEnglishName.message}</p>
+                            {errors.name && (
+                                <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>
                             )}
                         </div>
                         <div className="text-right">
@@ -173,12 +279,12 @@ const ProjectModal = ({ onClose }) => {
                             </label>
                             <input
                                 type="text"
-                                className={`w-full p-2 border ${errors.projectArabicName ? 'border-red-500' : 'border-gray-300'} rounded text-right`}
+                                className={`w-full p-2 border ${errors.arabic_name ? 'border-red-500' : 'border-gray-300'} rounded text-right`}
                                 placeholder=""
-                                {...register('projectArabicName', { required: "Project Arabic name is required" })}
+                                {...register('arabic_name', { required: "Project Arabic name is required" })}
                             />
-                            {errors.projectArabicName && (
-                                <p className="text-red-500 text-xs mt-1 text-right">{errors.projectArabicName.message}</p>
+                            {errors.arabic_name && (
+                                <p className="text-red-500 text-xs mt-1 text-right">{errors.arabic_name.message}</p>
                             )}
                         </div>
                     </div>

@@ -34,6 +34,18 @@ const {
   createDocumentTemplate,
 } = require("../controllers/documentTemplateController");
 
+const {
+  addProject,
+  updateProject,
+  deleteProject,
+  getProjectById,
+} = require("../controllers/projectController");
+
+const {
+  getPhaseDurations,
+  getPhaseDurationsByBudget,
+} = require("../database/dbConfig");
+
 router.post("/setting", getSetting);
 router.post("/data", getData);
 router.post("/filtereddata", getFilteredData);
@@ -56,4 +68,14 @@ router.post(
   upload.single("file"),
   createDocumentTemplate
 );
+
+router.get("/users", getUsers);
+
+router.post("/addProject", addProject);
+router.post("/updateProject", updateProject);
+router.post("/deleteProject", deleteProject);
+router.post("/getProject", getProjectById);
+
+router.post("/getPhaseDurationsByBudget", getPhaseDurationsByBudget);
+
 module.exports = router;
