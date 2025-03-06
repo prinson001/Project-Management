@@ -151,7 +151,9 @@ const TasksPage = ({
       )}
       {showTableData && (
         <TableData
+          tableName={tableName}
           tableData={tableData}
+          setTableData={setTableData}
           getData={getData}
           showDate={showDate}
           sortTableData={sortTableData}

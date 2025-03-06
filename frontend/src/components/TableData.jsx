@@ -1,13 +1,16 @@
 import React, { useState, useRef, useEffect } from "react";
 import { format, differenceInCalendarDays } from "date-fns";
 import { constructFromSymbol } from "date-fns/constants";
-import { Edit, Trash2, ChevronDown } from "lucide-react";
+import { Edit, Trash2, ChevronDown, Stethoscope } from "lucide-react";
 import UserAccordion from "./UserAccordion";
+import UpdateDynamicForm from "./UpdateDynamicForm";
 import axios from "axios";
 
 const TableData = ({
   getData,
   tableData,
+  tableName,
+  setTableData,
   showDate,
   sortTableData,
   columnSetting,
@@ -21,6 +24,7 @@ const TableData = ({
   const [startWidth, setStartWidth] = useState(null);
   const [totalTableWidth, setTotalTableWidth] = useState(0);
   const [visibleColumns, setVisibleColumns] = useState([]);
+  const [showForm, setShowForm] = useState(null);
 
   // Initialize column widths and track visible columns
   useEffect(() => {
@@ -44,6 +48,59 @@ const TableData = ({
 
   const toggleAccordion = (index) => {
     setOpenAccordion(openAccordion === index ? null : index);
+  };
+  const handleFormData = async (formData) => {
+    console.log("Form data update called");
+
+    const { id, ...updatedData } = formData;
+    toggleForm(-1);
+    try {
+      const result = await axios.post(
+        `http://localhost:4000/data-management/update${tableName}`,
+        {
+          id,
+          data: updatedData,
+        }
+      );
+
+      if (result.status === 200) {
+        // Update the tableData with the new data
+        setTableData((prevData) =>
+          prevData.map((item) =>
+            item.id === id ? { ...item, ...updatedData } : item
+          )
+        );
+
+        console.log("Record updated successfully");
+      }
+    } catch (e) {
+      console.log("There was an error updating the record", e);
+    }
+  };
+  const handleDeleteClick = async (id) => {
+    console.log("the delete clicked id", id);
+    try {
+      const result = await axios.post(
+        `http://localhost:4000/data-management/delete${tableName}`,
+        { id }
+      );
+      console.log(result);
+
+      // Update state correctly
+      setTableData((prevData) => prevData.filter((e) => e.id !== id));
+    } catch (e) {
+      console.log("there was an error", e);
+    }
+  };
+
+  const toggleForm = (index) => {
+    console.log("toggleForm", index);
+    if (index === Number(-1)) {
+      setShowForm(null);
+      return;
+    }
+    setShowForm(showForm === index ? null : index);
+    console.log(tableData[index]);
   };
 
   const getRelativeDate = (dateString) => {
@@ -290,10 +347,14 @@ const TableData = ({
                     )
                 )}
                 <div>
-                  <button>
+                  <button
+                    onClick={(e) => {
+                      toggleForm(index);
+                    }}
+                  >
                     <Edit />
                   </button>
-                  <button>
+                  <button onClick={(e) => handleDeleteClick(item.id)}>
                     <Trash2 />
                   </button>
                   <button onClick={() => toggleAccordion(index)}>
@@ -303,21 +364,15 @@ const TableData = ({
               </div>
 
               {/* Accordion Content */}
+              {/* Inside your tableData.map render */}
               <div
                 className={`transition-all duration-300 ${
                   openAccordion === index ? "block" : "hidden"
                 }`}
               >
                 <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700">
-                  <div className="text-gray-600 text-center dark:text-gray-300">
-                    {/* {TableComponent && (
-                        <TableComponent
-                          userPersonalData={item}
-                          parentId={item.id}
-                          getData={getData}
-                        />
-                      )} */}
-                    {accordionComponentName === "userAccordion" && (
+                  {accordionComponentName === "userAccordion" &&
+                    openAccordion === index && (
                       <UserAccordion
                         userPersonalData={item}
                         parentId={item.id}
@@ -326,13 +381,47 @@ const TableData = ({
                         index={index}
                       />
                     )}
-                  </div>
                 </div>
               </div>
             </div>
           ))}
         </div>
       </div>
+      {showForm != null && (
+        <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 z-50">
+          <div className="max-w-3xl bg-white p-6 rounded-lg shadow-lg w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Edit tableName</h2>
+              <button
+                onClick={() => toggleForm(-1)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <UpdateDynamicForm
+              tableName={tableName}
+              title={`Add Initi`}
+              onSubmit={handleFormData}
+              isEmbedded={true}
+              data={tableData[showForm]}
+            />
+          </div>
+        </div>
+      )}
       {
         <button onClick={(e) => handleBackendSubmit(e)}>
           Submit your data
