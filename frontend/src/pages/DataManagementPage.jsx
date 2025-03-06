@@ -591,7 +591,12 @@ const DataManagementPage = () => {
         </div> */}
         {/* <Pagination pagination={pagination} getPageData={getPageData} /> */}
         {/* Add global CSS for resizable columns */}
-        <TasksPage tableName="users" />
+        <TasksPage
+          tableName={
+            activeTab.endsWith("s") ? activeTab.slice(0, -1) : activeTab
+          }
+        />
+
         <style jsx global>{`
           .resizer {
             position: absolute;
