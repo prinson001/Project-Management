@@ -452,8 +452,6 @@ const getPhaseDurationsByBudget = async (req, res) => {
   }
 };
 
-
-
 const updatePhaseDurations = async (req, res) => {
   try {
     // Validate request body structure
@@ -546,7 +544,6 @@ const updatePhaseDurations = async (req, res) => {
     });
   }
 };
-
 
 const createTableTask = async (req, res) => {
   try {
@@ -832,7 +829,41 @@ const createTableDeliverable = async (req, res) => {
     });
   }
 };
+const createDocumentTemplateTable = async (req, res) => {
+  try {
+    const result = await sql`CREATE TABLE document_template (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      arabic_name VARCHAR(255),
+      description TEXT,
+      is_capex BOOLEAN DEFAULT false,
+      is_opex BOOLEAN DEFAULT false,
+      is_internal BOOLEAN DEFAULT false,
+      is_external BOOLEAN DEFAULT false,
+      phase VARCHAR(50)[] NOT NULL,
+      document_path VARCHAR(255) ,
+      document_name VARCHAR(255) ,
+      document_url TEXT,
+      isrequired BOOLEAN DEFAULT false,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );`;
 
+    res.status(200);
+    res.json({
+      status: "success",
+      message: "Successfully created document_template table",
+      result,
+    });
+  } catch (e) {
+    res.status(500);
+    res.json({
+      status: "failure",
+      message: "Failed to create document_template table",
+      error: e.message,
+    });
+  }
+};
 module.exports = {
   createUsersTable,
   createInitiativeTable,
@@ -862,4 +893,5 @@ module.exports = {
   createTableProject,
   createTableItem,
   createTableDeliverable,
+  createDocumentTemplateTable,
 };

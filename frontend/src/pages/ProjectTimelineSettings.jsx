@@ -84,18 +84,38 @@ const WeekDropdown = ({
 };
 
 // RangeSettingsDropdown Component
-const RangeSettingsDropdown = ({ isOpen, onClose, onSave, budgetRanges }) => {
+const RangeSettingsDropdown = ({
+  isOpen,
+  onClose,
+  onSave,
+  budgetRanges,
+  setbudgetRanges,
+}) => {
   const handleInputChange = (e, index, field) => {
-    const value = e.target.value;
+    console.log("budget Ranges");
+    console.log(budgetRanges);
+    const { value } = e.target;
+
     if (!isNaN(value) || value === "") {
-      const newRanges = [...ranges];
-      newRanges[index][field] = value === "" ? null : parseInt(value);
-      setRanges(newRanges);
+      setbudgetRanges((prevRanges) =>
+        prevRanges.map((range, i) =>
+          i === index
+            ? { ...range, [field]: value === "" ? null : parseInt(value) }
+            : range
+        )
+      );
     }
   };
 
   const handleSave = () => {
-    if (budgetRanges.some((range) => range.min >= range.max)) {
+    console.log(budgetRanges);
+    if (
+      budgetRanges.some((range) => {
+        if (range.min != null && range.max != null) {
+          range.min >= range.max;
+        }
+      })
+    ) {
       alert("Invalid range: Min must be less than Max.");
       return;
     }
@@ -158,6 +178,7 @@ const RangeSettingsDropdown = ({ isOpen, onClose, onSave, budgetRanges }) => {
                           type="text"
                           className="w-full py-1 px-2 border rounded text-center"
                           value={range.min}
+                          name={range.id}
                           onChange={(e) => handleInputChange(e, index, "min")}
                         />
                       )}
@@ -177,6 +198,7 @@ const RangeSettingsDropdown = ({ isOpen, onClose, onSave, budgetRanges }) => {
                         type="text"
                         className="w-full py-1 px-2 border rounded text-center"
                         value={range.max}
+                        name={range.id}
                         onChange={(e) => handleInputChange(e, index, "max")}
                       />
                     </div>
@@ -189,6 +211,7 @@ const RangeSettingsDropdown = ({ isOpen, onClose, onSave, budgetRanges }) => {
                       type="text"
                       className="w-12 py-1 px-2 border rounded text-center"
                       value={range.min}
+                      name={range.id}
                       onChange={(e) => handleInputChange(e, index, "min")}
                     />
                   </div>
@@ -230,7 +253,9 @@ const ProjectTimelineSettings = () => {
   useEffect(() => {
     const fetchranges = async () => {
       try {
-        const result = await axios.get("http://localhost:4000/db/rbudgetrange");
+        const result = await axios.get(
+          "http://localhost:4000/admin/getBudgetRanges"
+        );
         console.log("Fetched Data:", result.data.data);
         setbudgetRanges(result.data.data.map((item) => ({ ...item })));
       } catch (e) {
@@ -240,7 +265,7 @@ const ProjectTimelineSettings = () => {
     const fetchPhaseData = async () => {
       try {
         const result = await axios.get(
-          "http://localhost:4000/db/rphaseduration"
+          "http://localhost:4000/admin/getPhaseDurations"
         );
         console.log("the fetched data");
         console.log(result);
@@ -300,16 +325,27 @@ const ProjectTimelineSettings = () => {
     console.log(changesToSave);
   };
 
-  const handleRangeSettingsSave = (ranges) => {
+  const handleRangeSettingsSave = async (ranges) => {
     console.log("Saved ranges:", ranges);
     // Here you would update your application state with the new ranges
+    try {
+      const result = await axios.post(
+        "http://localhost:4000/admin/updateBudgetRanges",
+        {
+          updates: budgetRanges,
+        }
+      );
+      console.log(result);
+    } catch (e) {
+      console.log(e);
+    }
   };
 
   async function saveData() {
     console.log("save button clicked");
     try {
       const result = await axios.post(
-        "http://localhost:4000/db/updatephaseduration",
+        "http://localhost:4000/admin/updatephaseduration",
         {
           updates: changesToSave,
         }
@@ -356,10 +392,10 @@ const ProjectTimelineSettings = () => {
                         className="border p-2 bg-gray-50 text-left text-sm font-medium text-gray-700"
                       >
                         {index === 0
-                          ? `Budget < ${range.min}`
+                          ? `Budget < ${range.max}`
                           : index === budgetRanges.length - 1
                           ? `Budget > ${range.min}`
-                          : `${range.min} < Budget < ${range.max}`}
+                          : `${range.min} > Budget < ${range.max}`}
                       </th>
                     );
                   })}
@@ -417,6 +453,7 @@ const ProjectTimelineSettings = () => {
       <RangeSettingsDropdown
         isOpen={showRangeSettings}
         budgetRanges={budgetRanges}
+        setbudgetRanges={setbudgetRanges}
         onClose={() => setShowRangeSettings(false)}
         onSave={handleRangeSettingsSave}
       />

@@ -21,7 +21,8 @@ const login = asyncHandler(async (req, res) => {
     throw new Error("User not found");
   }
   console.log(user[0].password);
-  const match = await bcrypt.compare(req.body.password, user[0].password);
+  // const match = await bcrypt.compare(req.body.password, user[0].password);
+  const match = user[0].password === req.body.password;
   if (!match) {
     res.status(400);
     throw new Error("Invalid password");
