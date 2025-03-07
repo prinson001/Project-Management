@@ -1,7 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
 import { format, differenceInCalendarDays } from "date-fns";
 import { constructFromSymbol } from "date-fns/constants";
-import { Edit, Trash2, ChevronDown, Stethoscope } from "lucide-react";
+import {
+  Edit,
+  Trash2,
+  ChevronDown,
+  Stethoscope,
+  ChevronsUpDown,
+} from "lucide-react";
 import UserAccordion from "./UserAccordion";
 import UpdateDynamicForm from "./UpdateDynamicForm";
 import axios from "axios";
@@ -263,9 +269,15 @@ const TableData = ({
                       borderRight: "1px solid #d1d5db", // Light mode border
                     }}
                   >
-                    <div className="truncate pr-4">{current.columnName}</div>
+                    <div className="truncate pr-1">{current.columnName}</div>
+                    <ChevronsUpDown
+                      className="mr-4 cursor-pointer"
+                      data-name={current.dbColumn}
+                      data-sort="ASC"
+                      onClick={sortDataHandler}
+                    />
                     <div
-                      className={`absolute right-0 top-0 h-full w-4 cursor-col-resize hover:bg-gray-300 dark:hover:bg-gray-600 ${
+                      className={`absolute right-0  top-0 h-full w-4 cursor-col-resize hover:bg-gray-300 dark:hover:bg-gray-600 ${
                         resizingColumn === current.dbColumn
                           ? "bg-blue-400 opacity-50"
                           : ""
@@ -313,7 +325,16 @@ const TableData = ({
                         }}
                       >
                         {/* Cell content remains the same */}
-                        {current.isInput ? (
+                        {tableName == "document" &&
+                        current.dbColumn == "name" ? (
+                          <a
+                            href={item.document_url}
+                            target="_blank"
+                            className={{ cursor: "pointer" }}
+                          >
+                            {item[current.dbColumn]}
+                          </a>
+                        ) : current.isInput ? (
                           current.dbColumn === "created_at" ? (
                             showDate ? (
                               item[current.dbColumn]
