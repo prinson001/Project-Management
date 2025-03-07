@@ -40,9 +40,9 @@ const TableData = ({
 
     columnSetting.forEach((column) => {
       if (column.isVisible) {
-        const width = column.width || 150;
+        const width = column.width || "auto"; // Use "auto" for flexible width
         initialWidths[column.dbColumn] = width;
-        totalWidth += width;
+        totalWidth += width === "auto" ? 1 : 0; // Count flexible columns
         visible.push(column.dbColumn);
       }
     });
@@ -55,6 +55,7 @@ const TableData = ({
   const toggleAccordion = (index) => {
     setOpenAccordion(openAccordion === index ? null : index);
   };
+
   const handleFormData = async (formData) => {
     console.log("Form data update called");
 
@@ -83,6 +84,7 @@ const TableData = ({
       console.log("There was an error updating the record", e);
     }
   };
+
   const handleDeleteClick = async (id) => {
     console.log("the delete clicked id", id);
     try {
@@ -162,6 +164,7 @@ const TableData = ({
       console.log(e);
     }
   }
+
   // Column resize handlers
   const handleResizeStart = (e, columnId, columnIndex) => {
     e.preventDefault();
@@ -181,51 +184,11 @@ const TableData = ({
       const diff = e.clientX - startX;
       const newWidth = Math.max(50, startWidth + diff);
 
-      // Get the next column to adjust its width
-      const currentIndex = visibleColumns.indexOf(resizingColumn);
-      const nextColumn =
-        currentIndex < visibleColumns.length - 1
-          ? visibleColumns[currentIndex + 1]
-          : null;
-
-      if (nextColumn) {
-        // Calculate how much width we're adding to the current column
-        const widthDiff = newWidth - columnWidths[resizingColumn];
-
-        // Make sure the next column doesn't get too small
-        const nextColumnNewWidth = Math.max(
-          50,
-          columnWidths[nextColumn] - widthDiff
-        );
-
-        // If the next column would get too small, limit the current column's growth
-        if (
-          nextColumnNewWidth === 50 &&
-          columnWidths[nextColumn] - widthDiff < 50
-        ) {
-          const maxGrowth = columnWidths[nextColumn] - 50;
-          const limitedNewWidth = columnWidths[resizingColumn] + maxGrowth;
-
-          setColumnWidths((prev) => ({
-            ...prev,
-            [resizingColumn]: limitedNewWidth,
-            [nextColumn]: 50,
-          }));
-        } else {
-          // Otherwise adjust both columns
-          setColumnWidths((prev) => ({
-            ...prev,
-            [resizingColumn]: newWidth,
-            [nextColumn]: nextColumnNewWidth,
-          }));
-        }
-      } else {
-        // If it's the last column, just resize it
-        setColumnWidths((prev) => ({
-          ...prev,
-          [resizingColumn]: newWidth,
-        }));
-      }
+      // Update the column width
+      setColumnWidths((prev) => ({
+        ...prev,
+        [resizingColumn]: newWidth,
+      }));
     }
   };
 
@@ -239,6 +202,7 @@ const TableData = ({
 
     document.body.classList.remove("resize-active");
   };
+
   const closeAccordion = (index) => {
     setOpenAccordion(openAccordion === index ? null : index);
   };
@@ -264,7 +228,7 @@ const TableData = ({
                     className="flex items-center justify-between relative px-2 h-full"
                     style={{
                       width: `${columnWidths[current.dbColumn]}px`,
-                      minWidth: "50px",
+                      minWidth: "30px",
                       overflow: "hidden",
                       borderRight: "1px solid #d1d5db", // Light mode border
                     }}
@@ -300,12 +264,12 @@ const TableData = ({
               key={index}
               className="border-b border-gray-200 dark:border-gray-700"
             >
-              <div className="flex px-6 ">
+              <div className="flex px-6">
                 {columnSetting.map(
                   (current) =>
                     current.isVisible && (
                       <div
-                        className={` truncate px-2 h-full ${
+                        className={`truncate px-2 h-full ${
                           changedinput[item.id]?.[current.dbColumn] !==
                             undefined &&
                           changedinput[item.id][current.dbColumn] !==
@@ -318,7 +282,7 @@ const TableData = ({
                           width: `${columnWidths[current.dbColumn]}px`,
                           minWidth: "50px",
                           overflow: "hidden",
-                          borderRight: "1px solid #000000", // Black border for data cells
+                          borderRight: "1px solid #d1d5db", // Black border for data cells
                           height: "5rem",
                           display: "flex",
                           alignItems: "center",
@@ -367,25 +331,28 @@ const TableData = ({
                       </div>
                     )
                 )}
-                <div>
+                {/* Centered Icons */}
+                <div
+                  className="flex items-center justify-center space-x-2"
+                  style={{ height: "5rem", minWidth: "150px" }} // Fixed width for the icon column
+                >
                   <button
                     onClick={(e) => {
                       toggleForm(index);
                     }}
                   >
-                    <Edit />
+                    <Edit className="w-5 h-5" />
                   </button>
                   <button onClick={(e) => handleDeleteClick(item.id)}>
-                    <Trash2 />
+                    <Trash2 className="w-5 h-5" />
                   </button>
                   <button onClick={() => toggleAccordion(index)}>
-                    <ChevronDown />
+                    <ChevronDown className="w-5 h-5" />
                   </button>
                 </div>
               </div>
 
               {/* Accordion Content */}
-              {/* Inside your tableData.map render */}
               <div
                 className={`transition-all duration-300 ${
                   openAccordion === index ? "block" : "hidden"
@@ -412,7 +379,7 @@ const TableData = ({
         <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 z-50">
           <div className="max-w-3xl bg-white p-6 rounded-lg shadow-lg w-full mx-4">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Edit tableName</h2>
+              <h2 className="text-xl font-semibold">Edit {tableName}</h2>
               <button
                 onClick={() => toggleForm(-1)}
                 className="text-gray-500 hover:text-gray-700"

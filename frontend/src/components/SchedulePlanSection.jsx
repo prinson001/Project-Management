@@ -3,12 +3,13 @@ import { ChevronUp } from "lucide-react";
 import Datepicker from "react-tailwindcss-datepicker";
 import { Controller, useForm } from "react-hook-form";
 import axios from "axios";
-import { addWeeks, format } from "date-fns";
+import { addDays, addWeeks, addMonths, format } from "date-fns";
 
 const SchedulePlanSection = () => {
   const [activeTab, setActiveTab] = useState("B. Days");
   const [phaseDurations, setPhaseDurations] = useState([]);
   const [scheduleTableData, setScheduleTableData] = useState([]);
+  const [originalDurations, setOriginalDurations] = useState({});
 
   const {
     control,
@@ -24,6 +25,7 @@ const SchedulePlanSection = () => {
 
   const executionStartDate = watch("executionStartDate");
   let budget = 2000000;
+
   // Fetch phase durations on component mount
   useEffect(() => {
     const fetchPhaseDurations = async () => {
@@ -141,6 +143,40 @@ const SchedulePlanSection = () => {
     }
   }, [phaseDurations]);
 
+  // Convert duration to days for calculation
+  const convertToDays = (durationStr) => {
+    const daysMatch = durationStr.match(/(\d+)\s*days?/);
+    if (daysMatch) return parseInt(daysMatch[1], 10);
+
+    const weeksMatch = durationStr.match(/(\d+)\s*weeks?/);
+    if (weeksMatch) return parseInt(weeksMatch[1], 10) * 7;
+
+    const monthsMatch = durationStr.match(/(\d+)\s*months?/);
+    if (monthsMatch) return parseInt(monthsMatch[1], 10) * 30; // Approximation
+
+    // Default fallback - assume it's weeks as in original code
+    const match = durationStr.match(/(\d+)/);
+    return match ? parseInt(match[1], 10) * 7 : 28; // Default to 4 weeks (28 days)
+  };
+
+  // Add appropriate time based on duration unit
+  const addDuration = (date, durationStr) => {
+    if (!date) return null;
+
+    const daysMatch = durationStr.match(/(\d+)\s*days?/);
+    if (daysMatch) return addDays(date, -parseInt(daysMatch[1], 10));
+
+    const weeksMatch = durationStr.match(/(\d+)\s*weeks?/);
+    if (weeksMatch) return addWeeks(date, -parseInt(weeksMatch[1], 10));
+
+    const monthsMatch = durationStr.match(/(\d+)\s*months?/);
+    if (monthsMatch) return addMonths(date, -parseInt(monthsMatch[1], 10));
+
+    // Default fallback - assume it's weeks as in original code
+    const match = durationStr.match(/(\d+)/);
+    return match ? addWeeks(date, -parseInt(match[1], 10)) : date;
+  };
+
   // Calculate dates based on execution start date and phase durations
   useEffect(() => {
     if (!executionStartDate) {
@@ -153,7 +189,7 @@ const SchedulePlanSection = () => {
     [...scheduleTableData].reverse().forEach((phase, index) => {
       if (index === 0) {
         const endDate = new Date(executionStartDate);
-        const startDate = addWeeks(endDate, -extractWeeks(phase.duration));
+        const startDate = addDuration(endDate, phase.duration);
         tempSchedule.push({
           ...phase,
           endDate: format(endDate, "dd-MMM-yyyy"),
@@ -162,7 +198,7 @@ const SchedulePlanSection = () => {
       } else {
         const prevPhase = tempSchedule[index - 1];
         const endDate = new Date(prevPhase.startDate);
-        const startDate = addWeeks(endDate, -extractWeeks(phase.duration));
+        const startDate = addDuration(endDate, phase.duration);
         tempSchedule.push({
           ...phase,
           endDate: format(endDate, "dd-MMM-yyyy"),
@@ -173,12 +209,6 @@ const SchedulePlanSection = () => {
 
     setScheduleTableData(tempSchedule.reverse());
   }, [executionStartDate]);
-
-  // Helper function to extract weeks from duration string
-  const extractWeeks = (durationStr) => {
-    const match = durationStr.match(/(\d+)\s*weeks/);
-    return match ? parseInt(match[1], 10) : 4; // Default to 4 weeks
-  };
 
   // Handle duration change for a specific phase
   const handleDurationChange = (phaseId, newDuration) => {
@@ -193,7 +223,7 @@ const SchedulePlanSection = () => {
       [...updatedSchedule].reverse().forEach((phase, index) => {
         if (index === 0) {
           const endDate = new Date(executionStartDate);
-          const startDate = addWeeks(endDate, -extractWeeks(phase.duration));
+          const startDate = addDuration(endDate, phase.duration);
           tempSchedule.push({
             ...phase,
             endDate: format(endDate, "dd-MMM-yyyy"),
@@ -202,7 +232,7 @@ const SchedulePlanSection = () => {
         } else {
           const prevPhase = tempSchedule[index - 1];
           const endDate = new Date(prevPhase.startDate);
-          const startDate = addWeeks(endDate, -extractWeeks(phase.duration));
+          const startDate = addDuration(endDate, phase.duration);
           tempSchedule.push({
             ...phase,
             endDate: format(endDate, "dd-MMM-yyyy"),
@@ -215,11 +245,48 @@ const SchedulePlanSection = () => {
     }
   };
 
-  // Generate duration options for dropdown (1 week to 12 weeks)
-  const durationOptions = Array.from({ length: 12 }, (_, i) => ({
-    value: `${i + 1} week${i + 1 > 1 ? "s" : ""}`,
-    label: `${i + 1} week${i + 1 > 1 ? "s" : ""}`,
-  }));
+  // Convert duration to the selected unit
+  const convertDuration = (durationStr, targetUnit) => {
+    const days = convertToDays(durationStr);
+    if (targetUnit === "B. Days") {
+      return `${days} day${days > 1 ? "s" : ""}`;
+    } else if (targetUnit === "Weeks") {
+      const weeks = Math.floor(days / 7);
+      return `${weeks} week${weeks > 1 ? "s" : ""}`;
+    } else if (targetUnit === "Months") {
+      const months = Math.floor(days / 30);
+      return `${months} month${months > 1 ? "s" : ""}`;
+    }
+    return durationStr;
+  };
+
+  // Generate duration options for dropdown based on selected unit tab
+  const getDurationOptions = () => {
+    if (activeTab === "B. Days") {
+      return Array.from({ length: 30 }, (_, i) => ({
+        value: `${i + 1} day${i + 1 > 1 ? "s" : ""}`,
+        label: `${i + 1} day${i + 1 > 1 ? "s" : ""}`,
+      }));
+    } else if (activeTab === "Weeks") {
+      return Array.from({ length: 12 }, (_, i) => ({
+        value: `${i + 1} week${i + 1 > 1 ? "s" : ""}`,
+        label: `${i + 1} week${i + 1 > 1 ? "s" : ""}`,
+      }));
+    } else if (activeTab === "Months") {
+      return Array.from({ length: 12 }, (_, i) => ({
+        value: `${i + 1} month${i + 1 > 1 ? "s" : ""}`,
+        label: `${i + 1} month${i + 1 > 1 ? "s" : ""}`,
+      }));
+    }
+
+    // Default to weeks
+    return Array.from({ length: 12 }, (_, i) => ({
+      value: `${i + 1} week${i + 1 > 1 ? "s" : ""}`,
+      label: `${i + 1} week${i + 1 > 1 ? "s" : ""}`,
+    }));
+  };
+
+  const durationOptions = getDurationOptions();
 
   const getRowColor = (mainPhase) => {
     switch (mainPhase) {
@@ -239,6 +306,16 @@ const SchedulePlanSection = () => {
       activeTab === tab ? "bg-blue-100 text-blue-800 font-medium" : ""
     }`;
 
+  // Handle tab change and convert durations
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    const updatedSchedule = scheduleTableData.map((phase) => ({
+      ...phase,
+      duration: convertDuration(phase.duration, tab),
+    }));
+    setScheduleTableData(updatedSchedule);
+  };
+
   return (
     <div className="mb-6 border-t pt-4">
       <div className="flex justify-between items-center mb-4">
@@ -255,7 +332,7 @@ const SchedulePlanSection = () => {
                   ? "rounded-r"
                   : ""
               }`}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => handleTabChange(tab)}
             >
               {tab}
             </button>
@@ -407,4 +484,5 @@ const SchedulePlanSection = () => {
     </div>
   );
 };
+
 export default SchedulePlanSection;
