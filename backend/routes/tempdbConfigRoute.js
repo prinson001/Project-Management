@@ -26,6 +26,7 @@ const {
   createTableItem,
   createTableDeliverable,
   createDocumentTemplateTable,
+  connectObjectiveWithProject,
 } = require("../database/dbConfig");
 
 router.get("/cuser", createUsersTable);
@@ -54,5 +55,6 @@ router.get("/cproject", createTableProject);
 router.get("/citem", createTableItem);
 router.get("/cdeliverable", createTableDeliverable);
 router.get("/cdocumenttemplate", createDocumentTemplateTable);
+router.get("/connectobjectivewithproject", connectObjectiveWithProject);
 
 module.exports = router;

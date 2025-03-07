@@ -3,8 +3,10 @@ const sql = require("../database/db");
 //  @Description retrieve any table data
 //  @Route site.com/data-management//data
 const getData = async (req, res) => {
-  const { tableName, userId, page = 1, limit = 4 } = req.body;
-
+  let { tableName, userId, page = 1, limit = 4 } = req.body;
+  if (tableName == "document") {
+    tableName = "document_template";
+  }
   if (!tableName || !userId) {
     return res.status(400).json({
       status: "failure",
@@ -25,12 +27,33 @@ const getData = async (req, res) => {
 
     // Calculate offset for pagination
     const offset = (page - 1) * limit;
-
+    let result = null;
     // Get paginated data
-    const result = await sql`
+    if (tableName === "portfolio") {
+      result = await sql`
+      SELECT ${sql(tableName)}.*, users.first_name AS portfolio_manager_name
+      FROM ${sql(tableName)}
+      LEFT JOIN users ON ${sql(tableName)}.portfolio_manager = users.id
+      LIMIT ${limit} OFFSET ${offset}
+      `;
+    } else if (tableName === "program") {
+      result = await sql`
+      SELECT ${sql(tableName)}.*, users.first_name AS program_manager_name
+      FROM ${sql(tableName)}
+      LEFT JOIN users ON ${sql(tableName)}.portfolio_manager = users.id
+      LIMIT ${limit} OFFSET ${offset}`;
+    } else if (tableName === "objective") {
+      result = await sql`
+      SELECT ${sql(tableName)}.*, project.name AS belongs_to
+      FROM ${sql(tableName)}
+      LEFT JOIN users ON ${sql(tableName)}.project_id = project.id
+      LIMIT ${limit} OFFSET ${offset}`;
+    } else {
+      result = await sql`
       SELECT * FROM ${sql(tableName)}
       LIMIT ${limit} OFFSET ${offset}
     `;
+    }
 
     // Get total count for pagination
     const countResult = await sql`
@@ -331,19 +354,19 @@ const getUsers = async (req, res) => {
       FROM users 
       ORDER BY first_name, family_name
     `;
-    
+
     res.status(200).json({
       status: "success",
       message: "Users retrieved successfully",
-      result
+      result,
     });
   } catch (e) {
     console.error(e);
     res.status(500).json({
       status: "failure",
       message: "Error retrieving users",
-      error: e.message
+      error: e.message,
     });
   }
 };
-module.exports = { getData, getSetting, getFilteredData,getUsers };
+module.exports = { getData, getSetting, getFilteredData, getUsers };

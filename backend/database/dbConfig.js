@@ -65,7 +65,8 @@ const createObjectiveTable = async (req, res) => {
         name VARCHAR(255),
         description TEXT,
         arabic_name VARCHAR(255),
-        arabic_description TEXT
+        arabic_description TEXT,
+        created_date DATE
     )`;
     res.status(200);
     res.json({ status: "success", result });
@@ -864,6 +865,25 @@ const createDocumentTemplateTable = async (req, res) => {
     });
   }
 };
+const connectObjectiveWithProject = async (req, res) => {
+  try {
+    const result = await sql`
+      ALTER TABLE objective 
+      ADD COLUMN project_id INT,
+      ADD CONSTRAINT fk_project FOREIGN KEY (project_id) REFERENCES project(id) ON DELETE CASCADE
+    `;
+
+    console.log(result);
+    res.status(200).json({
+      status: "success",
+      message: "Foreign key added to objective table successfully",
+      result,
+    });
+  } catch (e) {
+    res.status(500).json({ status: "failure", message: e.message });
+  }
+};
+
 module.exports = {
   createUsersTable,
   createInitiativeTable,
@@ -894,4 +914,5 @@ module.exports = {
   createTableItem,
   createTableDeliverable,
   createDocumentTemplateTable,
+  connectObjectiveWithProject,
 };

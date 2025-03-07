@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { X, Users, Plus } from "lucide-react"; // Added Plus icon
 import { Calendar, ChevronDown, ChevronUp, Download } from "lucide-react";
@@ -23,7 +23,11 @@ let dateFilter = null;
 let page = 1;
 const DataManagementPage = () => {
   const [activeTab, setActiveTab] = useState("initiatives");
-  let processedCategory = activeTab.replace(/s$/, "");
+  const processedCategory = useMemo(
+    () => activeTab.replace(/s$/, ""),
+    [activeTab]
+  );
+
   const [columnSetting, setColumnSetting] = useState([]);
   const [tableData, setTableData] = useState([]);
   const [showDate, setShowDate] = useState(false);
@@ -310,14 +314,13 @@ const DataManagementPage = () => {
     sortClause = {};
     dateFilter = null;
     page = 1;
-    setTableData([]);
-    setPagination({});
-    setColumnSetting([]);
+    // setTableData([]);
+    // setPagination({});
+    // setColumnSetting([]);
     setShowForm(false);
     setShowDocumentForm(false);
     // Get data for the selected tab
-    getSetting();
-    getData();
+    //
   }, [activeTab]);
 
   useEffect(() => {
@@ -375,13 +378,13 @@ const DataManagementPage = () => {
       if (activeTab === "portfolios" && data.portfolioManager) {
         data.portfolioManager = parseInt(data.portfolioManager, 10);
       }
-      const result = await axios.post(
-        `http://localhost:4000/data-management/${endpoint}`,
-        {
-          ...data,
-          userId: 1,
-        }
-      );
+      // const result = await axios.post(
+      //   `http://localhost:4000/data-management/${endpoint}`,
+      //   {
+      //     ...data,
+      //     userId: 1,
+      //   }
+      // );
 
       console.log("Form submission result:", result);
 
@@ -426,7 +429,7 @@ const DataManagementPage = () => {
       const result = await axios.post(
         "http://localhost:4000/data-management/data",
         {
-          tableName: activeTab.slice(0, -1), // Remove 's' from the end to get singular form
+          tableName: getSingularTabName(), // Remove 's' from the end to get singular form
           userId: 1,
         }
       );
@@ -580,7 +583,7 @@ const DataManagementPage = () => {
           filterTableBasedonSearchTerm={filterTableBasedonSearchTerm}
           setColumnSetting={setColumnSetting}
         ></TableConfigFilter>
-          
+
         <div className="overflow-x-auto">
           <TableData
             tableData={tableData}
@@ -588,14 +591,10 @@ const DataManagementPage = () => {
             sortTableData={sortTableData}
             columnSetting={columnSetting}
           ></TableData>
-        </div> */}
-        {/* <Pagination pagination={pagination} getPageData={getPageData} /> */}
-        {/* Add global CSS for resizable columns */}
-        <TasksPage
-          tableName={
-            activeTab.endsWith("s") ? activeTab.slice(0, -1) : activeTab
-          }
-        />
+        </div>
+        <Pagination pagination={pagination} getPageData={getPageData} /> */}
+
+        <TasksPage key={processedCategory} tableName={processedCategory} />
 
         <style jsx global>{`
           .resizer {

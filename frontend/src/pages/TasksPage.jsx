@@ -28,6 +28,7 @@ const TasksPage = ({
   let originalTableData = [];
   async function getData() {
     try {
+      console.log("the dableName in getData function", tableName);
       const result = await axios.post(
         "http://localhost:4000/data-management/data",
         {
@@ -68,6 +69,7 @@ const TasksPage = ({
 
     return () => {
       console.log("Component Unmounted!");
+      console.log("the tableName is" + tableName);
     };
   }, []);
 
