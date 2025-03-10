@@ -9,7 +9,6 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import UsersPage from "./pages/UsersPage";
 import LoginPage from "./pages/LoginPage";
 import SidebarPage from "./pages/SidebarPage";
-import HomePage from "./pages/HomePage";
 import TasksPage from "./pages/TasksPage";
 import DataManagementPage from "./pages/DataManagementPage";
 import DashboardPage from "./pages/DashboardPage";
@@ -19,13 +18,15 @@ import Expected from "./pages/Expected";
 import UserAccordion from "./components/UserAccordion";
 import BoqTaskAccordion from "./components/BoqTaskAccordion";
 import DeliverablesAccordion from "./components/DeliverableAccordion";
-import SchedulePlan from "./components/schedulePlan";
-import Test from "./pages/Test";
 import ProjectModal from "./components/ProjectModal";
 import TasksAccordion from "./components/TasksAccordion";
 import { Toaster } from "sonner";
 import PMPage from "./pages/PMPage";
 import AdminPage from "./pages/AdminPage";
+import SchedulePlanSection from "./components/SchedulePlanSection";
+import SchedulePlan from "./components/SchedulePlan";
+import HomePage from "./pages/test";
+// import Test from "./pages/Test";
 const App = () => {
   return (
     <div>
@@ -89,11 +90,11 @@ export const router = createBrowserRouter([
   },
   {
     path: "/test",
-    element: <Test />,
+    element: <HomePage />,
   },
   {
     path: "/data-management",
-    element: <DataManagementPage />,
+    element: <HomePage />,
   },
   {
     path: "/expected",
@@ -134,6 +135,10 @@ export const router = createBrowserRouter([
   {
     path: "sc",
     element: <SchedulePlan />,
+  },
+  {
+    path: "plan",
+    element: <SchedulePlanSection />,
   },
 ]);
 

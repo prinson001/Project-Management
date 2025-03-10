@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
 import { format, differenceInCalendarDays } from "date-fns";
-import { constructFromSymbol } from "date-fns/constants";
 import {
   Edit,
   Trash2,
@@ -40,9 +39,9 @@ const TableData = ({
 
     columnSetting.forEach((column) => {
       if (column.isVisible) {
-        const width = column.width || 150;
+        const width = column.width || 150; // Default width of 150px instead of "auto"
         initialWidths[column.dbColumn] = width;
-        totalWidth += width;
+        totalWidth += typeof width === "number" ? width : 150;
         visible.push(column.dbColumn);
       }
     });
@@ -55,6 +54,7 @@ const TableData = ({
   const toggleAccordion = (index) => {
     setOpenAccordion(openAccordion === index ? null : index);
   };
+
   const handleFormData = async (formData) => {
     console.log("Form data update called");
 
@@ -83,6 +83,7 @@ const TableData = ({
       console.log("There was an error updating the record", e);
     }
   };
+
   const handleDeleteClick = async (id) => {
     console.log("the delete clicked id", id);
     try {
@@ -162,6 +163,7 @@ const TableData = ({
       console.log(e);
     }
   }
+
   // Column resize handlers
   const handleResizeStart = (e, columnId, columnIndex) => {
     e.preventDefault();
@@ -181,51 +183,11 @@ const TableData = ({
       const diff = e.clientX - startX;
       const newWidth = Math.max(50, startWidth + diff);
 
-      // Get the next column to adjust its width
-      const currentIndex = visibleColumns.indexOf(resizingColumn);
-      const nextColumn =
-        currentIndex < visibleColumns.length - 1
-          ? visibleColumns[currentIndex + 1]
-          : null;
-
-      if (nextColumn) {
-        // Calculate how much width we're adding to the current column
-        const widthDiff = newWidth - columnWidths[resizingColumn];
-
-        // Make sure the next column doesn't get too small
-        const nextColumnNewWidth = Math.max(
-          50,
-          columnWidths[nextColumn] - widthDiff
-        );
-
-        // If the next column would get too small, limit the current column's growth
-        if (
-          nextColumnNewWidth === 50 &&
-          columnWidths[nextColumn] - widthDiff < 50
-        ) {
-          const maxGrowth = columnWidths[nextColumn] - 50;
-          const limitedNewWidth = columnWidths[resizingColumn] + maxGrowth;
-
-          setColumnWidths((prev) => ({
-            ...prev,
-            [resizingColumn]: limitedNewWidth,
-            [nextColumn]: 50,
-          }));
-        } else {
-          // Otherwise adjust both columns
-          setColumnWidths((prev) => ({
-            ...prev,
-            [resizingColumn]: newWidth,
-            [nextColumn]: nextColumnNewWidth,
-          }));
-        }
-      } else {
-        // If it's the last column, just resize it
-        setColumnWidths((prev) => ({
-          ...prev,
-          [resizingColumn]: newWidth,
-        }));
-      }
+      // Update the column width
+      setColumnWidths((prev) => ({
+        ...prev,
+        [resizingColumn]: newWidth,
+      }));
     }
   };
 
@@ -239,6 +201,7 @@ const TableData = ({
 
     document.body.classList.remove("resize-active");
   };
+
   const closeAccordion = (index) => {
     setOpenAccordion(openAccordion === index ? null : index);
   };
@@ -252,170 +215,190 @@ const TableData = ({
 
   return (
     <>
-      <div className="relative flex-1 overflow-x-auto rounded-lg shadow-md">
-        <div className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-white">
-          {/* Header */}
-          <div className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-[#090b0d] dark:text-gray-400 px-6 py-3 flex font-bold">
-            {columnSetting.map((current, index) => {
-              return (
-                current.isVisible && (
-                  <div
-                    key={current.columnName}
-                    className="flex items-center justify-between relative px-2 h-full"
-                    style={{
-                      width: `${columnWidths[current.dbColumn]}px`,
-                      minWidth: "50px",
-                      overflow: "hidden",
-                      borderRight: "1px solid #d1d5db", // Light mode border
-                    }}
-                  >
-                    <div className="truncate pr-1">{current.columnName}</div>
-                    <ChevronsUpDown
-                      className="mr-4 cursor-pointer"
-                      data-name={current.dbColumn}
-                      data-sort="ASC"
-                      onClick={sortDataHandler}
-                    />
-                    <div
-                      className={`absolute right-0  top-0 h-full w-4 cursor-col-resize hover:bg-gray-300 dark:hover:bg-gray-600 ${
-                        resizingColumn === current.dbColumn
-                          ? "bg-blue-400 opacity-50"
-                          : ""
-                      }`}
-                      onMouseDown={(e) =>
-                        handleResizeStart(e, current.dbColumn, index)
-                      }
+      <div className="relative overflow-x-auto rounded-lg shadow-md">
+        <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-white table-fixed">
+          {/* Table Header */}
+          <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-[#090b0d] dark:text-gray-400">
+            <tr>
+              {columnSetting.map(
+                (column) =>
+                  column.isVisible && (
+                    <th
+                      key={column.columnName}
+                      className="px-2 py-3 relative border-r border-gray-200 dark:border-gray-700"
+                      style={{ width: `${columnWidths[column.dbColumn]}px` }}
                     >
-                      {/* <div className="h-full w-1 bg-gray-400 dark:bg-gray-500 mx-auto"></div> */}
-                    </div>
-                  </div>
-                )
-              );
-            })}
-          </div>
+                      <div className="flex items-center justify-between">
+                        <span className="truncate pr-1">
+                          {column.columnName}
+                        </span>
+                        <ChevronsUpDown
+                          className="mr-4 cursor-pointer"
+                          data-name={column.dbColumn}
+                          data-sort="ASC"
+                          onClick={sortDataHandler}
+                        />
+                        <div
+                          className={`absolute right-0 top-0 h-full w-4 cursor-col-resize hover:bg-gray-300 dark:hover:bg-gray-600 ${
+                            resizingColumn === column.dbColumn
+                              ? "bg-blue-400 opacity-50"
+                              : ""
+                          }`}
+                          onMouseDown={(e) =>
+                            handleResizeStart(
+                              e,
+                              column.dbColumn,
+                              column.dbColumn
+                            )
+                          }
+                        />
+                      </div>
+                    </th>
+                  )
+              )}
+              <th className="px-6 py-3 w-24 text-center">Actions</th>
+            </tr>
+          </thead>
 
-          {/* Accordion Items */}
-          {tableData.map((item, index) => (
-            <div
-              key={index}
-              className="border-b border-gray-200 dark:border-gray-700"
-            >
-              <div className="flex px-6 ">
-                {columnSetting.map(
-                  (current) =>
-                    current.isVisible && (
-                      <div
-                        className={` truncate px-2 h-full ${
-                          changedinput[item.id]?.[current.dbColumn] !==
-                            undefined &&
-                          changedinput[item.id][current.dbColumn] !==
-                            item[current.dbColumn]
-                            ? "bg-amber-100 border-2 border-amber-500"
-                            : ""
-                        }`}
-                        key={current.dbColumn}
-                        style={{
-                          width: `${columnWidths[current.dbColumn]}px`,
-                          minWidth: "50px",
-                          overflow: "hidden",
-                          borderRight: "1px solid #000000", // Black border for data cells
-                          height: "5rem",
-                          display: "flex",
-                          alignItems: "center",
-                        }}
-                      >
-                        {/* Cell content remains the same */}
-                        {tableName == "document" &&
-                        current.dbColumn == "name" ? (
-                          <a
-                            href={item.document_url}
-                            target="_blank"
-                            className={{ cursor: "pointer" }}
-                          >
-                            {item[current.dbColumn]}
-                          </a>
-                        ) : current.isInput ? (
-                          current.dbColumn === "created_at" ? (
-                            showDate ? (
-                              item[current.dbColumn]
+          {/* Table Body */}
+          <tbody>
+            {tableData.map((item, index) => (
+              <React.Fragment key={index}>
+                <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                  {columnSetting.map(
+                    (column) =>
+                      column.isVisible && (
+                        <td
+                          key={`${index}-${column.dbColumn}`}
+                          className={`px-2 h-16 border-r border-gray-200 dark:border-gray-700 ${
+                            changedinput[item.id]?.[column.dbColumn] !==
+                              undefined &&
+                            changedinput[item.id][column.dbColumn] !==
+                              item[column.dbColumn]
+                              ? "bg-amber-100 border-2 border-amber-500"
+                              : ""
+                          }`}
+                          style={{
+                            width: `${columnWidths[column.dbColumn]}px`,
+                          }}
+                        >
+                          {tableName === "document" &&
+                          column.dbColumn === "name" ? (
+                            <a
+                              href={item.document_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline cursor-pointer"
+                            >
+                              {item[column.dbColumn]}
+                            </a>
+                          ) : column.isInput ? (
+                            column.dbColumn === "created_at" ? (
+                              showDate ? (
+                                item[column.dbColumn]
+                              ) : (
+                                getRelativeDate(item[column.dbColumn])
+                              )
                             ) : (
-                              getRelativeDate(item[current.dbColumn])
+                              <input
+                                className="w-full h-full px-2 py-1 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                type={column.type}
+                                data-dbcolumn={column.dbColumn}
+                                data-rowid={item.id}
+                                onChange={handleInputDataChange}
+                                value={
+                                  changedinput[item.id]?.[column.dbColumn] ??
+                                  item[column.dbColumn]
+                                }
+                              />
+                            )
+                          ) : column.dbColumn === "created_at" ? (
+                            showDate ? (
+                              item[column.dbColumn]
+                            ) : (
+                              getRelativeDate(item[column.dbColumn])
                             )
                           ) : (
-                            <input
-                              className="w-full h-full"
-                              type={current.type}
-                              data-dbcolumn={current.dbColumn}
-                              data-rowid={item.id}
-                              onChange={handleInputDataChange}
-                              value={
-                                changedinput[item.id]?.[current.dbColumn] ??
-                                item[current.dbColumn]
-                              }
-                              key={`${item.id}-${current.dbColumn}`}
-                            />
-                          )
-                        ) : current.dbColumn === "created_at" ? (
-                          showDate ? (
-                            item[current.dbColumn]
-                          ) : (
-                            getRelativeDate(item[current.dbColumn])
-                          )
-                        ) : (
-                          item[current.dbColumn]
+                            <span className="truncate block">
+                              {item[column.dbColumn]}
+                            </span>
+                          )}
+                        </td>
+                      )
+                  )}
+                  <td className="px-2 h-16 text-center">
+                    <div className="flex items-center justify-center space-x-2">
+                      <button
+                        onClick={() => toggleForm(index)}
+                        className="text-blue-500 hover:text-blue-700"
+                      >
+                        <Edit className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteClick(item.id)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => toggleAccordion(index)}
+                        className="text-gray-500 hover:text-gray-700"
+                      >
+                        <ChevronDown
+                          className={`w-5 h-5 transition-transform ${
+                            openAccordion === index ? "rotate-180" : ""
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                {/* Accordion Content */}
+                {openAccordion === index && (
+                  <tr>
+                    <td colSpan={visibleColumns.length + 1} className="p-0">
+                      <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700">
+                        {accordionComponentName === "userAccordion" && (
+                          <UserAccordion
+                            userPersonalData={item}
+                            parentId={item.id}
+                            getData={getData}
+                            closeAccordion={closeAccordion}
+                            index={index}
+                          />
                         )}
                       </div>
-                    )
+                    </td>
+                  </tr>
                 )}
-                <div>
-                  <button
-                    onClick={(e) => {
-                      toggleForm(index);
-                    }}
-                  >
-                    <Edit />
-                  </button>
-                  <button onClick={(e) => handleDeleteClick(item.id)}>
-                    <Trash2 />
-                  </button>
-                  <button onClick={() => toggleAccordion(index)}>
-                    <ChevronDown />
-                  </button>
-                </div>
-              </div>
-
-              {/* Accordion Content */}
-              {/* Inside your tableData.map render */}
-              <div
-                className={`transition-all duration-300 ${
-                  openAccordion === index ? "block" : "hidden"
-                }`}
-              >
-                <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700">
-                  {accordionComponentName === "userAccordion" &&
-                    openAccordion === index && (
-                      <UserAccordion
-                        userPersonalData={item}
-                        parentId={item.id}
-                        getData={getData}
-                        closeAccordion={closeAccordion}
-                        index={index}
-                      />
-                    )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+              </React.Fragment>
+            ))}
+          </tbody>
+        </table>
       </div>
+
+      {/* Submit Changes Button */}
+      {Object.keys(changedinput).length > 0 && (
+        <div className="mt-4 flex justify-end">
+          <button
+            onClick={handleBackendSubmit}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            Submit Changes
+          </button>
+        </div>
+      )}
+
+      {/* Edit Form Modal */}
       {showForm != null && (
         <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 z-50">
-          <div className="max-w-3xl bg-white p-6 rounded-lg shadow-lg w-full mx-4">
+          <div className="max-w-3xl bg-white p-6 rounded-lg shadow-lg w-full mx-4 dark:bg-gray-800 dark:text-white">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Edit tableName</h2>
+              <h2 className="text-xl font-semibold">Edit {tableName}</h2>
               <button
                 onClick={() => toggleForm(-1)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -435,7 +418,7 @@ const TableData = ({
             </div>
             <UpdateDynamicForm
               tableName={tableName}
-              title={`Add Initi`}
+              title={`Edit ${tableName}`}
               onSubmit={handleFormData}
               isEmbedded={true}
               data={tableData[showForm]}
@@ -443,11 +426,7 @@ const TableData = ({
           </div>
         </div>
       )}
-      {
-        <button onClick={(e) => handleBackendSubmit(e)}>
-          Submit your data
-        </button>
-      }
+
       <style jsx>{`
         .cursor-col-resize {
           cursor: col-resize;
@@ -457,10 +436,6 @@ const TableData = ({
           cursor: col-resize !important;
           user-select: none !important;
           -webkit-user-select: none !important;
-        }
-
-        .cursor-col-resize:hover .bg-gray-400 {
-          width: 2px !important;
         }
       `}</style>
     </>
