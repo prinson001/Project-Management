@@ -27,10 +27,14 @@ const login = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("Invalid password");
   }
-  const jwt = generatejsonWebToken(user[0]);
+  const jwtToken = generatejsonWebToken(user[0]);
 
   res.status(200);
-  res.send({ status: "success", token: jwt });
+  res.send({ 
+    status: "success", 
+    token: jwtToken,
+    role: user[0].role // Include the role in the response
+  });
 });
 
 const generatejsonWebToken = (data) => {

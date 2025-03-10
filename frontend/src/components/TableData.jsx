@@ -264,7 +264,7 @@ const TableData = ({
           <tbody>
             {tableData.map((item, index) => (
               <React.Fragment key={index}>
-                <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                <tr className="bg-white border-b dark:bg-[#1D1D1D] dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                   {columnSetting.map(
                     (column) =>
                       column.isVisible && (
@@ -358,7 +358,7 @@ const TableData = ({
                 {openAccordion === index && (
                   <tr>
                     <td colSpan={visibleColumns.length + 1} className="p-0">
-                      <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700">
+                      <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 dark:text-white">
                         {accordionComponentName === "userAccordion" && (
                           <UserAccordion
                             userPersonalData={item}

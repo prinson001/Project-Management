@@ -12,7 +12,18 @@ const ProtectedRoute = ({ allowedRoles, children }) => {
   const hasAccess = allowedRoles.includes(role);
 
   if (!hasAccess) {
-    return <Navigate to="/" />;
+    // Redirect based on role
+    switch (role) {
+      case "PM":
+      case "DEPUTY":
+        return <Navigate to="/tasks" />;
+      case "PMO":
+        return <Navigate to="/data-management" />;
+      case "ADMIN":
+        return <Navigate to="/admin" />;
+      default:
+        return <Navigate to="/" />;
+    }
   }
 
   return children;

@@ -1,6 +1,13 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, ListChecks, ChartPie, Database, Clock5 } from "lucide-react";
+import {
+  Menu,
+  ListChecks,
+  ChartPie,
+  Database,
+  Clock5,
+  Settings,
+} from "lucide-react";
 import useAuth from "../hooks/userAuth";
 import usEnglishIcon from "../assets/usenglish.png";
 import arabicIcon from "../assets/arabic.png";
@@ -10,24 +17,24 @@ const SIDEBAR_ITEMS = [
     name: "Tasks",
     icon: ListChecks,
     href: "/tasks",
-    roles: ["PM", "PMO", "ADMIN"],
+    roles: ["PM", "PMO"],
   },
   {
     name: "Dashboard",
     icon: ChartPie,
     href: "/dashboard",
-    roles: ["USER", "ADMIN"],
+    roles: ["USER"],
   },
   {
     name: "Data Management",
     icon: Database,
     href: "/data-management",
-    roles: ["PMO", "ADMIN"],
+    roles: ["PMO"],
   },
   {
-    name: "Activities",
-    icon: Clock5,
-    href: "/activities",
+    name: "Admin",
+    icon: Settings,
+    href: "/admin",
     roles: ["DEPUTY", "ADMIN"],
   },
 ];
@@ -36,7 +43,7 @@ const SidebarPage = ({ isSidebarOpen, toggleSidebar }) => {
   const [language, setLanguage] = useState("en");
   const location = useLocation();
   const { role } = useAuth();
-
+  console.log("Role of user logged in: ", role);
   const handleToggleSidebar = () => {
     toggleSidebar();
   };
@@ -49,6 +56,7 @@ const SidebarPage = ({ isSidebarOpen, toggleSidebar }) => {
   const filteredSidebarItems = SIDEBAR_ITEMS.filter((item) =>
     item.roles.includes(role)
   );
+  console.log("items", filteredSidebarItems);
 
   return (
     // Remove the fixed positioning and top value to prevent overlap

@@ -25,7 +25,8 @@ import PMPage from "./pages/PMPage";
 import AdminPage from "./pages/AdminPage";
 import SchedulePlanSection from "./components/SchedulePlanSection";
 import SchedulePlan from "./components/SchedulePlan";
-import HomePage from "./pages/test";
+import HomePage from "./pages/PMOPage";
+import PMOPage from "./pages/PMOPage";
 // import Test from "./pages/Test";
 const App = () => {
   return (
@@ -59,19 +60,19 @@ export const router = createBrowserRouter([
   {
     path: "/tasks",
     element: (
-      <ProtectedRoute allowedRoles={["PM", "PMO"]}>
+      <ProtectedRoute allowedRoles={["PM", "PMO", "DEPUTY"]}>
         <PMPage />
       </ProtectedRoute>
     ),
   },
-  // {
-  //   path: "/data-management",
-  //   element: (
-  //     <ProtectedRoute allowedRoles={["PMO", "DEPUTY"]}>
-  //       <DataManagementPage />
-  //     </ProtectedRoute>
-  //   ),
-  // },
+  {
+    path: "/data-management",
+    element: (
+      <ProtectedRoute allowedRoles={["PMO", "DEPUTY"]}>
+        <PMOPage />
+      </ProtectedRoute>
+    ),
+  },
   {
     path: "/dashboard",
     element: (
@@ -85,6 +86,30 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute allowedRoles={["PMO", "ADMIN"]}>
         <ActivitiesPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/",
+    element: (
+      <ProtectedRoute allowedRoles={["PM", "DEPUTY"]}>
+        <PMPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/",
+    element: (
+      <ProtectedRoute allowedRoles={["PMO"]}>
+        <DataManagementPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/",
+    element: (
+      <ProtectedRoute allowedRoles={["ADMIN"]}>
+        <AdminPage />
       </ProtectedRoute>
     ),
   },
@@ -110,7 +135,11 @@ export const router = createBrowserRouter([
   },
   {
     path: "admin",
-    element: <AdminPage />,
+    element: (
+      <ProtectedRoute allowedRoles={["ADMIN"]}>
+        <AdminPage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/boq",

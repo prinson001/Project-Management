@@ -120,7 +120,7 @@ function UserAccordion({
 
   return (
     // <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-    <div className="bg-white shadow-lg rounded-lg p-6 w-full">
+    <div className="bg-white shadow-lg rounded-lg p-6 w-full dark:bg-black border-gray-800 dark:text-white">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
         <div>
           <label htmlFor="englishName">First Name In English</label>

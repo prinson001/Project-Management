@@ -9,6 +9,7 @@ const LoginPage = () => {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const setToken = useAuthStore((state) => state.setToken);
+  const setRole = useAuthStore((state) => state.setRole);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -23,7 +24,27 @@ const LoginPage = () => {
         const data = response.data;
         console.log("Data", data);
         setToken(data.token);
-        navigate("/home"); // Redirect to the home page after successful login
+        
+        // Store the user role
+        const userRole = data.role;
+        setRole(userRole);
+        
+        // Redirect based on role
+        switch (userRole) {
+          case "PM":
+          case "DEPUTY":
+            navigate("/tasks");
+            break;
+          case "PMO":
+            navigate("/data-management");
+            break;
+          case "ADMIN":
+            navigate("/admin");
+            break;
+          default:
+            navigate("/home");
+            break;
+        }
       } else {
         console.error("Login failed");
       }

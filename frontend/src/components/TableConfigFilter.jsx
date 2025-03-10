@@ -467,13 +467,13 @@ const TableConfigFilter = ({
         <div className="flex justify-between mt-8">
           <p
             onClick={handleReset}
-            className="text-white bg-[#e4757b] hover:bg-[#d45c58] cursor-pointer focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:bg-[#4C556C] dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+            className="text-white bg-[#e4757b] hover:bg-[#d45c58] cursor-pointer focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:focus:ring-blue-800"
           >
             Clear
           </p>
           <button
             onClick={handleApply}
-            className="text-white bg-[#546dc4] hover:bg-blue-800 cursor-pointer focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:bg-[#4C556C] dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+            className="text-white bg-[#546dc4] hover:bg-blue-800 dark:hover:bg-blue-500 cursor-pointer focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center  dark:focus:ring-blue-800"
           >
             Apply
           </button>

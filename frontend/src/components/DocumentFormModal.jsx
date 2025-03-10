@@ -81,7 +81,10 @@ const DocumentFormModal = ({ onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 z-[100]">
+    <div
+      className="fixed inset-0 flex justify-center items-center  backdrop-blur-xl
+ z-[100]"
+    >
       <div className="bg-white p-6 rounded-lg shadow-lg w-[60%] max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="mb-4 border-b pb-4">

@@ -376,20 +376,20 @@ const ProjectTimelineSettings = () => {
           </div>
 
           {/* Table */}
-          <div className="overflow-x-auto" style={{ minHeight: "400px" }}>
+          <div className="overflow-x-auto " style={{ minHeight: "400px" }}>
             {" "}
             {/* Extend table height */}
-            <table className="w-full border-collapse">
+            <table className="w-full border-collapse rounded-xs">
               <thead>
                 <tr>
-                  <th className="border p-2 bg-gray-50 text-left text-sm font-medium text-gray-700">
+                  <th className="border p-2 bg-gray-300 text-left text-sm font-medium text-gray-700">
                     Phase
                   </th>
                   {budgetRanges.map((range, index) => {
                     return (
                       <th
                         key={index}
-                        className="border p-2 bg-gray-50 text-left text-sm font-medium text-gray-700"
+                        className="border p-2 bg-gray-300 text-left text-sm font-medium text-gray-700"
                       >
                         {index === 0
                           ? `Budget < ${range.max}`
@@ -406,11 +406,11 @@ const ProjectTimelineSettings = () => {
                 {timelineData.map((row, rowIndex) => (
                   <tr key={row.phase_id}>
                     {/* Better to use unique ID instead of rowIndex */}
-                    <td className="border p-2 text-sm text-blue-600 font-medium">
+                    <td className="border p-2 text-sm text-gray-600 font-medium dark:bg-black dark:text-white">
                       {row.phase_name}
                     </td>
                     {budgetRanges.map((range) => (
-                      <td key={range.id} className="border p-2 bg-amber-50">
+                      <td key={range.id} className="border p-2">
                         {" "}
                         {/* Added key */}
                         <WeekDropdown
