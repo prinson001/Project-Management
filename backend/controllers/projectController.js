@@ -1,5 +1,8 @@
 const sql = require("../database/db");
-
+const {
+  createProjectCreationTaskForDeputy,
+  createBoqTaskForPM,
+} = require("./taskCreationController");
 //  @Description add new Project
 //  @Route site.com/data-management/addproject
 const addProject = async (req, res) => {
@@ -13,7 +16,7 @@ const addProject = async (req, res) => {
   }
 
   const { data } = req.body;
-  console.log('Inside Add Project...')
+  console.log("Inside Add Project...");
 
   // Make sure we have at least some data to insert
   if (Object.keys(data).length === 0) {
@@ -28,7 +31,7 @@ const addProject = async (req, res) => {
     // Extract column names and values from the data object
     const columns = Object.keys(data);
     const values = Object.values(data);
-    console.log('Column Names: ',columns)
+    console.log("Column Names: ", columns);
     // Validate column names to prevent SQL injection
     for (const column of columns) {
       if (!/^[a-zA-Z0-9_]+$/.test(column)) {
@@ -142,6 +145,11 @@ const updateProject = async (req, res) => {
         });
       }
     }
+    if (req.body.approval == true) {
+      console.log("the pmo sent the project for approval");
+      columns.push("approval_status");
+      values.push("Waiting on deputy");
+    }
 
     // Build the SET part of the query with parameterized values
     const setClause = columns
@@ -170,6 +178,16 @@ const updateProject = async (req, res) => {
         message: `Project with id ${id} not found`,
         result: null,
       });
+    }
+    try {
+      if (req.body.approval == true) {
+        // logic to create a task for
+        console.log(req.body.approval);
+        console.log("the approval is true");
+        createProjectCreationTaskForDeputy(req.body.id);
+      }
+    } catch (e) {
+      console.log("there was an error in creation of tasks object ", e);
     }
 
     // Return success response with the updated project
@@ -342,4 +360,42 @@ const getProjectById = async (req, res) => {
   }
 };
 
-module.exports = { addProject, updateProject, deleteProject, getProjectById };
+const updateProjectApprovalbyDeputy = async (req, res) => {
+  console.log("update approval status by deputy");
+  if (!req.body.approval || !req.body.id) {
+    return res.status(400).json({
+      status: "failure",
+      message: "Required field missing: id , approval is required",
+      result: null,
+    });
+  }
+  const status = req.body.approval ? "Approved" : "Rejected";
+  try {
+    const result = await sql`
+    UPDATE project
+    SET approval_status = ${status}
+    WHERE id = ${req.body.id}
+    RETURNING *;
+  `;
+    createBoqTaskForPM(result);
+    res.status(200).json({
+      status: "success",
+      message: "successfully updated project approval",
+      result,
+    });
+  } catch (e) {
+    res.status(200).json({
+      status: "failed",
+      message: "failed to update project approval",
+      result: e,
+    });
+  }
+};
+
+module.exports = {
+  addProject,
+  updateProject,
+  deleteProject,
+  getProjectById,
+  updateProjectApprovalbyDeputy,
+};

@@ -1,5 +1,5 @@
 {
-  "tableName": "item",
+  "tableName": "document_template",
   "setting": [
     {
       "columnName": "Name",
@@ -8,33 +8,39 @@
       "isVisible": true
     },
     {
-      "columnName": "Unit",
-      "dbColumn": "unit",
+      "columnName": "Arabic Name",
+      "dbColumn": "arabic_name",
       "columnOrder": 1,
       "isVisible": true
     },
     {
-      "columnName": "Quantity",
-      "dbColumn": "quantity",
+      "columnName": "Phase",
+      "dbColumn": "phase",
       "columnOrder": 2,
       "isVisible": true
     },
     {
-      "columnName": "Unit Amount",
-      "dbColumn": "unit_amount",
+      "columnName": "Required",
+      "dbColumn": "isrequired",
       "columnOrder": 3,
       "isVisible": true
     },
     {
-      "columnName": "Total",
-      "dbColumn": "total",
+      "columnName": "Created Date",
+      "dbColumn": "created_date",
       "columnOrder": 4,
       "isVisible": true
     },
     {
-      "columnName": "Type",
-      "dbColumn": "type",
-      "columnOrder": 4,
+      "columnName": "Capex",
+      "dbColumn": "is_capex",
+      "columnOrder": 5,
+      "isVisible": true
+    },
+    {
+      "columnName": "Opex",
+      "dbColumn": "is_opex",
+      "columnOrder": 6,
       "isVisible": true
     }
   ]

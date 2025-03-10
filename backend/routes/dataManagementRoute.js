@@ -40,6 +40,7 @@ const {
   updateProject,
   deleteProject,
   getProjectById,
+  updateProjectApprovalbyDeputy,
 } = require("../controllers/projectController");
 
 const {
@@ -79,5 +80,6 @@ router.post("/deleteProject", deleteProject);
 router.post("/getProject", getProjectById);
 
 router.post("/getPhaseDurationsByBudget", getPhaseDurationsByBudget);
+router.post("/updateProjectApproval", updateProjectApprovalbyDeputy);
 
 module.exports = router;
