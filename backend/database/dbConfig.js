@@ -719,19 +719,26 @@ const createTableProjectPhase = async (req, res) => {
 // Create project table
 const createTableProject = async (req, res) => {
   try {
+    // First create the enum type if it doesn't exist
+    // await sql`CREATE TYPE approval_status_type AS ENUM (
+    //   'Not initiated', 'Waiting on deputy', 'Approved', 'Rejected'
+    // )`;
+
+    // Then create the table with the new field
     const result = await sql`CREATE TABLE IF NOT EXISTS project (
       id SERIAL PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
-      arabic_name VARCHAR(255) ,
-      description TEXT ,
-      project_type_id INT REFERENCES project_type(id) ,
-      current_phase_id INT REFERENCES project_phase(id) ,
+      arabic_name VARCHAR(255),
+      description TEXT,
+      project_type_id INT REFERENCES project_type(id),
+      current_phase_id INT REFERENCES project_phase(id),
       category project_category NOT NULL,
       project_manager_id INT REFERENCES users(id) NOT NULL,
       alternative_project_manager_id INT REFERENCES users(id),
       execution_start_date DATE NOT NULL,
       execution_duration INTERVAL NOT NULL,
       maintenance_duration INTERVAL,
+      approval_status approval_status_type DEFAULT 'Not initiated',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`;
@@ -883,6 +890,49 @@ const connectObjectiveWithProject = async (req, res) => {
     res.status(500).json({ status: "failure", message: e.message });
   }
 };
+const addTriggersToActivityDuration = async (req, res) => {
+  try {
+    // Adding new fields to existing activity_duration table
+    const result = await sql`
+      ALTER TABLE activity_duration
+      ADD COLUMN trigger_field VARCHAR(100),
+      ADD COLUMN trigger_value_before VARCHAR(255),
+      ADD COLUMN trigger_value_after VARCHAR(255),
+      ADD COLUMN trigger_event VARCHAR(20) CHECK (trigger_event IN ('insert', 'update', 'delete')),
+      ADD COLUMN is_active BOOLEAN DEFAULT true,
+      ADD COLUMN priority SMALLINT DEFAULT 1,
+      ALTER COLUMN last_modified TYPE TIMESTAMP,
+      ALTER COLUMN last_modified SET DEFAULT CURRENT_TIMESTAMP
+    `;
+
+    console.log(result);
+    res.status(200).json({
+      status: "success",
+      message: "Added trigger fields to activity_duration table successfully",
+      result,
+    });
+  } catch (e) {
+    res.status(500).json({ status: "failure", message: e.message });
+  }
+};
+const addTriggersProjectToActivityDuration = async (req, res) => {
+  try {
+    // Adding new fields to existing activity_duration table
+    const result = await sql`
+      ALTER TABLE activity_duration 
+      ADD COLUMN trigger_object VARCHAR(100)
+    `;
+
+    console.log(result);
+    res.status(200).json({
+      status: "success",
+      message: "Added trigger fields to activity_duration table successfully",
+      result,
+    });
+  } catch (e) {
+    res.status(500).json({ status: "failure", message: e.message });
+  }
+};
 
 module.exports = {
   createUsersTable,
@@ -915,4 +965,6 @@ module.exports = {
   createTableDeliverable,
   createDocumentTemplateTable,
   connectObjectiveWithProject,
+  addTriggersToActivityDuration,
+  addTriggersProjectToActivityDuration,
 };

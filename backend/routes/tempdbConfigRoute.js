@@ -27,6 +27,8 @@ const {
   createTableDeliverable,
   createDocumentTemplateTable,
   connectObjectiveWithProject,
+  addTriggersToActivityDuration,
+  addTriggersProjectToActivityDuration,
 } = require("../database/dbConfig");
 
 router.get("/cuser", createUsersTable);
@@ -56,5 +58,11 @@ router.get("/citem", createTableItem);
 router.get("/cdeliverable", createTableDeliverable);
 router.get("/cdocumenttemplate", createDocumentTemplateTable);
 router.get("/connectobjectivewithproject", connectObjectiveWithProject);
+
+router.get("/addTriggerToActivityDuration", addTriggersToActivityDuration);
+router.get(
+  "/addTriggerProjectToActivityDuration",
+  addTriggersProjectToActivityDuration
+);
 
 module.exports = router;
