@@ -24,12 +24,8 @@ const PMPage = () => {
           toggleSidebar={toggleSidebar}
         />
         <main className="flex-1 overflow-auto p-4">
-          <Accordion
-            title="Tasks"
-            defaultOpen={true}
-            className="mb-4"
-          >
-           <TasksPage/>
+          <Accordion title="Tasks" defaultOpen={true} className="mb-4">
+            <TasksPage tableName="tasks" showTableConfig={true} />
           </Accordion>
 
           {/* You can add more accordions with other content */}
