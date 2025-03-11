@@ -1,65 +1,66 @@
 const sql = require("../database/db");
 
-// const getItemsWithDeliverables2 = async (req, res) => {
-//   try {
-//     const items = await sql`
-//             SELECT
-//               i.*,
-//               COALESCE(
-//                 json_agg(d.* ORDER BY d.created_at) FILTER (WHERE d.id IS NOT NULL),
-//                 '[]'
-//               ) as deliverables
-//             FROM item i
-//             LEFT JOIN deliverable d ON d.item_id = i.id
-//             WHERE i.project_id = 2
-//             GROUP BY i.id
-//           `;
+const getItemsWithDeliverables = async (req, res) => {
+  try {
+    const items = await sql`
+            SELECT
+              i.*,
+              COALESCE(
+                json_agg(d.* ORDER BY d.created_at) FILTER (WHERE d.id IS NOT NULL),
+                '[]'
+              ) as deliverables
+            FROM item i
+            LEFT JOIN deliverable d ON d.item_id = i.id
+            WHERE i.project_id = 2
+            GROUP BY i.id
+          `;
 
-//     res.json(items);
-//   } catch (error) {
-//     res.status(500).json({ error: "Server error", message: error.message });
-//   }
-// };
+    res.json(items);
+  } catch (error) {
+    res.status(500).json({ error: "Server error", message: error.message });
+  }
+};
 
-// const saveDeliverables2 = async (req, res) => {
-//   const { newDeliverables, updatedDeliverables, deletedDeliverables } =
-//     req.body;
+const saveDeliverablesItems = async (req, res) => {
+  const { newDeliverables, updatedDeliverables, deletedDeliverables } =
+    req.body;
 
-//   try {
-//     await sql.begin(async (trx) => {
-//       // Delete first to avoid constraint issues
-//       if (deletedDeliverables.length) {
-//         await trx`
-//             DELETE FROM deliverables
-//             WHERE id IN ${sql(deletedDeliverables)}
-//           `;
-//       }
+  try {
+    await sql.begin(async (trx) => {
+      // Delete first
+      if (deletedDeliverables.length) {
+        await trx`
+          DELETE FROM deliverable
+          WHERE id IN ${sql(deletedDeliverables)}
+        `;
+      }
 
-//       // Update existing
-//       if (updatedDeliverables.length) {
-//         for (const deliverable of updatedDeliverables) {
-//           await trx`
-//               UPDATE deliverable SET
-//                 name = ${deliverable.name},
-//                 description = ${deliverable.description}
-//               WHERE id = ${deliverable.id}
-//             `;
-//         }
-//       }
+      // Dynamic update for existing deliverables
+      if (updatedDeliverables.length) {
+        for (const deliverable of updatedDeliverables) {
+          const { id, ...fields } = deliverable;
+          await trx`
+            UPDATE deliverable
+            SET ${sql(fields)}
+            WHERE id = ${id}
+          `;
+        }
+      }
 
-//       // Insert new
-//       if (newDeliverables.length) {
-//         await trx`
-//             INSERT INTO deliverables ${sql(newDeliverables)}
-//           `;
-//       }
-//     });
+      // Insert new
+      if (newDeliverables.length) {
+        await trx`
+          INSERT INTO deliverable ${sql(newDeliverables)}
+        `;
+      }
+    });
 
-//     res.json({ success: true });
-//   } catch (error) {
-//     res.status(500).json({ error: "Save failed" });
-//   }
-// };
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Save failed:", error);
+    res.status(500).json({ error: "Save failed" });
+  }
+};
 
 const getDeliverables = async (req, res) => {
   const { itemId } = req.body;
@@ -143,4 +144,6 @@ const saveDeliverables = async (req, res) => {
 module.exports = {
   saveDeliverables,
   getDeliverables,
+  getItemsWithDeliverables,
+  saveDeliverablesItems,
 };
