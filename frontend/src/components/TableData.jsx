@@ -8,6 +8,10 @@ import {
   ChevronsUpDown,
 } from "lucide-react";
 import UserAccordion from "./UserAccordion";
+import BoqTaskAccordion from "../components/BoqTaskAccordion";
+import ProjectCreationAccordion from "../components/ProjectCreationAccordion";
+import DeliverableAccordion2 from "../components/DeliverableAccordion2";
+import DeliverableAccordion from "../components/DeliverableAccordion";
 import UpdateDynamicForm from "./UpdateDynamicForm";
 import axios from "axios";
 
@@ -114,9 +118,14 @@ const TableData = ({
     const createdDate = new Date(dateString);
     const today = new Date();
     const diffDays = differenceInCalendarDays(today, createdDate);
-
+    if (diffDays === -1) return "Tommorow";
     if (diffDays === 0) return "Today";
     if (diffDays === 1) return "Yesterday";
+
+    console.log("the diff days is " + diffDays);
+    if (diffDays < 0) {
+      return `After ${Math.abs(diffDays)} days`;
+    }
     return `${diffDays} days ago`;
   };
 
@@ -293,9 +302,11 @@ const TableData = ({
                               {item[column.dbColumn]}
                             </a>
                           ) : column.isInput ? (
-                            column.dbColumn === "created_at" ? (
+                            column.dbColumn === "created_date" ||
+                            column.dbColumn === "created_at" ||
+                            column.dbColumn === "due_date" ? (
                               showDate ? (
-                                item[column.dbColumn]
+                                item[column.dbColumn].split("T")[0]
                               ) : (
                                 getRelativeDate(item[column.dbColumn])
                               )
@@ -312,9 +323,11 @@ const TableData = ({
                                 }
                               />
                             )
-                          ) : column.dbColumn === "created_at" ? (
+                          ) : column.dbColumn === "created_date" ||
+                            column.dbColumn === "created_at" ||
+                            column.dbColumn === "due_date" ? (
                             showDate ? (
-                              item[column.dbColumn]
+                              item[column.dbColumn].split("T")[0]
                             ) : (
                               getRelativeDate(item[column.dbColumn])
                             )
@@ -353,8 +366,38 @@ const TableData = ({
                     </div>
                   </td>
                 </tr>
-
-                {/* Accordion Content */}
+                {tableName === "tasks" && openAccordion === index && (
+                  <tr>
+                    <td colSpan={visibleColumns.length + 1} className="p-0">
+                      <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 dark:text-white">
+                        {/* {accordionComponentName === "userAccordion" && (
+                          <UserAccordion
+                            userPersonalData={item}
+                            parentId={item.id}
+                            getData={getData}
+                            closeAccordion={closeAccordion}
+                            index={index}
+                          />
+                        )} */}
+                        {item.title === "Approve Project Creation" && (
+                          <ProjectCreationAccordion />
+                        )}
+                        {item.title === "Upload BOQ" && (
+                          <BoqTaskAccordion
+                            parentId={item.id}
+                            projectBudget={item.approved_project_budget}
+                          />
+                        )}
+                        {item.title === "Upload Schedule Plan" && (
+                          <DeliverableAccordion2
+                            parentId={item.id}
+                            projectBudget={item.approved_project_budget}
+                          />
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
                 {openAccordion === index && (
                   <tr>
                     <td colSpan={visibleColumns.length + 1} className="p-0">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Users } from "lucide-react";
+import { AlignVerticalJustifyEnd, Users } from "lucide-react";
 import Pagination from "../components/Pagination";
 
 // IMPORTING CHILDREN COMPONENTS
@@ -12,6 +12,9 @@ import TableConfigFilter from "../components/TableConfigFilter";
 let tablefilters = {};
 let sortClause = {};
 let dateFilter = null;
+let getAllTasks = null;
+let taskStatus = null;
+
 let page = 1;
 const TasksPage = ({
   tableName,
@@ -29,14 +32,24 @@ const TasksPage = ({
   async function getData() {
     try {
       console.log("the dableName in getData function", tableName);
-      const result = await axios.post(
-        "http://localhost:4000/data-management/data",
-        {
+      let result = [];
+      if (tableName == "tasks") {
+        result = await axios.post("http://localhost:4000/tasks/getTasks", {
           tableName,
-          userId: 1,
+          userId: 5,
           limit: 10,
-        }
-      );
+        });
+      } else {
+        result = await axios.post(
+          "http://localhost:4000/data-management/data",
+          {
+            tableName,
+            userId: 1,
+            limit: 10,
+          }
+        );
+      }
+
       console.log("the data");
       console.log(result);
       originalTableData = result.data.result;
@@ -74,24 +87,48 @@ const TasksPage = ({
   }, []);
 
   async function getFilteredData() {
-    try {
-      const result = await axios.post(
-        "http://localhost:4000/data-management/filtereddata",
-        {
-          tableName,
-          userId: 1,
-          filters: tablefilters,
-          sort: sortClause,
-          dateFilter,
-          page,
-        }
-      );
-      console.log(result);
-      setTableData((state) => result.data.result);
-      setPagination((state) => result.data.pagination);
-    } catch (e) {
-      console.log("there was an error");
-      console.log(e);
+    if (tableName === "tasks") {
+      const { project_name, filters } = tablefilters;
+      try {
+        const result = await axios.post(
+          "http://localhost:4000/tasks/filtertasks",
+          {
+            userId: 5,
+            filters: filters,
+            project_name,
+            getAllTasks,
+            taskStatus,
+            dateFilter,
+            sort: sortClause,
+          }
+        );
+        console.log(result);
+        setTableData((state) => result.data.result);
+        setPagination((state) => result.data.pagination);
+      } catch (e) {
+        console.log("errror");
+        console.log(e);
+      }
+    } else {
+      try {
+        const result = await axios.post(
+          "http://localhost:4000/data-management/filtereddata",
+          {
+            tableName,
+            userId: 1,
+            filters: tablefilters,
+            sort: sortClause,
+            dateFilter,
+            page,
+          }
+        );
+        console.log(result);
+        setTableData((state) => result.data.result);
+        setPagination((state) => result.data.pagination);
+      } catch (e) {
+        console.log("there was an error");
+        console.log(e);
+      }
     }
   }
   async function filterTable(filters) {
@@ -131,12 +168,28 @@ const TasksPage = ({
     setShowDate((state) => !state);
   }
 
+  // SPECIFIC TO TASKS OBJECT ONLY
+  async function updateALLorMyTaskRetreival(value) {
+    console.log(value);
+    if (value === "Me") {
+      getAllTasks = false;
+    } else {
+      getAllTasks = true;
+    }
+    await getFilteredData();
+  }
+  async function updateOpenorClosedTaskRetreival(value) {
+    console.log(value);
+    taskStatus = value;
+    await getFilteredData();
+  }
+
   return (
     <div className="flex-1 overflow-auto relative z-10 p-5 h-full">
       {showTableConfig && (
         <TableConfig
-          updateFilters={updateFilters}
-          filterTableData={filterTableData}
+          updateALLorMyTaskRetreival={updateALLorMyTaskRetreival}
+          updateOpenorClosedTaskRetreival={updateOpenorClosedTaskRetreival}
         ></TableConfig>
       )}
 
