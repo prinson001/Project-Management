@@ -8,7 +8,12 @@ import useAuthStore from "../store/authStore";
 import axios from "axios";
 import SchedulePlanSection from "./SchedulePlanSection";
 
-const ProjectModal = ({ onClose }) => {
+const ProjectModal = ({
+  onClose,
+  showButtons = true,
+  title = "Add a Project",
+  readOnly = false,
+}) => {
   const [activeSection, setActiveSection] = useState("all");
   const [viewMode, setViewMode] = useState("weeks");
   const { users } = useAuthStore();
@@ -349,10 +354,15 @@ const ProjectModal = ({ onClose }) => {
     <div className="flex flex-col rounded-lg border border-gray-200 shadow-md bg-white max-w-6xl mx-auto max-h-[90vh]">
       {/* Header - Fixed at the top */}
       <div className="flex justify-between items-center p-4 border-b bg-white sticky top-0 z-10">
-        <h2 className="text-xl font-semibold">Add Project</h2>
-        <button className="text-gray-500 hover:text-gray-700" onClick={onClose}>
-          <X size={20} />
-        </button>
+        <h2 className="text-xl font-semibold">{title}</h2>
+        {showButtons && (
+          <button
+            className="text-gray-500 hover:text-gray-700"
+            onClick={onClose}
+          >
+            <X size={20} />
+          </button>
+        )}
       </div>
       {/* Main Form - Scrollable */}
       <div className="flex-1 overflow-y-auto p-4">
@@ -364,6 +374,7 @@ const ProjectModal = ({ onClose }) => {
                 Project English Name <span className="text-red-500">*</span>
               </label>
               <input
+                readOnly={readOnly}
                 type="text"
                 className={`w-full p-2 border ${
                   errors.name ? "border-red-500" : "border-gray-300"
@@ -384,6 +395,7 @@ const ProjectModal = ({ onClose }) => {
                 <span className="text-red-500">*</span> اسم المشروع بالعربي
               </label>
               <input
+                readOnly={readOnly}
                 type="text"
                 className={`w-full p-2 border ${
                   errors.arabic_name ? "border-red-500" : "border-gray-300"
@@ -405,6 +417,7 @@ const ProjectModal = ({ onClose }) => {
               Project Description <span className="text-red-500">*</span>
             </label>
             <textarea
+              readOnly={readOnly}
               className={`w-full p-2 border ${
                 errors.projectDescription ? "border-red-500" : "border-gray-300"
               } rounded h-24`}
@@ -582,6 +595,7 @@ const ProjectModal = ({ onClose }) => {
                         rules={{ required: "Project category is required" }}
                         render={({ field }) => (
                           <input
+                            readOnly={readOnly}
                             type="radio"
                             className="mr-2"
                             value="Capex"
@@ -598,6 +612,7 @@ const ProjectModal = ({ onClose }) => {
                         control={control}
                         render={({ field }) => (
                           <input
+                            readOnly={readOnly}
                             type="radio"
                             className="mr-2"
                             value="Opex"
@@ -674,6 +689,7 @@ const ProjectModal = ({ onClose }) => {
                   {watch("beneficiaryDepartments").map((dept) => (
                     <div key={dept.id} className="flex items-center mb-1">
                       <input
+                        readOnly={readOnly}
                         type="checkbox"
                         id={`dept-${dept.id}`}
                         checked={dept.checked}
@@ -754,6 +770,7 @@ const ProjectModal = ({ onClose }) => {
                   {watch("objectives").map((objective) => (
                     <div key={objective.id} className="flex items-center mb-1">
                       <input
+                        readOnly={readOnly}
                         type="checkbox"
                         id={`obj-${objective.id}`}
                         checked={objective.checked}
@@ -774,6 +791,7 @@ const ProjectModal = ({ onClose }) => {
                       Project Planned Budget
                     </label>
                     <input
+                      readOnly={readOnly}
                       type="text"
                       className="w-full p-2 border border-gray-300 rounded"
                       placeholder=""
@@ -785,6 +803,7 @@ const ProjectModal = ({ onClose }) => {
                       Project Approved Budget
                     </label>
                     <input
+                      readOnly={readOnly}
                       type="text"
                       className="w-full p-2 border border-gray-300 rounded"
                       placeholder=""
@@ -1052,20 +1071,22 @@ const ProjectModal = ({ onClose }) => {
             <ProjectDocumentSection formMethods={{ setValue, watch }} />
           </div>
           {/* Form Footer */}
-          <div className="flex justify-end space-x-4 mt-6 border-t pt-4">
-            <button
-              type="button"
-              className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              Save Project
-            </button>
-          </div>
+          {showButtons && (
+            <div className="flex justify-end space-x-4 mt-6 border-t pt-4">
+              <button
+                type="button"
+                className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Save Project
+              </button>
+            </div>
+          )}
         </form>
       </div>
     </div>
