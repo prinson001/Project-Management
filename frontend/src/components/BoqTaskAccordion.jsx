@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 
-const BoqTaskAccordion = ({ parentId = 2, projectBudget = 10000 }) => {
+const BoqTaskAccordion = ({ parentId = null, projectBudget = 0 }) => {
   // State management
   const [items, setItems] = useState([]);
   const [deletions, setDeletions] = useState([]);
@@ -35,26 +35,26 @@ const BoqTaskAccordion = ({ parentId = 2, projectBudget = 10000 }) => {
     }, [items, projectBudget]);
 
   // Data fetching
+  const fetchItems = async () => {
+    try {
+      const { data } = await axios.post("http://localhost:4000/pm/getItems", {
+        projectId: parentId,
+      });
+      console.log(data);
+      console.log("data");
+      setItems(
+        data.result?.map((item) => ({ ...item, id: item.id.toString() })) || []
+      );
+    } catch (err) {
+      setError(err.message);
+      console.error("Fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => {
-    const fetchItems = async () => {
-      try {
-        const { data } = await axios.post("http://localhost:4000/pm/getItems", {
-          projectId: parentId,
-        });
-        console.log(data);
-        console.log("data");
-        setItems(
-          data.result?.map((item) => ({ ...item, id: item.id.toString() })) ||
-            []
-        );
-      } catch (err) {
-        setError(err.message);
-        console.error("Fetch error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
+    console.log("the parent id is " + parentId);
+    console.log("the project budget is " + projectBudget);
     fetchItems();
   }, [parentId]);
 
@@ -64,8 +64,8 @@ const BoqTaskAccordion = ({ parentId = 2, projectBudget = 10000 }) => {
       id: `temp-${Date.now()}`,
       name: "",
       unit: "",
-      quantity: 0,
-      unit_amount: 0,
+      quantity: "",
+      unit_amount: "",
       type: "Execution",
     };
     setItems((prev) => [...prev, newItem]);
@@ -110,13 +110,15 @@ const BoqTaskAccordion = ({ parentId = 2, projectBudget = 10000 }) => {
         projectId: parentId,
         ...payload,
       });
-
+      console.log("the result of item save");
+      console.log(data);
       //Update IDs for new items from response
-      setItems((prev) =>
-        prev.map((item) =>
-          data.newIds[item.id] ? { ...item, id: data.newIds[item.id] } : item
-        )
-      );
+      // setItems((prev) =>
+      //   prev.map((item) =>
+      //     data.newIds[item.id] ? { ...item, id: data.newIds[item.id] } : item
+      //   )
+      // );
+      await fetchItems();
       setDeletions([]);
       console.log(data);
     } catch (err) {
@@ -154,7 +156,7 @@ const BoqTaskAccordion = ({ parentId = 2, projectBudget = 10000 }) => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="font-medium">Project Budget</p>
-              <p>${projectBudget.toFixed(2)}</p>
+              <p>${projectBudget}</p>
             </div>
             <div>
               <p className="font-medium">Total Cost</p>
