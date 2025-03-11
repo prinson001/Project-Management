@@ -1,46 +1,40 @@
 {
-  "tableName": "document_template",
+  "tableName": "tasks",
   "setting": [
     {
-      "columnName": "Name",
-      "dbColumn": "name",
+      "columnName": "Created Date",
+      "dbColumn": "created_date",
       "columnOrder": 0,
       "isVisible": true
     },
     {
-      "columnName": "Arabic Name",
-      "dbColumn": "arabic_name",
+      "columnName": "Task Type",
+      "dbColumn": "title",
       "columnOrder": 1,
       "isVisible": true
     },
     {
-      "columnName": "Phase",
-      "dbColumn": "phase",
+      "columnName": "Project Name",
+      "dbColumn": "project_name",
       "columnOrder": 2,
       "isVisible": true
     },
     {
-      "columnName": "Required",
-      "dbColumn": "isrequired",
+      "columnName": "To",
+      "dbColumn": "first_name",
       "columnOrder": 3,
       "isVisible": true
     },
     {
-      "columnName": "Created Date",
-      "dbColumn": "created_date",
+      "columnName": "Targeted",
+      "dbColumn": "due_date",
       "columnOrder": 4,
       "isVisible": true
     },
     {
-      "columnName": "Capex",
-      "dbColumn": "is_capex",
+      "columnName": "Status",
+      "dbColumn": "status",
       "columnOrder": 5,
-      "isVisible": true
-    },
-    {
-      "columnName": "Opex",
-      "dbColumn": "is_opex",
-      "columnOrder": 6,
       "isVisible": true
     }
   ]

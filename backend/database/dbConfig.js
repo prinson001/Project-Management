@@ -557,24 +557,25 @@ const createTableTask = async (req, res) => {
       due_date DATE,
       assigned_to INTEGER REFERENCES users(id) NOT NULL,
       related_entity_type VARCHAR(50) NOT NULL,
-      related_entity_id INTEGER NOT NULL,
+      related_entity_id INTEGER NOT NULL REFERENCES project(id) ON DELETE CASCADE,
       created_date DATE DEFAULT CURRENT_DATE
     );`;
-    res.status(200);
-    res.json({
+
+    res.status(200).json({
       status: "success",
-      message: "successfully created task object",
+      message: "Successfully created task object",
       result,
     });
   } catch (e) {
-    res.status(500);
-    res.json({
+    res.status(500).json({
       status: "failure",
-      message: "Failed to create task Object",
-      result: e,
+      message: "Failed to create task object",
+      result: e.message,
     });
   }
 };
+
+module.exports = { createTableTask };
 
 const createTableWorkflowRule = async (req, res) => {
   try {
@@ -724,7 +725,7 @@ const createTableProject = async (req, res) => {
     //   'Not initiated', 'Waiting on deputy', 'Approved', 'Rejected'
     // )`;
 
-    // Then create the table with the new field
+    // Then create the table with the new fields
     const result = await sql`CREATE TABLE IF NOT EXISTS project (
       id SERIAL PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
@@ -732,12 +733,14 @@ const createTableProject = async (req, res) => {
       description TEXT,
       project_type_id INT REFERENCES project_type(id),
       current_phase_id INT REFERENCES project_phase(id),
-      category project_category NOT NULL,
-      project_manager_id INT REFERENCES users(id) NOT NULL,
+      category project_category ,
+      project_manager_id INT REFERENCES users(id),
       alternative_project_manager_id INT REFERENCES users(id),
-      execution_start_date DATE NOT NULL,
-      execution_duration INTERVAL NOT NULL,
+      execution_start_date DATE ,
+      execution_duration INTERVAL ,
       maintenance_duration INTERVAL,
+      project_budget NUMERIC(15, 2), -- Added project budget
+      approved_project_budget NUMERIC(15, 2), -- Added approved project budget
       approval_status approval_status_type DEFAULT 'Not initiated',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -752,6 +755,8 @@ const createTableProject = async (req, res) => {
     res.status(500).json({ status: "failure", message: e.message });
   }
 };
+
+module.exports = { createTableProject };
 
 // Create timestamp update trigger for project table
 const createProjectTimestampTrigger = async (req, res) => {
@@ -819,7 +824,7 @@ const createTableDeliverable = async (req, res) => {
     Amount NUMERIC(15,3) NOT NULL,
     start_date DATE ,
     end_date DATE ,
-    Duration INTERVAL,
+    Duration TEXT,
     item_id INT REFERENCES item(id) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
