@@ -391,6 +391,97 @@ const updateProjectApprovalbyDeputy = async (req, res) => {
     });
   }
 };
+const upsertSchedulePlan = async (req, res) => {
+  const { projectId, schedule } = req.body;
+
+  // Validate input
+  if (!projectId || !schedule || !Array.isArray(schedule)) {
+    return res.status(400).json({
+      status: "failure",
+      message: "Invalid data provided: projectId and schedule are required",
+      result: null,
+    });
+  }
+
+  try {
+    // Check if a schedule plan already exists for the project
+    const existingSchedule = await sql`
+      SELECT id FROM schedule_plan
+      WHERE project_id = ${projectId}
+      LIMIT 1;
+    `;
+
+    if (existingSchedule.length > 0) {
+      // Update existing schedule plan
+      const updateQueries = schedule.map((plan) => {
+        return sql`
+          UPDATE schedule_plan
+          SET
+            mainPhase = ${plan.mainPhase},
+            subPhase = ${plan.subPhase},
+            phaseId = ${plan.phaseId},
+            duration = ${plan.duration},
+            startDate = ${plan.startDate || null},
+            endDate = ${plan.endDate || null}
+          WHERE project_id = ${projectId} AND phaseId = ${plan.phaseId}
+          RETURNING *;
+        `;
+      });
+
+      const results = await Promise.all(updateQueries);
+
+      return res.status(200).json({
+        status: "success",
+        message: "Schedule updated successfully",
+        result: results,
+      });
+    } else {
+      // Insert new schedule plan
+      const insertQueries = schedule.map((plan) => {
+        return sql`
+          INSERT INTO schedule_plan (project_id, mainPhase, subPhase, phaseId, duration, startDate, endDate)
+          VALUES (
+            ${projectId},
+            ${plan.mainPhase},
+            ${plan.subPhase},
+            ${plan.phaseId},
+            ${plan.duration},
+            ${plan.startDate || null},
+            ${plan.endDate || null}
+          )
+          RETURNING *;
+        `;
+      });
+
+      const results = await Promise.all(insertQueries);
+
+      return res.status(201).json({
+        status: "success",
+        message: "Schedule added successfully",
+        result: results,
+      });
+    }
+  } catch (error) {
+    console.error("Error upserting schedule:", error);
+
+    // Handle specific errors
+    if (error.code === "23503") {
+      // Foreign key violation (project_id does not exist)
+      return res.status(409).json({
+        status: "failure",
+        message: "Project does not exist",
+        result: error.detail || error,
+      });
+    }
+
+    // Handle other errors
+    return res.status(500).json({
+      status: "failure",
+      message: "Error upserting schedule",
+      result: error.message || error,
+    });
+  }
+};
 
 module.exports = {
   addProject,
@@ -398,4 +489,5 @@ module.exports = {
   deleteProject,
   getProjectById,
   updateProjectApprovalbyDeputy,
+  upsertSchedulePlan
 };

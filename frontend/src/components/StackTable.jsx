@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-table";
 import { differenceInCalendarDays } from "date-fns";
 import axios from "axios";
+const PORT = import.meta.env.VITE_PORT;
 
 const columnHelper = createColumnHelper();
 
@@ -46,7 +47,7 @@ const StackTable = ({ tableData, showDate, sortTableData, columnSetting }) => {
     e.preventDefault();
     try {
       const result = await axios.post(
-        "http://localhost:4000/admin/updateactivityduration",
+        `http://localhost:${PORT}/admin/updateactivityduration`,
         {
           data: changedinput,
         }

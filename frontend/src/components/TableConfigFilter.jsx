@@ -399,7 +399,7 @@ const TableConfigFilter = ({
                   value={inputs[current.dbColumn] || ""}
                   onChange={tableColumnFilterHandler}
                   data-dbname={current.dbColumn}
-                  className="border-b-1 border-b-gray-300 outline-none p-4  focus:border-b-4"
+                  className="border-b-1 border-b-gray-300 outline-none p-4  focus:border-b-4 dark:text-white"
                   placeholder={current.columnName}
                 />
               )

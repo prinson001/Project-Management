@@ -4,8 +4,10 @@ import Datepicker from "react-tailwindcss-datepicker";
 import { Controller, useForm } from "react-hook-form";
 import axios from "axios";
 import { addDays, addWeeks, addMonths, format } from "date-fns";
+import { toast } from "sonner"; // For notifications
+const PORT = import.meta.env.VITE_PORT;
 
-const SchedulePlanSection = () => {
+const SchedulePlanSection = ({ projectId }) => {
   const [activeTab, setActiveTab] = useState("B. Days");
   const [phaseDurations, setPhaseDurations] = useState([]);
   const [scheduleTableData, setScheduleTableData] = useState([]);
@@ -31,7 +33,7 @@ const SchedulePlanSection = () => {
     const fetchPhaseDurations = async () => {
       try {
         const response = await axios.post(
-          "http://localhost:4000/data-management/getPhaseDurationsByBudget",
+          `http://localhost:${PORT}/data-management/getPhaseDurationsByBudget`,
           {
             budget: budget,
           }
@@ -316,6 +318,34 @@ const SchedulePlanSection = () => {
     setScheduleTableData(updatedSchedule);
   };
 
+  // Save schedule data
+  const handleSaveSchedule = async () => {
+    projectId=1
+    if (!projectId) {
+      toast.error("Project ID is required to save the schedule.");
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        `http://localhost:${PORT}/data-management/upsertSchedulePlan`,
+        {
+          projectId,
+          schedule: scheduleTableData,
+        }
+      );
+
+      if (response.data && response.data.status === "success") {
+        toast.success("Schedule saved successfully!");
+      } else {
+        throw new Error(response.data?.message || "Failed to save schedule");
+      }
+    } catch (error) {
+      console.error("Error saving schedule:", error);
+      toast.error(error.message || "Failed to save schedule");
+    }
+  };
+
   return (
     <div className="mb-6 border-t pt-4">
       <div className="flex justify-between items-center mb-4">
@@ -480,6 +510,17 @@ const SchedulePlanSection = () => {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Save Schedule Button */}
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={handleSaveSchedule}
+          className="bg-blue-500 text-white px-4 py-2 rounded"
+        >
+          Save Schedule
+        </button>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Upload, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+const PORT = import.meta.env.VITE_PORT;
 
 const ProjectDocumentSection = ({ projectPhase = "Execution" }) => {
   const { register, setValue, watch } = useForm();
@@ -11,7 +12,7 @@ const ProjectDocumentSection = ({ projectPhase = "Execution" }) => {
   const getCurrentPhaseDocumentTemplates = async () => {
     try {
       const result = await axios.post(
-        "http://localhost:4000/data-management/getCurrentPhaseDocumentTemplates",
+        `http://localhost:${PORT}/data-management/getCurrentPhaseDocumentTemplates`,
         {
           phase: projectPhase,
         }

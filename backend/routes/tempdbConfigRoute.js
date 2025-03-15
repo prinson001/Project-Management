@@ -29,8 +29,9 @@ const {
   connectObjectiveWithProject,
   addTriggersToActivityDuration,
   addTriggersProjectToActivityDuration,
+  createSchedulePlan
 } = require("../database/dbConfig");
-
+const { createSchedulePlanTaskForPM } = require("../controllers/taskCreationController");
 router.get("/cuser", createUsersTable);
 router.get("/cinitiative", createInitiativeTable);
 router.get("/cdepartment", createDepartmentTable);
@@ -64,5 +65,6 @@ router.get(
   "/addTriggerProjectToActivityDuration",
   addTriggersProjectToActivityDuration
 );
+router.get("/cschedulePlan",createSchedulePlan);
 
 module.exports = router;

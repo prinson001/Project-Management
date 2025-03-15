@@ -41,6 +41,7 @@ const {
   deleteProject,
   getProjectById,
   updateProjectApprovalbyDeputy,
+  upsertSchedulePlan
 } = require("../controllers/projectController");
 
 const {
@@ -63,7 +64,6 @@ router.post("/deletePortfolio", deletePortfolio);
 router.post("/addProgram", addProgram);
 router.post("/updateProgram", updateProgram);
 router.post("/deleteProgram", deleteProgram);
-router.get("/users", getUsers);
 
 router.post(
   "/addDocumentTemplate",
@@ -81,5 +81,7 @@ router.post("/getProject", getProjectById);
 
 router.post("/getPhaseDurationsByBudget", getPhaseDurationsByBudget);
 router.post("/updateProjectApproval", updateProjectApprovalbyDeputy);
+
+router.post("/upsertSchedulePlan",upsertSchedulePlan);
 
 module.exports = router;

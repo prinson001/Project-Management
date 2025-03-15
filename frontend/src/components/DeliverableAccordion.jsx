@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
+const PORT = import.meta.env.VITE_PORT;
 
 const DeliverableAccordion = ({ parentId = 1, projectBudget = 10000 }) => {
   // State management
@@ -39,7 +40,7 @@ const DeliverableAccordion = ({ parentId = 1, projectBudget = 10000 }) => {
     const fetchItems = async () => {
       try {
         const { data } = await axios.post(
-          "http://localhost:4000/pm/getDeliverables",
+          `http://localhost:${PORT}/pm/getDeliverables`,
           {
             itemId: parentId,
           }
@@ -152,7 +153,7 @@ const DeliverableAccordion = ({ parentId = 1, projectBudget = 10000 }) => {
       console.log(payload);
       // API call
       const { data } = await axios.post(
-        "http://localhost:4000/pm/saveDeliverables",
+        `http://localhost:${PORT}/pm/saveDeliverables`,
         {
           itemId: parentId,
           ...payload,

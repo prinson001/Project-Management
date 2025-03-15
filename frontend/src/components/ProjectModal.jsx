@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import useAuthStore from "../store/authStore";
 import axios from "axios";
 import SchedulePlanSection from "./SchedulePlanSection";
+const PORT = import.meta.env.VITE_PORT;
 
 const ProjectModal = ({
   onClose,
@@ -189,7 +190,7 @@ const ProjectModal = ({
     const fetchPhaseDurations = async () => {
       try {
         const response = await axios.get(
-          "http://localhost:4000/data-management/phase-durations"
+          `http://localhost:${PORT}/data-management/phase-durations`
         );
         if (response.data && response.data.status === "success") {
           setPhaseDurations(response.data.data);
@@ -272,7 +273,7 @@ const ProjectModal = ({
 
       // Make API call
       const result = await axios.post(
-        "http://localhost:4000/data-management/addProject",
+        `http://localhost:${PORT}/data-management/addProject`,
         {
           data: projectData,
           userId: 1,

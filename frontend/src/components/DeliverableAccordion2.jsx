@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Disclosure, Transition } from "@headlessui/react";
 import axios from "axios";
+const PORT = import.meta.env.VITE_PORT;
 
 const DeliverablesAccordion = ({ projectId = 2 }) => {
   const [items, setItems] = useState([]);
@@ -15,7 +16,7 @@ const DeliverablesAccordion = ({ projectId = 2 }) => {
     const fetchItemsWithDeliverables = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:4000/pm/${projectId}/items-with-deliverables`
+          `http://localhost:${PORT}/pm/${projectId}/items-with-deliverables`
         );
         console.log("items with deliverables");
         console.log(response);
@@ -199,7 +200,7 @@ const DeliverablesAccordion = ({ projectId = 2 }) => {
       console.log("Saving payload:", payload);
 
       await axios.post(
-        `http://localhost:4000/pm/${projectId}/save-deliverables`,
+        `http://localhost:${PORT}/pm/${projectId}/save-deliverables`,
         payload
       );
 

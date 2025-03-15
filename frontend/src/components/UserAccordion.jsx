@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { constructNow } from "date-fns";
+const PORT = import.meta.env.VITE_PORT;
 
 function UserAccordion({
   userPersonalData,
@@ -30,7 +31,7 @@ function UserAccordion({
   useEffect(() => {
     const getRoles = async () => {
       try {
-        const result = await axios.get("http://localhost:4000/admin/getRoles");
+        const result = await axios.get(`http://localhost:${PORT}/admin/getRoles`);
         setRoles(result.data.result);
       } catch (e) {
         console.error("Error retrieving roles:", e);
@@ -95,7 +96,7 @@ function UserAccordion({
     }
 
     try {
-      await axios.post("http://localhost:4000/admin/updateUser", {
+      await axios.post(`http://localhost:${PORT}/admin/updateUser`, {
         id: userData.id,
         data: changedUserData,
       });
