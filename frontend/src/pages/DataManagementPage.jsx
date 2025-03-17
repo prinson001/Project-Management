@@ -3,6 +3,7 @@ import axios from "axios";
 import { X, Users, Plus } from "lucide-react"; // Added Plus icon
 import { Calendar, ChevronDown, ChevronUp, Download } from "lucide-react";
 import useAuthStore from "../store/authStore";
+import useLanguage from "../hooks/useLanguage";
 
 import Pagination from "../components/Pagination";
 import { toast } from "sonner";
@@ -17,11 +18,17 @@ import DocumentFormModal from "../components/DocumentFormModal";
 import DataManagementTabs from "../components/datamanagementtabs";
 import ProjectModal from "../components/ProjectModal";
 import TasksPage from "./TasksPage";
+
+const PORT = import.meta.env.VITE_PORT;
+
 let tablefilters = {};
 let sortClause = {};
 let dateFilter = null;
 let page = 1;
+
+
 const DataManagementPage = () => {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("initiatives");
   const processedCategory = useMemo(
     () => activeTab.replace(/s$/, ""),
@@ -43,7 +50,7 @@ const DataManagementPage = () => {
     const fetchUsers = async () => {
       try {
         const response = await axios.get(
-          "http://localhost:4000/data-management/users"
+          `http://localhost:${PORT}/data-management/users`
         );
         if (response.data.status === "success") {
           setUsers(response.data.result);
@@ -409,7 +416,7 @@ const DataManagementPage = () => {
     console.log("Singular table name", getSingularTabName());
     try {
       const result = await axios.post(
-        "http://localhost:4000/data-management/setting",
+        `http://localhost:${PORT}/data-management/setting`,
         {
           tableName: getSingularTabName(),
           userId: 1,
@@ -427,7 +434,7 @@ const DataManagementPage = () => {
   async function getData() {
     try {
       const result = await axios.post(
-        "http://localhost:4000/data-management/data",
+        `http://localhost:${PORT}/data-management/data`,
         {
           tableName: getSingularTabName(), // Remove 's' from the end to get singular form
           userId: 1,
@@ -445,7 +452,7 @@ const DataManagementPage = () => {
   async function getFilteredData() {
     try {
       const result = await axios.post(
-        "http://localhost:4000/data-management/filtereddata",
+        `http://localhost:${PORT}/data-management/filtereddata`,
         {
           tableName: activeTab.slice(0, -1), // Remove 's' from the end to get singular form
           userId: 1,
@@ -497,21 +504,34 @@ const DataManagementPage = () => {
   function updateShowDateFunctionality() {
     setShowDate((state) => !state);
   }
+
+  // Add the button rendering code here
+  const renderAddButton = () => (
+    <button
+      onClick={handleAddButtonClick}
+      className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+    >
+      <Plus className="w-4 h-4 mr-2" />
+      {t('addNew')} {t(processedCategory)}
+    </button>
+  );
+
   return (
-    <>
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
+          {t('dataManagement')}
+        </h1>
+      </div>
+
       <DataManagementTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+
       <div className="flex-1 overflow-auto relative z-10 p-5 h-full">
         {/* Add button row */}
         <div className="flex justify-between items-center mb-4">
           <div></div> {/* Empty div for spacing */}
           <div className="flex space-x-2">
-            <button
-              onClick={handleAddButtonClick}
-              className="flex items-center px-4 py-2 bg-[#546dc4] text-white rounded-md hover:bg-blue-600 transition-colors"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add new {getSingularTabName()}
-            </button>
+            {activeTab !== "documents" && renderAddButton()}
           </div>
         </div>
 
@@ -614,7 +634,7 @@ const DataManagementPage = () => {
           }
         `}</style>
       </div>
-    </>
+    </div>
   );
 };
 

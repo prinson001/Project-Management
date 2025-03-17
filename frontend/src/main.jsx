@@ -4,6 +4,8 @@ import { RouterProvider } from "react-router-dom";
 import "./index.css";
 import { router } from "./App.jsx";
 import axios from "axios";
+// Import i18n configuration
+import "./i18n";
 
 axios.interceptors.request.use((request) => {
   // request.headers["Authorization"] = `Bearer ${localStorage.getItem("token")}`;

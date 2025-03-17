@@ -965,6 +965,32 @@ const addTriggersProjectToActivityDuration = async (req, res) => {
     res.status(500).json({ status: "failure", message: e.message });
   }
 };
+const createSchedulePlan=async(req,res)=>{
+  try{
+  const result= await sql `
+  CREATE TABLE schedule_plan (
+    id SERIAL PRIMARY KEY,
+    project_id INT REFERENCES project(id),
+    mainPhase TEXT,
+    subPhase TEXT,
+    phaseId INT,
+    duration TEXT,
+    startDate DATE,
+    endDate DATE
+);`;
+console.log(result);
+res.status(200).json({
+  status:"Success",
+  message:"Created schedule_plan table successfully",
+  result
+})
+  }
+  catch(e){
+    res.status(500).json({ status: "failure", message: e.message });
+
+  }
+}
+
 
 module.exports = {
   createUsersTable,
@@ -996,6 +1022,7 @@ module.exports = {
   createTableItem,
   createTableDeliverable,
   createDocumentTemplateTable,
+  createSchedulePlan,
   connectObjectiveWithProject,
   addTriggersToActivityDuration,
   addTriggersProjectToActivityDuration,

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   Menu,
@@ -9,30 +9,31 @@ import {
   Settings,
 } from "lucide-react";
 import useAuth from "../hooks/userAuth";
+import useLanguage from "../hooks/useLanguage";
 import usEnglishIcon from "../assets/usenglish.png";
 import arabicIcon from "../assets/arabic.png";
 import saudiIcon from "../assets/saudi.png";
 const SIDEBAR_ITEMS = [
   {
-    name: "Tasks",
+    name: "tasks",
     icon: ListChecks,
     href: "/tasks",
     roles: ["PM", "PMO"],
   },
   {
-    name: "Dashboard",
+    name: "dashboard",
     icon: ChartPie,
     href: "/dashboard",
     roles: ["USER"],
   },
   {
-    name: "Data Management",
+    name: "dataManagement",
     icon: Database,
     href: "/data-management",
     roles: ["PMO"],
   },
   {
-    name: "Admin",
+    name: "admin",
     icon: Settings,
     href: "/admin",
     roles: ["DEPUTY", "ADMIN"],
@@ -40,17 +41,17 @@ const SIDEBAR_ITEMS = [
 ];
 
 const SidebarPage = ({ isSidebarOpen, toggleSidebar }) => {
-  const [language, setLanguage] = useState("en");
+  const { t, currentLanguage, changeLanguage } = useLanguage();
   const location = useLocation();
   const { role } = useAuth();
   console.log("Role of user logged in: ", role);
+
   const handleToggleSidebar = () => {
     toggleSidebar();
   };
 
   const handleLanguageChange = (lang) => {
-    setLanguage(lang);
-    // Add any additional logic for language change here
+    changeLanguage(lang);
   };
 
   const filteredSidebarItems = SIDEBAR_ITEMS.filter((item) =>
@@ -106,7 +107,7 @@ const SidebarPage = ({ isSidebarOpen, toggleSidebar }) => {
                         overflow: "hidden",
                       }}
                     >
-                      {item.name}
+                      {t(item.name)}
                     </span>
                   </Link>
                 </li>
@@ -121,7 +122,7 @@ const SidebarPage = ({ isSidebarOpen, toggleSidebar }) => {
             <button
               onClick={() => handleLanguageChange("en")}
               className={`w-10 h-10 rounded-full border-2 transition-all duration-300 ${
-                language === "en" ? "border-blue-500" : "border-transparent"
+                currentLanguage === "en" ? "border-blue-500" : "border-transparent"
               } overflow-hidden ${isSidebarOpen ? "scale-100" : "scale-0"}`}
             >
               <img
@@ -133,7 +134,7 @@ const SidebarPage = ({ isSidebarOpen, toggleSidebar }) => {
             <button
               onClick={() => handleLanguageChange("ar")}
               className={`w-10 h-10 rounded-full border-2 ml-2 transition-all duration-300 ${
-                language === "ar" ? "border-blue-500" : "border-transparent"
+                currentLanguage === "ar" ? "border-blue-500" : "border-transparent"
               } overflow-hidden ${isSidebarOpen ? "scale-100" : "scale-0"}`}
             >
               <img

@@ -8,6 +8,8 @@ import Pagination from "../components/Pagination";
 import TableData from "../components/TableData";
 import TableConfig from "../components/TableConfig";
 import TableConfigFilter from "../components/TableConfigFilter";
+const PORT = import.meta.env.VITE_PORT;
+
 
 let tablefilters = {};
 let sortClause = {};
@@ -34,14 +36,14 @@ const TasksPage = ({
       console.log("the dableName in getData function", tableName);
       let result = [];
       if (tableName == "tasks") {
-        result = await axios.post("http://localhost:4000/tasks/getTasks", {
+        result = await axios.post(`http://localhost:${PORT}/tasks/getTasks`, {
           tableName,
           userId: 5,
           limit: 7,
         });
       } else {
         result = await axios.post(
-          "http://localhost:4000/data-management/data",
+          `http://localhost:${PORT}/data-management/data`,
           {
             tableName,
             userId: 1,
@@ -64,7 +66,7 @@ const TasksPage = ({
     async function getSetting() {
       try {
         const result = await axios.post(
-          `http://localhost:4000/data-management/setting`,
+          `http://localhost:${PORT}/data-management/setting`,
           {
             tableName,
             userId: 1,
@@ -91,7 +93,7 @@ const TasksPage = ({
       const { project_name, filters } = tablefilters;
       try {
         const result = await axios.post(
-          "http://localhost:4000/tasks/filtertasks",
+          `http://localhost:${PORT}/tasks/filtertasks`,
           {
             userId: 5,
             limit: 7,
@@ -113,7 +115,7 @@ const TasksPage = ({
     } else {
       try {
         const result = await axios.post(
-          "http://localhost:4000/data-management/filtereddata",
+          `http://localhost:${PORT}/data-management/filtereddata`,
           {
             tableName,
             limit: 7,

@@ -30,8 +30,11 @@ const {
   addTriggersToActivityDuration,
   addTriggersProjectToActivityDuration,
   createProjectDocumentsTable,
+  createSchedulePlan,
 } = require("../database/dbConfig");
-
+const {
+  createSchedulePlanTaskForPM,
+} = require("../controllers/taskCreationController");
 router.get("/cuser", createUsersTable);
 router.get("/cinitiative", createInitiativeTable);
 router.get("/cdepartment", createDepartmentTable);
@@ -65,6 +68,5 @@ router.get(
   "/addTriggerProjectToActivityDuration",
   addTriggersProjectToActivityDuration
 );
-router.get("/cprojectdocuments", createProjectDocumentsTable);
 
 module.exports = router;

@@ -1,16 +1,19 @@
-import React, { useState } from "react";
+import React from "react";
+import useLanguage from "../hooks/useLanguage";
 
 const DataManagementTabs = ({ activeTab, setActiveTab }) => {
+  const { t } = useLanguage();
+  
   const tabs = [
-    { id: "initiatives", label: "Initiatives", disabled: false },
-    { id: "portfolio", label: "Portfolio", disabled: false },
-    { id: "programs", label: "Programs", disabled: false },
-    { id: "projects", label: "Projects", disabled: false },
-    { id: "objectives", label: "Objectives", disabled: false },
-    { id: "departments", label: "Departments", disabled: false },
-    { id: "vendors", label: "Vendors", disabled: false },
-    { id: "team", label: "Team", disabled: false },
-    { id: "documents", label: "Documents", disabled: false },
+    { id: "initiatives", label: "initiatives", disabled: false },
+    { id: "portfolio", label: "portfolio", disabled: false },
+    { id: "programs", label: "programs", disabled: false },
+    { id: "projects", label: "projects", disabled: false },
+    { id: "objectives", label: "objectives", disabled: false },
+    { id: "departments", label: "departments", disabled: false },
+    { id: "vendors", label: "vendors", disabled: false },
+    { id: "team", label: "team", disabled: false },
+    { id: "documents", label: "documents", disabled: false },
   ];
 
   // Remove the getTabContent function as we'll handle content in the parent component
@@ -22,7 +25,7 @@ const DataManagementTabs = ({ activeTab, setActiveTab }) => {
             <li key={tab.id} className="me-2">
               {tab.disabled ? (
                 <span className="inline-block p-4 text-gray-400 rounded-t-lg cursor-not-allowed dark:text-gray-500">
-                  {tab.label}
+                  {t(tab.label)}
                 </span>
               ) : (
                 <a
@@ -38,7 +41,7 @@ const DataManagementTabs = ({ activeTab, setActiveTab }) => {
                   }`}
                   aria-current={activeTab === tab.id ? "page" : undefined}
                 >
-                  {tab.label}
+                  {t(tab.label)}
                 </a>
               )}
             </li>

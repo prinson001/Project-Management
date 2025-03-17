@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+const PORT = import.meta.env.VITE_PORT;
 
 // ArrowIcon Component
 const ArrowIcon = ({
@@ -27,6 +28,8 @@ const ArrowIcon = ({
     </svg>
   );
 };
+
+
 
 // WeekDropdown Component
 const WeekDropdown = ({
@@ -254,7 +257,7 @@ const ProjectTimelineSettings = () => {
     const fetchranges = async () => {
       try {
         const result = await axios.get(
-          "http://localhost:4000/admin/getBudgetRanges"
+          `http://localhost:${PORT}/admin/getBudgetRanges`
         );
         console.log("Fetched Data:", result.data.data);
         setbudgetRanges(result.data.data.map((item) => ({ ...item })));
@@ -265,7 +268,7 @@ const ProjectTimelineSettings = () => {
     const fetchPhaseData = async () => {
       try {
         const result = await axios.get(
-          "http://localhost:4000/admin/getPhaseDurations"
+          `http://localhost:${PORT}/admin/getPhaseDurations`
         );
         console.log("the fetched data");
         console.log(result);
@@ -330,7 +333,7 @@ const ProjectTimelineSettings = () => {
     // Here you would update your application state with the new ranges
     try {
       const result = await axios.post(
-        "http://localhost:4000/admin/updateBudgetRanges",
+        `http://localhost:${PORT}/admin/updateBudgetRanges`,
         {
           updates: budgetRanges,
         }
@@ -345,7 +348,7 @@ const ProjectTimelineSettings = () => {
     console.log("save button clicked");
     try {
       const result = await axios.post(
-        "http://localhost:4000/admin/updatephaseduration",
+        `http://localhost:${PORT}/admin/updatephaseduration`,
         {
           updates: changesToSave,
         }
@@ -357,7 +360,7 @@ const ProjectTimelineSettings = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-4 bg-white">
+    <div className="max-w-6xl mx-auto p-4 bg-white dark:bg-black dark:text-white">
       {/* Main Content */}
       <div className="border rounded shadow-sm">
         <div className="p-4">
@@ -369,7 +372,7 @@ const ProjectTimelineSettings = () => {
                 className="inline-flex items-center text-sm font-medium text-gray-700"
                 onClick={() => setShowRangeSettings(true)}
               >
-                <span>Ranges settings</span>
+                <span className="dark:text-gray-200">Ranges settings</span>
                 <ArrowIcon direction="down" size={16} className="ml-1" />
               </button>
             </div>
@@ -430,7 +433,7 @@ const ProjectTimelineSettings = () => {
           </div>
 
           {/* Note */}
-          <div className=" text-sm text-gray-600">
+          <div className=" text-sm text-gray-600 dark:text-gray-300">
             <p>
               Changing parameters will not affect projects that are already
               created.

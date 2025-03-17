@@ -15,6 +15,7 @@ import DeliverableAccordion from "../components/DeliverableAccordion";
 import UpdateDynamicForm from "./UpdateDynamicForm";
 import InitiativeAccordion from "./initiativeAccordion";
 import axios from "axios";
+const PORT = import.meta.env.VITE_PORT;
 
 const TableData = ({
   getData,
@@ -67,7 +68,7 @@ const TableData = ({
     toggleForm(-1);
     try {
       const result = await axios.post(
-        `http://localhost:4000/data-management/update${tableName}`,
+        `http://localhost:${PORT}/data-management/update${tableName}`,
         {
           id,
           data: updatedData,
@@ -93,7 +94,7 @@ const TableData = ({
     console.log("the delete clicked id", id);
     try {
       const result = await axios.post(
-        `http://localhost:4000/data-management/delete${tableName}`,
+        `http://localhost:${PORT}/data-management/delete${tableName}`,
         { id }
       );
       console.log(result);
@@ -163,7 +164,7 @@ const TableData = ({
     console.log(changedinput);
     try {
       const result = await axios.post(
-        "http://localhost:4000/admin/updateactivityduration",
+        `http://localhost:${PORT}/admin/updateactivityduration`,
         {
           data: changedinput,
         }

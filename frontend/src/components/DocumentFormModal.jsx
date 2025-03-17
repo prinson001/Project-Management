@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Construction, ConstructionIcon, Download, Upload } from "lucide-react";
 import axios from "axios";
+const PORT = import.meta.env.VITE_PORT;
 
 const phasesList = [
   "Planning phase",
@@ -66,7 +67,7 @@ const DocumentFormModal = ({ onClose }) => {
 
     try {
       const result = await axios.post(
-        "http://localhost:4000/data-management/addDocumentTemplate",
+        `http://localhost:${PORT}/data-management/addDocumentTemplate`,
         formData,
         {
           headers: {
