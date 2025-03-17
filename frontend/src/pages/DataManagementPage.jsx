@@ -42,6 +42,8 @@ const DataManagementPage = () => {
   const [showForm, setShowForm] = useState(false);
   const [showDocumentForm, setShowDocumentForm] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
+  const [initiatives, setInitiatives] = useState([]);
+  const [portfolios, setPortfolios] = useState([]);
   // Get users from auth store
   const { users, setUsers } = useAuthStore();
   let originalTableData = [];
@@ -63,6 +65,44 @@ const DataManagementPage = () => {
 
     fetchUsers();
   }, [setUsers]);
+
+  // Fetch initiatives when component mounts
+  useEffect(() => {
+    const fetchInitiatives = async () => {
+      try {
+        const response = await axios.post(
+          `http://localhost:${PORT}/data-management/getInitiatives`
+        );
+        if (response.data.status === "success") {
+          setInitiatives(response.data.result);
+        }
+      } catch (error) {
+        console.error("Error fetching initiatives:", error);
+        toast.error("Failed to load initiatives");
+      }
+    };
+
+    fetchInitiatives();
+  }, []);
+
+  // Fetch portfolios when component mounts
+  useEffect(() => {
+    const fetchPortfolios = async () => {
+      try {
+        const response = await axios.post(
+          `http://localhost:${PORT}/data-management/getPortfolios`
+        );
+        if (response.data.status === "success") {
+          setPortfolios(response.data.result);
+        }
+      } catch (error) {
+        console.error("Error fetching portfolios:", error);
+        toast.error("Failed to load portfolios");
+      }
+    };
+
+    fetchPortfolios();
+  }, []);
 
   // Form field definitions for different tabs
   const getFormFields = () => ({
@@ -193,9 +233,29 @@ const DataManagementPage = () => {
         name: "programManager",
         label: "Program Manager",
         type: "select",
-        options: ["Manager 1", "Manager 2"],
         required: true,
         columnSpan: 1,
+        options:
+          users && users.length > 0
+            ? users.map((user) => ({
+                value: user.id.toString(),
+                label: `${user.first_name} ${user.family_name || ""}`,
+              }))
+            : [],
+      },
+      {
+        name: "portfolio_id",
+        label: "Portfolio",
+        type: "select",
+        required: true,
+        columnSpan: 1,
+        options:
+          portfolios && portfolios.length > 0
+            ? portfolios.map((portfolio) => ({
+                value: portfolio.id.toString(),
+                label: portfolio.name,
+              }))
+            : [],
       },
       {
         name: "descriptionEnglish",
@@ -350,7 +410,12 @@ const DataManagementPage = () => {
       return "company";
     } else if (activeTab === "team") {
       return "member";
-    } else if (activeTab === "documents") {
+      
+    } 
+    else if (activeTab==="programs"){
+      return "program";
+    }
+    else if (activeTab === "documents") {
       return "document";
     }
 
@@ -385,13 +450,22 @@ const DataManagementPage = () => {
       if (activeTab === "portfolios" && data.portfolioManager) {
         data.portfolioManager = parseInt(data.portfolioManager, 10);
       }
-      // const result = await axios.post(
-      //   `http://localhost:4000/data-management/${endpoint}`,
-      //   {
-      //     ...data,
-      //     userId: 1,
+      // For program, ensure programManager and portfolio_id are sent as integers
+      // if (activeTab === "programs") {
+      //   if (data.programManager) {
+      //     data.programManager = parseInt(data.programManager, 10);
       //   }
-      // );
+      //   if (data.portfolio_id) {
+      //     data.portfolio_id = parseInt(data.portfolio_id, 10);
+      //   }
+      // }
+      const result = await axios.post(
+        `http://localhost:${PORT}/data-management/${endpoint}`,
+        {
+          ...data,
+          userId: 1,
+        }
+      );
 
       console.log("Form submission result:", result);
 

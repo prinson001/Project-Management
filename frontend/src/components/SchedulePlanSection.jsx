@@ -5,13 +5,17 @@ import { Controller, useForm } from "react-hook-form";
 import axios from "axios";
 import { addDays, addWeeks, addMonths, format } from "date-fns";
 import { toast } from "sonner"; // For notifications
+
 const PORT = import.meta.env.VITE_PORT;
 
-const SchedulePlanSection = ({ projectId }) => {
+const SchedulePlanSection = ({ projectId ,onScheduleChange}) => {
   const [activeTab, setActiveTab] = useState("B. Days");
   const [phaseDurations, setPhaseDurations] = useState([]);
   const [scheduleTableData, setScheduleTableData] = useState([]);
+
+
   const [originalDurations, setOriginalDurations] = useState({});
+  const [durationTypes, setDurationTypes] = useState({});
 
   const {
     control,
@@ -69,9 +73,15 @@ const SchedulePlanSection = ({ projectId }) => {
         ]);
       }
     };
-
     fetchPhaseDurations();
   }, []);
+
+
+  useEffect(() => {
+    if (onScheduleChange) {
+      onScheduleChange(scheduleTableData);
+    }
+  }, [scheduleTableData]);
 
   // Fixed initial schedule data with hardcoded mainPhase and subPhase
   const initialScheduleData = [
@@ -149,13 +159,10 @@ const SchedulePlanSection = ({ projectId }) => {
   const convertToDays = (durationStr) => {
     const daysMatch = durationStr.match(/(\d+)\s*days?/);
     if (daysMatch) return parseInt(daysMatch[1], 10);
-
     const weeksMatch = durationStr.match(/(\d+)\s*weeks?/);
     if (weeksMatch) return parseInt(weeksMatch[1], 10) * 7;
-
     const monthsMatch = durationStr.match(/(\d+)\s*months?/);
     if (monthsMatch) return parseInt(monthsMatch[1], 10) * 30; // Approximation
-
     // Default fallback - assume it's weeks as in original code
     const match = durationStr.match(/(\d+)/);
     return match ? parseInt(match[1], 10) * 7 : 28; // Default to 4 weeks (28 days)
@@ -164,16 +171,12 @@ const SchedulePlanSection = ({ projectId }) => {
   // Add appropriate time based on duration unit
   const addDuration = (date, durationStr) => {
     if (!date) return null;
-
     const daysMatch = durationStr.match(/(\d+)\s*days?/);
     if (daysMatch) return addDays(date, -parseInt(daysMatch[1], 10));
-
     const weeksMatch = durationStr.match(/(\d+)\s*weeks?/);
     if (weeksMatch) return addWeeks(date, -parseInt(weeksMatch[1], 10));
-
     const monthsMatch = durationStr.match(/(\d+)\s*months?/);
     if (monthsMatch) return addMonths(date, -parseInt(monthsMatch[1], 10));
-
     // Default fallback - assume it's weeks as in original code
     const match = durationStr.match(/(\d+)/);
     return match ? addWeeks(date, -parseInt(match[1], 10)) : date;
@@ -185,9 +188,7 @@ const SchedulePlanSection = ({ projectId }) => {
       setScheduleTableData(initialScheduleData);
       return;
     }
-
     const tempSchedule = [];
-
     [...scheduleTableData].reverse().forEach((phase, index) => {
       if (index === 0) {
         const endDate = new Date(executionStartDate);
@@ -208,20 +209,23 @@ const SchedulePlanSection = ({ projectId }) => {
         });
       }
     });
-
     setScheduleTableData(tempSchedule.reverse());
   }, [executionStartDate]);
 
   // Handle duration change for a specific phase
-  const handleDurationChange = (phaseId, newDuration) => {
+  const handleDurationChange = (phaseId, newDuration, newType) => {
     const updatedSchedule = scheduleTableData.map((phase) =>
       phase.phaseId === phaseId ? { ...phase, duration: newDuration } : phase
     );
 
+    setDurationTypes((prevTypes) => ({
+      ...prevTypes,
+      [phaseId]: newType,
+    }));
+
     // Recalculate dates if execution start date exists
     if (executionStartDate) {
       const tempSchedule = [];
-
       [...updatedSchedule].reverse().forEach((phase, index) => {
         if (index === 0) {
           const endDate = new Date(executionStartDate);
@@ -242,7 +246,6 @@ const SchedulePlanSection = ({ projectId }) => {
           });
         }
       });
-
       setScheduleTableData(tempSchedule.reverse());
     }
   };
@@ -263,32 +266,29 @@ const SchedulePlanSection = ({ projectId }) => {
   };
 
   // Generate duration options for dropdown based on selected unit tab
-  const getDurationOptions = () => {
-    if (activeTab === "B. Days") {
+  const getDurationOptions = (type) => {
+    if (type === "B. Days") {
       return Array.from({ length: 30 }, (_, i) => ({
         value: `${i + 1} day${i + 1 > 1 ? "s" : ""}`,
         label: `${i + 1} day${i + 1 > 1 ? "s" : ""}`,
       }));
-    } else if (activeTab === "Weeks") {
+    } else if (type === "Weeks") {
       return Array.from({ length: 12 }, (_, i) => ({
         value: `${i + 1} week${i + 1 > 1 ? "s" : ""}`,
         label: `${i + 1} week${i + 1 > 1 ? "s" : ""}`,
       }));
-    } else if (activeTab === "Months") {
+    } else if (type === "Months") {
       return Array.from({ length: 12 }, (_, i) => ({
         value: `${i + 1} month${i + 1 > 1 ? "s" : ""}`,
         label: `${i + 1} month${i + 1 > 1 ? "s" : ""}`,
       }));
     }
-
     // Default to weeks
     return Array.from({ length: 12 }, (_, i) => ({
       value: `${i + 1} week${i + 1 > 1 ? "s" : ""}`,
       label: `${i + 1} week${i + 1 > 1 ? "s" : ""}`,
     }));
   };
-
-  const durationOptions = getDurationOptions();
 
   const getRowColor = (mainPhase) => {
     switch (mainPhase) {
@@ -320,12 +320,11 @@ const SchedulePlanSection = ({ projectId }) => {
 
   // Save schedule data
   const handleSaveSchedule = async () => {
-    projectId=1
+    projectId = 1;
     if (!projectId) {
       toast.error("Project ID is required to save the schedule.");
       return;
     }
-
     try {
       const response = await axios.post(
         `http://localhost:${PORT}/data-management/upsertSchedulePlan`,
@@ -334,8 +333,8 @@ const SchedulePlanSection = ({ projectId }) => {
           schedule: scheduleTableData,
         }
       );
-
       if (response.data && response.data.status === "success") {
+        console.log(response.data)
         toast.success("Schedule saved successfully!");
       } else {
         throw new Error(response.data?.message || "Failed to save schedule");
@@ -369,7 +368,6 @@ const SchedulePlanSection = ({ projectId }) => {
           ))}
         </div>
       </div>
-
       <div className="grid grid-cols-3 gap-6 mb-4">
         <div>
           <label className="block text-sm font-semibold mb-1">
@@ -390,7 +388,6 @@ const SchedulePlanSection = ({ projectId }) => {
             )}
           />
         </div>
-
         <div>
           <label className="block text-sm font-semibold mb-1">
             Execution duration <span className="text-red-500">*</span>
@@ -409,7 +406,7 @@ const SchedulePlanSection = ({ projectId }) => {
                   } rounded appearance-none bg-white`}
                   {...field}
                 >
-                  {durationOptions.map((option, idx) => (
+                  {getDurationOptions(activeTab).map((option, idx) => (
                     <option key={idx} value={option.value}>
                       {option.label}
                     </option>
@@ -427,7 +424,6 @@ const SchedulePlanSection = ({ projectId }) => {
             </p>
           )}
         </div>
-
         <div>
           <label className="block text-sm font-semibold mb-1">
             Maintenance & operation duration{" "}
@@ -455,7 +451,6 @@ const SchedulePlanSection = ({ projectId }) => {
           )}
         </div>
       </div>
-
       <div className="overflow-x-auto mb-4">
         <table className="w-full border-collapse">
           <thead>
@@ -481,22 +476,52 @@ const SchedulePlanSection = ({ projectId }) => {
                 <td className="border border-gray-300 p-2">{row.mainPhase}</td>
                 <td className="border border-gray-300 p-2">{row.subPhase}</td>
                 <td className="border border-gray-300 p-2 text-center">
-                  <div className="relative">
-                    <select
-                      className="w-full p-1 border border-gray-300 rounded appearance-none"
-                      value={row.duration}
-                      onChange={(e) =>
-                        handleDurationChange(row.phaseId, e.target.value)
-                      }
-                    >
-                      {durationOptions.map((option, idx) => (
-                        <option key={idx} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                      <ChevronUp size={16} />
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <select
+                        className="w-full p-1 border border-gray-300 rounded appearance-none"
+                        value={row.duration}
+                        onChange={(e) =>
+                          handleDurationChange(
+                            row.phaseId,
+                            e.target.value,
+                            durationTypes[row.phaseId] || activeTab
+                          )
+                        }
+                      >
+                        {getDurationOptions(
+                          durationTypes[row.phaseId] || activeTab
+                        ).map((option, idx) => (
+                          <option key={idx} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                        <ChevronUp size={16} />
+                      </div>
+                    </div>
+                    <div className="relative flex-1">
+                      <select
+                        className="w-full p-1 border border-gray-300 rounded appearance-none"
+                        value={durationTypes[row.phaseId] || activeTab}
+                        onChange={(e) =>
+                          handleDurationChange(
+                            row.phaseId,
+                            row.duration,
+                            e.target.value
+                          )
+                        }
+                      >
+                        {["B. Days", "Weeks", "Months"].map((type, idx) => (
+                          <option key={idx} value={type}>
+                            {type}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                        <ChevronUp size={16} />
+                      </div>
                     </div>
                   </div>
                 </td>
