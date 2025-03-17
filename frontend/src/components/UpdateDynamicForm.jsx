@@ -5,6 +5,7 @@ const UpdateDynamicForm = ({
   title,
   onSubmit,
   isEmbedded = true,
+  viewData = false,
   data,
   tableName,
 }) => {
@@ -93,23 +94,21 @@ const UpdateDynamicForm = ({
 
   useEffect(() => {
     if (data) {
-      reset(data); // Populate form fields with existing values
+      reset(data);
     }
   }, [data, reset]);
+
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
 
   const handleFormSubmit = (formData) => {
-    // closeModal();
     onSubmit(formData);
-    // reset();
-    console.log(formData);
   };
 
   const formContent = (
     <form
       onSubmit={handleSubmit(handleFormSubmit)}
-      className="grid grid-cols-2 gap-4 p-4 bg-white shadow-md rounded-md"
+      className="grid grid-cols-2 gap-4 p-4 bg-white shadow-md rounded-md w-full"
     >
       {getFormFields()[tableName].map(
         (
@@ -131,7 +130,9 @@ const UpdateDynamicForm = ({
               className || ""
             }`}
           >
-            <label className="block text-sm font-medium">{label}</label>
+            <label className="block text-sm font-medium text-gray-700">
+              {label}
+            </label>
             {type === "select" ? (
               <select
                 {...register(dbName, { required })}
@@ -175,9 +176,33 @@ const UpdateDynamicForm = ({
     </form>
   );
 
-  return isEmbedded ? (
-    formContent
-  ) : (
+  const viewContent = (
+    <div className="grid grid-cols-2 gap-4 p-4 bg-white shadow-md rounded-md w-full">
+      {getFormFields()[tableName].map(
+        ({ dbName, label, className, columnSpan }, index) => (
+          <div
+            key={index}
+            className={`${columnSpan === 2 ? "col-span-2" : ""} ${
+              className || ""
+            }`}
+          >
+            <label className="block text-sm font-medium text-gray-700">
+              {label}
+            </label>
+            <div className="mt-1 p-2 bg-gray-50 rounded-md text-gray-900 w-full">
+              {data?.[dbName] || "N/A"}
+            </div>
+          </div>
+        )
+      )}
+    </div>
+  );
+
+  if (isEmbedded) {
+    return viewData ? viewContent : formContent;
+  }
+
+  return (
     <>
       <button
         onClick={openModal}
@@ -188,7 +213,7 @@ const UpdateDynamicForm = ({
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex justify-center items-center">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl">
             <h2 className="text-lg font-bold mb-4">{title || "Update Form"}</h2>
             {formContent}
             <button

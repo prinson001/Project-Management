@@ -29,6 +29,7 @@ const {
   connectObjectiveWithProject,
   addTriggersToActivityDuration,
   addTriggersProjectToActivityDuration,
+  createProjectDocumentsTable,
 } = require("../database/dbConfig");
 
 router.get("/cuser", createUsersTable);
@@ -64,5 +65,6 @@ router.get(
   "/addTriggerProjectToActivityDuration",
   addTriggersProjectToActivityDuration
 );
+router.get("/cprojectdocuments", createProjectDocumentsTable);
 
 module.exports = router;

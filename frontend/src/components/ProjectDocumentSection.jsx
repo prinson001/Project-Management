@@ -4,7 +4,10 @@ import { Upload, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 
-const ProjectDocumentSection = ({ projectPhase = "Execution" }) => {
+const ProjectDocumentSection = ({
+  projectPhase = "Execution",
+  projectId = null,
+}) => {
   const { register, setValue, watch } = useForm();
   const [documents, setDocuments] = useState([]);
   const [uploadedDocuments, setUploadedDoucuments] = useState([]);
@@ -24,10 +27,29 @@ const ProjectDocumentSection = ({ projectPhase = "Execution" }) => {
       console.log(e);
     }
   };
+  const getCurrentPhaseUploadedProjectDocuments = async () => {
+    try {
+      const result = await axios.post(
+        "http://localhost:4000/data-management/getCurrentPhaseUploadedProjectDocuments",
+        {
+          phase: projectPhase,
+          projectId,
+        }
+      );
+      console.log("the retreived project documents");
+      console.log(result);
+    } catch (e) {
+      console.log("there was an error retreiving project documents");
+      console.log(e.message);
+    }
+  };
   useEffect(() => {
     // get all documents that need to be uploaded for this current selected phase(in case insert)
     getCurrentPhaseDocumentTemplates();
-  }, [projectPhase]);
+    if (projectId) {
+      getCurrentPhaseUploadedProjectDocuments();
+    }
+  }, [projectPhase, projectId]);
   const handleUpload = (index, file) => {
     const newDocs = [...documents];
     console.log(file);

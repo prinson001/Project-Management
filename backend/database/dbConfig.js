@@ -877,6 +877,33 @@ const createDocumentTemplateTable = async (req, res) => {
     });
   }
 };
+const createProjectDocumentsTable = async (req, res) => {
+  try {
+    const result = await sql`CREATE TABLE project_documents (
+      id SERIAL PRIMARY KEY,
+      project_id INT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+      template_id INT NOT NULL REFERENCES document_template(id) ON DELETE RESTRICT,
+      document_path VARCHAR(255),
+      document_name VARCHAR(255),
+      document_url TEXT,
+      phase VARCHAR(50) NOT NULL,   
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );`;
+
+    res.status(200).json({
+      status: "success",
+      message: "Successfully created project_documents table",
+      result,
+    });
+  } catch (e) {
+    res.status(500).json({
+      status: "failure",
+      message: "Failed to create project_documents table",
+      error: e.message,
+    });
+  }
+};
 const connectObjectiveWithProject = async (req, res) => {
   try {
     const result = await sql`
@@ -972,4 +999,5 @@ module.exports = {
   connectObjectiveWithProject,
   addTriggersToActivityDuration,
   addTriggersProjectToActivityDuration,
+  createProjectDocumentsTable,
 };

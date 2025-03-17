@@ -37,7 +37,7 @@ const TasksPage = ({
         result = await axios.post("http://localhost:4000/tasks/getTasks", {
           tableName,
           userId: 5,
-          limit: 10,
+          limit: 7,
         });
       } else {
         result = await axios.post(
@@ -45,7 +45,7 @@ const TasksPage = ({
           {
             tableName,
             userId: 1,
-            limit: 10,
+            limit: 7,
           }
         );
       }
@@ -94,6 +94,7 @@ const TasksPage = ({
           "http://localhost:4000/tasks/filtertasks",
           {
             userId: 5,
+            limit: 7,
             filters: filters,
             project_name,
             getAllTasks,
@@ -115,6 +116,7 @@ const TasksPage = ({
           "http://localhost:4000/data-management/filtereddata",
           {
             tableName,
+            limit: 7,
             userId: 1,
             filters: tablefilters,
             sort: sortClause,

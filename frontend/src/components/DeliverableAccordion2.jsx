@@ -2,8 +2,9 @@ import React, { useState, useEffect } from "react";
 import { Disclosure, Transition } from "@headlessui/react";
 import axios from "axios";
 
-const DeliverablesAccordion = ({ projectId = 2 }) => {
+const DeliverablesAccordion = ({ projectId = 2, projectPhase }) => {
   const [items, setItems] = useState([]);
+  const [projectDocuments, setProjectDocuments] = useState([]);
   const [openIndex, setOpenIndex] = useState(-1);
   const [changes, setChanges] = useState({
     newDeliverables: [],
@@ -24,8 +25,26 @@ const DeliverablesAccordion = ({ projectId = 2 }) => {
         console.error("Error fetching items:", error);
       }
     };
+    const fetchProjectDocuments = async () => {
+      try {
+        const response = await axios.get(
+          `http://localhost:4000/pm/getProjectDocuments`,
+          {
+            projectId,
+            projectPhase,
+          }
+        );
+        console.log("project documents");
+        console.log(response);
+        setItems(response.data);
+      } catch (e) {
+        console.log("there was an error");
+        console.log(e);
+      }
+    };
 
     fetchItemsWithDeliverables();
+    fetchProjectDocuments();
   }, [projectId]);
 
   const handleDeliverableChange = (
@@ -226,7 +245,17 @@ const DeliverablesAccordion = ({ projectId = 2 }) => {
       <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-3">
         Project Deliverables
       </h2>
-
+      <div>
+        {document.map((e) => {
+          return (
+            <div>
+              <a href={e.document_url} target="_blank">
+                {e.document_name}
+              </a>
+            </div>
+          );
+        })}
+      </div>
       <div className="space-y-1">
         {items.map((item, itemIndex) => (
           <Disclosure key={item.id || itemIndex}>

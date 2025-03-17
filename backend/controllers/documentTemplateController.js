@@ -200,4 +200,45 @@ const getCurrentPhaseDocuments = async (req, res) => {
   }
 };
 
-module.exports = { createDocumentTemplate, getCurrentPhaseDocuments };
+// THIS IS UPLOADED PROJECT DOCUMENTS AND ABOVE TWO ARE FOR DOCUMENT TEMPLATES
+const getProjectPhaseDocuments = async (req, res) => {
+  try {
+    const { projectId, projectPhase } = req.body;
+
+    if (!projectId || !projectPhase) {
+      return res.status(400).json({
+        status: "failure",
+        message:
+          "Both projectId and projectPhase are required in the request body",
+      });
+    }
+
+    // Fetch project documents with template details
+    const documents = await sql`
+      SELECT pd.*, dt.name, dt.arabic_name, dt.description 
+      FROM project_documents pd
+      JOIN document_template dt ON pd.template_id = dt.id
+      WHERE pd.project_id = ${projectId}
+        AND pd.phase = ${projectPhase}
+    `;
+
+    res.status(200).json({
+      status: "success",
+      message: "Project documents retrieved successfully",
+      data: documents,
+    });
+  } catch (error) {
+    console.error("Error fetching project documents:", error);
+    res.status(500).json({
+      status: "failure",
+      message: "Internal server error",
+      error: process.env.NODE_ENV === "development" ? error.message : null,
+    });
+  }
+};
+
+module.exports = {
+  createDocumentTemplate,
+  getCurrentPhaseDocuments,
+  getProjectPhaseDocuments,
+};

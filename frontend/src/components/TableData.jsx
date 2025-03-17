@@ -13,6 +13,7 @@ import ProjectCreationAccordion from "../components/ProjectCreationAccordion";
 import DeliverableAccordion2 from "../components/DeliverableAccordion2";
 import DeliverableAccordion from "../components/DeliverableAccordion";
 import UpdateDynamicForm from "./UpdateDynamicForm";
+import InitiativeAccordion from "./initiativeAccordion";
 import axios from "axios";
 
 const TableData = ({
@@ -398,7 +399,22 @@ const TableData = ({
                     </td>
                   </tr>
                 )}
-                {openAccordion === index && (
+                {tableName === "initiative" && openAccordion === index && (
+                  <tr>
+                    {" "}
+                    {/* Add table row wrapper */}
+                    <td colSpan={visibleColumns.length + 1} className="p-0">
+                      {" "}
+                      {/* Add table cell */}
+                      <InitiativeAccordion
+                        tableName="initiative"
+                        data={item}
+                        title="Initiative details"
+                      />
+                    </td>
+                  </tr>
+                )}
+                {/* {openAccordion === index && (
                   <tr>
                     <td colSpan={visibleColumns.length + 1} className="p-0">
                       <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 dark:text-white">
@@ -414,7 +430,7 @@ const TableData = ({
                       </div>
                     </td>
                   </tr>
-                )}
+                )} */}
               </React.Fragment>
             ))}
           </tbody>
