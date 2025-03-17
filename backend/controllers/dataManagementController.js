@@ -40,7 +40,7 @@ const getData = async (req, res) => {
       result = await sql`
       SELECT ${sql(tableName)}.*, users.first_name AS program_manager_name
       FROM ${sql(tableName)}
-      LEFT JOIN users ON ${sql(tableName)}.portfolio_manager = users.id
+      LEFT JOIN users ON ${sql(tableName)}.program_manager = users.id
       LIMIT ${limit} OFFSET ${offset}`;
     } else if (tableName === "objective") {
       result = await sql`
