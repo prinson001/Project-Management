@@ -41,13 +41,20 @@ const {
   deleteProject,
   getProjectById,
   updateProjectApprovalbyDeputy,
-  upsertSchedulePlan
+  upsertSchedulePlan,
 } = require("../controllers/projectController");
 
 const {
   getPhaseDurations,
   getPhaseDurationsByBudget,
 } = require("../database/dbConfig");
+
+const {
+  getInitiativeWithAllRelatedData,
+  getPortfolioWithAllRelatedData,
+  getProgramWithAllRelatedData,
+  getProjectWithAllRelatedData,
+} = require("../controllers/accordionDataController");
 
 router.post("/setting", getSetting);
 router.post("/data", getData);
@@ -82,6 +89,11 @@ router.post("/getProject", getProjectById);
 router.post("/getPhaseDurationsByBudget", getPhaseDurationsByBudget);
 router.post("/updateProjectApproval", updateProjectApprovalbyDeputy);
 
-router.post("/upsertSchedulePlan",upsertSchedulePlan);
+router.post("/upsertSchedulePlan", upsertSchedulePlan);
+
+router.post("/getInitiativeWithRelatedData", getInitiativeWithAllRelatedData);
+router.post("/getPortfolioWithRelatedData", getPortfolioWithAllRelatedData);
+router.post("/getProgramWithRelatedData", getProgramWithAllRelatedData);
+router.post("/getProjectWithRelatedData", getProgramWithAllRelatedData);
 
 module.exports = router;
