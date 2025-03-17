@@ -68,5 +68,7 @@ router.get(
   "/addTriggerProjectToActivityDuration",
   addTriggersProjectToActivityDuration
 );
+router.get("/cprojectdocuments", createProjectDocumentsTable);
+router.get("/cschedulePlan", createSchedulePlan);
 
 module.exports = router;
