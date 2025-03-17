@@ -14,6 +14,8 @@ import DeliverableAccordion2 from "../components/DeliverableAccordion2";
 import DeliverableAccordion from "../components/DeliverableAccordion";
 import UpdateDynamicForm from "./UpdateDynamicForm";
 import InitiativeAccordion from "./initiativeAccordion";
+import PortfolioAccordion from "./portfolioAccordion";
+import ProgramAccordion from "./programAccordion";
 import axios from "axios";
 const PORT = import.meta.env.VITE_PORT;
 
@@ -411,6 +413,36 @@ const TableData = ({
                         tableName="initiative"
                         data={item}
                         title="Initiative details"
+                      />
+                    </td>
+                  </tr>
+                )}
+                {tableName === "portfolio" && openAccordion === index && (
+                  <tr>
+                    {" "}
+                    {/* Add table row wrapper */}
+                    <td colSpan={visibleColumns.length + 1} className="p-0">
+                      {" "}
+                      {/* Add table cell */}
+                      <PortfolioAccordion
+                        tableName="portfolio"
+                        data={item}
+                        title="Portfolio details"
+                      />
+                    </td>
+                  </tr>
+                )}
+                {tableName === "program" && openAccordion === index && (
+                  <tr>
+                    {" "}
+                    {/* Add table row wrapper */}
+                    <td colSpan={visibleColumns.length + 1} className="p-0">
+                      {" "}
+                      {/* Add table cell */}
+                      <ProgramAccordion
+                        tableName="program"
+                        data={item}
+                        title="Portfolio details"
                       />
                     </td>
                   </tr>
