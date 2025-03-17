@@ -31,6 +31,7 @@ const {
   addTriggersProjectToActivityDuration,
   createProjectDocumentsTable,
   createSchedulePlan,
+  setupAllForeignKeys,
 } = require("../database/dbConfig");
 const {
   createSchedulePlanTaskForPM,
@@ -70,5 +71,7 @@ router.get(
 );
 router.get("/cprojectdocuments", createProjectDocumentsTable);
 router.get("/cschedulePlan", createSchedulePlan);
+
+router.get("/createForeignKey", setupAllForeignKeys);
 
 module.exports = router;

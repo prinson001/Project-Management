@@ -965,9 +965,9 @@ const addTriggersProjectToActivityDuration = async (req, res) => {
     res.status(500).json({ status: "failure", message: e.message });
   }
 };
-const createSchedulePlan=async(req,res)=>{
-  try{
-  const result= await sql `
+const createSchedulePlan = async (req, res) => {
+  try {
+    const result = await sql`
   CREATE TABLE schedule_plan (
     id SERIAL PRIMARY KEY,
     project_id INT REFERENCES project(id),
@@ -978,19 +978,121 @@ const createSchedulePlan=async(req,res)=>{
     startDate DATE,
     endDate DATE
 );`;
-console.log(result);
-res.status(200).json({
-  status:"Success",
-  message:"Created schedule_plan table successfully",
-  result
-})
-  }
-  catch(e){
+    console.log(result);
+    res.status(200).json({
+      status: "Success",
+      message: "Created schedule_plan table successfully",
+      result,
+    });
+  } catch (e) {
     res.status(500).json({ status: "failure", message: e.message });
-
   }
-}
+};
 
+// Link portfolio to initiative with foreign key
+const linkPortfolioToInitiative = async (req, res) => {
+  try {
+    const result = await sql`
+      ALTER TABLE portfolio 
+      ADD COLUMN initiative_id INT,
+      ADD CONSTRAINT fk_initiative FOREIGN KEY (initiative_id) REFERENCES initiative(id) ON DELETE SET  NULL
+    `;
+
+    console.log(result);
+    res.status(200).json({
+      status: "success",
+      message: "Foreign key added to portfolio table successfully",
+      result,
+    });
+  } catch (e) {
+    res.status(500).json({
+      status: "failure",
+      message: e.message,
+    });
+  }
+};
+
+// Link program to portfolio with foreign key
+const linkProgramToPortfolio = async (req, res) => {
+  try {
+    const result = await sql`
+      ALTER TABLE programs 
+      ADD COLUMN portfolio_id INT,
+      ADD CONSTRAINT fk_portfolio FOREIGN KEY (portfolio_id) REFERENCES portfolio(id) ON DELETE SET NULL
+    `;
+
+    console.log(result);
+    res.status(200).json({
+      status: "success",
+      message: "Foreign key added to programs table successfully",
+      result,
+    });
+  } catch (e) {
+    res.status(500).json({
+      status: "failure",
+      message: e.message,
+    });
+  }
+};
+
+// Link project to program with foreign key
+const linkProjectToProgram = async (req, res) => {
+  try {
+    const result = await sql`
+      ALTER TABLE projects 
+      ADD COLUMN program_id INT,
+      ADD CONSTRAINT fk_program FOREIGN KEY (program_id) REFERENCES programs(id) ON DELETE SET NULL
+    `;
+
+    console.log(result);
+    res.status(200).json({
+      status: "success",
+      message: "Foreign key added to projects table successfully",
+      result,
+    });
+  } catch (e) {
+    res.status(500).json({
+      status: "failure",
+      message: e.message,
+    });
+  }
+};
+
+// Execute all foreign key additions
+const setupAllForeignKeys = async (req, res) => {
+  try {
+    // Add foreign key to portfolio table
+    await sql`
+      ALTER TABLE portfolio 
+      ADD COLUMN initiative_id INT,
+      ADD CONSTRAINT fk_initiative FOREIGN KEY (initiative_id) REFERENCES initiative(id) ON DELETE SET NULL
+    `;
+
+    // Add foreign key to programs table
+    await sql`
+      ALTER TABLE program 
+      ADD COLUMN portfolio_id INT,
+      ADD CONSTRAINT fk_portfolio FOREIGN KEY (portfolio_id) REFERENCES portfolio(id) ON DELETE SET NULL
+    `;
+
+    // Add foreign key to projects table
+    await sql`
+      ALTER TABLE project 
+      ADD COLUMN program_id INT,
+      ADD CONSTRAINT fk_program FOREIGN KEY (program_id) REFERENCES program(id) ON DELETE SET NULL
+    `;
+
+    res.status(200).json({
+      status: "success",
+      message: "All foreign keys added successfully",
+    });
+  } catch (e) {
+    res.status(500).json({
+      status: "failure",
+      message: e.message,
+    });
+  }
+};
 
 module.exports = {
   createUsersTable,
@@ -1027,4 +1129,5 @@ module.exports = {
   addTriggersToActivityDuration,
   addTriggersProjectToActivityDuration,
   createProjectDocumentsTable,
+  setupAllForeignKeys,
 };
