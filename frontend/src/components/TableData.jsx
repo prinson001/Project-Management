@@ -17,6 +17,7 @@ import InitiativeAccordion from "./initiativeAccordion";
 import PortfolioAccordion from "./portfolioAccordion";
 import ProgramAccordion from "./programAccordion";
 import axios from "axios";
+import Loader from "./Loader";
 const PORT = import.meta.env.VITE_PORT;
 
 const TableData = ({
@@ -38,6 +39,7 @@ const TableData = ({
   const [totalTableWidth, setTotalTableWidth] = useState(0);
   const [visibleColumns, setVisibleColumns] = useState([]);
   const [showForm, setShowForm] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   // Initialize column widths and track visible columns
   useEffect(() => {
@@ -58,6 +60,14 @@ const TableData = ({
     setTotalTableWidth(totalWidth);
     setVisibleColumns(visible);
   }, [columnSetting]);
+
+  useEffect(() => {
+    if (tableData && tableData.length > 0) {
+      setLoading(false); // Data is ready, stop loading
+    } else {
+      setLoading(true); // Data is not ready, start loading
+    }
+  }, [tableData]);
 
   const toggleAccordion = (index) => {
     setOpenAccordion(openAccordion === index ? null : index);
@@ -275,197 +285,205 @@ const TableData = ({
 
           {/* Table Body */}
           <tbody>
-            {tableData.map((item, index) => (
-              <React.Fragment key={index}>
-                <tr className="bg-white border-b dark:bg-[#1D1D1D] dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                  {columnSetting.map(
-                    (column) =>
-                      column.isVisible && (
-                        <td
-                          key={`${index}-${column.dbColumn}`}
-                          className={`px-2 h-16 border-r border-gray-200 dark:border-gray-700 ${
-                            changedinput[item.id]?.[column.dbColumn] !==
-                              undefined &&
-                            changedinput[item.id][column.dbColumn] !==
-                              item[column.dbColumn]
-                              ? "bg-amber-100 border-2 border-amber-500"
-                              : ""
-                          }`}
-                          style={{
-                            width: `${columnWidths[column.dbColumn]}px`,
-                          }}
-                        >
-                          {tableName === "document" &&
-                          column.dbColumn === "name" ? (
-                            <a
-                              href={item.document_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline cursor-pointer"
-                            >
-                              {item[column.dbColumn]}
-                            </a>
-                          ) : column.isInput ? (
-                            column.dbColumn === "created_date" ||
-                            column.dbColumn === "created_at" ||
-                            column.dbColumn === "due_date" ? (
+            {loading ? (
+              <tr>
+                <td colSpan={visibleColumns.length + 1} className="text-center py-4">
+                  <Loader />
+                </td>
+              </tr>
+            ) : (
+              tableData.map((item, index) => (
+                <React.Fragment key={index}>
+                  <tr className="bg-white border-b dark:bg-[#1D1D1D] dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                    {columnSetting.map(
+                      (column) =>
+                        column.isVisible && (
+                          <td
+                            key={`${index}-${column.dbColumn}`}
+                            className={`px-2 h-16 border-r border-gray-200 dark:border-gray-700 ${
+                              changedinput[item.id]?.[column.dbColumn] !==
+                                undefined &&
+                              changedinput[item.id][column.dbColumn] !==
+                                item[column.dbColumn]
+                                ? "bg-amber-100 border-2 border-amber-500"
+                                : ""
+                            }`}
+                            style={{
+                              width: `${columnWidths[column.dbColumn]}px`,
+                            }}
+                          >
+                            {tableName === "document" &&
+                            column.dbColumn === "name" ? (
+                              <a
+                                href={item.document_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline cursor-pointer"
+                              >
+                                {item[column.dbColumn]}
+                              </a>
+                            ) : column.isInput ? (
+                              column.dbColumn === "created_date" ||
+                              column.dbColumn === "created_at" ||
+                              column.dbColumn === "due_date" ? (
+                                showDate ? (
+                                  item[column.dbColumn].split("T")[0]
+                                ) : (
+                                  getRelativeDate(item[column.dbColumn])
+                                )
+                              ) : (
+                                <input
+                                  className="w-full h-full px-2 py-1 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                  type={column.type}
+                                  data-dbcolumn={column.dbColumn}
+                                  data-rowid={item.id}
+                                  onChange={handleInputDataChange}
+                                  value={
+                                    changedinput[item.id]?.[column.dbColumn] ??
+                                    item[column.dbColumn]
+                                  }
+                                />
+                              )
+                            ) : column.dbColumn === "created_date" ||
+                              column.dbColumn === "created_at" ||
+                              column.dbColumn === "due_date" ? (
                               showDate ? (
                                 item[column.dbColumn].split("T")[0]
                               ) : (
                                 getRelativeDate(item[column.dbColumn])
                               )
                             ) : (
-                              <input
-                                className="w-full h-full px-2 py-1 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                type={column.type}
-                                data-dbcolumn={column.dbColumn}
-                                data-rowid={item.id}
-                                onChange={handleInputDataChange}
-                                value={
-                                  changedinput[item.id]?.[column.dbColumn] ??
-                                  item[column.dbColumn]
-                                }
-                              />
-                            )
-                          ) : column.dbColumn === "created_date" ||
-                            column.dbColumn === "created_at" ||
-                            column.dbColumn === "due_date" ? (
-                            showDate ? (
-                              item[column.dbColumn].split("T")[0]
-                            ) : (
-                              getRelativeDate(item[column.dbColumn])
-                            )
-                          ) : (
-                            <span className="truncate block">
-                              {item[column.dbColumn]}
-                            </span>
+                              <span className="truncate block">
+                                {item[column.dbColumn]}
+                              </span>
+                            )}
+                          </td>
+                        )
+                    )}
+                    <td className="px-2 h-16 text-center">
+                      <div className="flex items-center justify-center space-x-2">
+                        <button
+                          onClick={() => toggleForm(index)}
+                          className="text-blue-500 hover:text-blue-700"
+                        >
+                          <Edit className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(item.id)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => toggleAccordion(index)}
+                          className="text-gray-500 hover:text-gray-700"
+                        >
+                          <ChevronDown
+                            className={`w-5 h-5 transition-transform ${
+                              openAccordion === index ? "rotate-180" : ""
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  {tableName === "tasks" && openAccordion === index && (
+                    <tr>
+                      <td colSpan={visibleColumns.length + 1} className="p-0">
+                        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 dark:text-white">
+                          {/* {accordionComponentName === "userAccordion" && (
+                            <UserAccordion
+                              userPersonalData={item}
+                              parentId={item.id}
+                              getData={getData}
+                              closeAccordion={closeAccordion}
+                              index={index}
+                            />
+                          )} */}
+                          {item.title === "Approve Project Creation" && (
+                            <ProjectCreationAccordion />
                           )}
-                        </td>
-                      )
+                          {item.title === "Upload BOQ" && (
+                            <BoqTaskAccordion
+                              parentId={item.id}
+                              projectBudget={item.approved_project_budget}
+                            />
+                          )}
+                          {item.title === "Upload Schedule Plan" && (
+                            <DeliverableAccordion2
+                              parentId={item.id}
+                              projectBudget={item.approved_project_budget}
+                            />
+                          )}
+                        </div>
+                      </td>
+                    </tr>
                   )}
-                  <td className="px-2 h-16 text-center">
-                    <div className="flex items-center justify-center space-x-2">
-                      <button
-                        onClick={() => toggleForm(index)}
-                        className="text-blue-500 hover:text-blue-700"
-                      >
-                        <Edit className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteClick(item.id)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={() => toggleAccordion(index)}
-                        className="text-gray-500 hover:text-gray-700"
-                      >
-                        <ChevronDown
-                          className={`w-5 h-5 transition-transform ${
-                            openAccordion === index ? "rotate-180" : ""
-                          }`}
+                  {tableName === "initiative" && openAccordion === index && (
+                    <tr>
+                      {" "}
+                      {/* Add table row wrapper */}
+                      <td colSpan={visibleColumns.length + 1} className="p-0">
+                        {" "}
+                        {/* Add table cell */}
+                        <InitiativeAccordion
+                          tableName="initiative"
+                          data={item}
+                          title="Initiative details"
                         />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-                {tableName === "tasks" && openAccordion === index && (
-                  <tr>
-                    <td colSpan={visibleColumns.length + 1} className="p-0">
-                      <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 dark:text-white">
-                        {/* {accordionComponentName === "userAccordion" && (
-                          <UserAccordion
-                            userPersonalData={item}
-                            parentId={item.id}
-                            getData={getData}
-                            closeAccordion={closeAccordion}
-                            index={index}
-                          />
-                        )} */}
-                        {item.title === "Approve Project Creation" && (
-                          <ProjectCreationAccordion />
-                        )}
-                        {item.title === "Upload BOQ" && (
-                          <BoqTaskAccordion
-                            parentId={item.id}
-                            projectBudget={item.approved_project_budget}
-                          />
-                        )}
-                        {item.title === "Upload Schedule Plan" && (
-                          <DeliverableAccordion2
-                            parentId={item.id}
-                            projectBudget={item.approved_project_budget}
-                          />
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                )}
-                {tableName === "initiative" && openAccordion === index && (
-                  <tr>
-                    {" "}
-                    {/* Add table row wrapper */}
-                    <td colSpan={visibleColumns.length + 1} className="p-0">
+                      </td>
+                    </tr>
+                  )}
+                  {tableName === "portfolio" && openAccordion === index && (
+                    <tr>
                       {" "}
-                      {/* Add table cell */}
-                      <InitiativeAccordion
-                        tableName="initiative"
-                        data={item}
-                        title="Initiative details"
-                      />
-                    </td>
-                  </tr>
-                )}
-                {tableName === "portfolio" && openAccordion === index && (
-                  <tr>
-                    {" "}
-                    {/* Add table row wrapper */}
-                    <td colSpan={visibleColumns.length + 1} className="p-0">
+                      {/* Add table row wrapper */}
+                      <td colSpan={visibleColumns.length + 1} className="p-0">
+                        {" "}
+                        {/* Add table cell */}
+                        <PortfolioAccordion
+                          tableName="portfolio"
+                          data={item}
+                          title="Portfolio details"
+                        />
+                      </td>
+                    </tr>
+                  )}
+                  {tableName === "program" && openAccordion === index && (
+                    <tr>
                       {" "}
-                      {/* Add table cell */}
-                      <PortfolioAccordion
-                        tableName="portfolio"
-                        data={item}
-                        title="Portfolio details"
-                      />
-                    </td>
-                  </tr>
-                )}
-                {tableName === "program" && openAccordion === index && (
-                  <tr>
-                    {" "}
-                    {/* Add table row wrapper */}
-                    <td colSpan={visibleColumns.length + 1} className="p-0">
-                      {" "}
-                      {/* Add table cell */}
-                      <ProgramAccordion
-                        tableName="program"
-                        data={item}
-                        title="Portfolio details"
-                      />
-                    </td>
-                  </tr>
-                )}
-                {/* {openAccordion === index && (
-                  <tr>
-                    <td colSpan={visibleColumns.length + 1} className="p-0">
-                      <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 dark:text-white">
-                        {accordionComponentName === "userAccordion" && (
-                          <UserAccordion
-                            userPersonalData={item}
-                            parentId={item.id}
-                            getData={getData}
-                            closeAccordion={closeAccordion}
-                            index={index}
-                          />
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                )} */}
-              </React.Fragment>
-            ))}
+                      {/* Add table row wrapper */}
+                      <td colSpan={visibleColumns.length + 1} className="p-0">
+                        {" "}
+                        {/* Add table cell */}
+                        <ProgramAccordion
+                          tableName="program"
+                          data={item}
+                          title="Portfolio details"
+                        />
+                      </td>
+                    </tr>
+                  )}
+                  {/* {openAccordion === index && (
+                    <tr>
+                      <td colSpan={visibleColumns.length + 1} className="p-0">
+                        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 dark:text-white">
+                          {accordionComponentName === "userAccordion" && (
+                            <UserAccordion
+                              userPersonalData={item}
+                              parentId={item.id}
+                              getData={getData}
+                              closeAccordion={closeAccordion}
+                              index={index}
+                            />
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )} */}
+                </React.Fragment>
+              ))
+            )}
           </tbody>
         </table>
       </div>
