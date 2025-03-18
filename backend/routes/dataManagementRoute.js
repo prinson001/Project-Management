@@ -54,6 +54,7 @@ const {
   getPortfolioWithAllRelatedData,
   getProgramWithAllRelatedData,
   getProjectWithAllRelatedData,
+  getUserRelatedEntities,
 } = require("../controllers/accordionDataController");
 
 router.post("/setting", getSetting);
@@ -95,5 +96,6 @@ router.post("/getInitiativeWithRelatedData", getInitiativeWithAllRelatedData);
 router.post("/getPortfolioWithRelatedData", getPortfolioWithAllRelatedData);
 router.post("/getProgramWithRelatedData", getProgramWithAllRelatedData);
 router.post("/getProjectWithRelatedData", getProgramWithAllRelatedData);
+router.post("/getUserRelatedEntities", getUserRelatedEntities);
 
 module.exports = router;

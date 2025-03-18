@@ -242,7 +242,7 @@ function PortfolioAccordion({ data, title }) {
                             <UpdateDynamicForm
                               isEmbedded={true}
                               title=""
-                              tableName="projects"
+                              tableName="project"
                               data={project}
                               viewData={true}
                               className="w-full"

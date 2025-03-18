@@ -280,9 +280,120 @@ const getProjectWithAllRelatedData = async (req, res) => {
   }
 };
 
+const getUserRelatedEntities = async (req, res) => {
+  const userId = req.user.id; // Assuming user ID is available in request
+
+  if (!userId) {
+    return res.status(400).json({
+      status: "failure",
+      message: "User ID is required",
+      result: null,
+    });
+  }
+
+  try {
+    // Step 1: Fetch directly managed portfolios, programs, and projects
+    const userPortfolios = await sql`
+        SELECT * FROM portfolio WHERE portfolio_manager_id = ${userId}`;
+    const userPrograms = await sql`
+        SELECT * FROM program WHERE program_manager_id = ${userId}`;
+    const userProjects = await sql`
+        SELECT * FROM project WHERE project_manager_id = ${userId}`;
+
+    // Initialize sets to collect unique IDs
+    const portfolioIds = new Set(userPortfolios.map((p) => p.id));
+    const programIds = new Set(userPrograms.map((p) => p.id));
+    const projectIds = new Set(userProjects.map((p) => p.id));
+
+    // Step 2: Process portfolios to get their programs and projects
+    if (userPortfolios.length > 0) {
+      const portfolioIdsArray = Array.from(portfolioIds);
+      // Get all programs under these portfolios
+      const programsUnderPortfolios = await sql`
+          SELECT * FROM program WHERE portfolio_id IN ${sql(
+            portfolioIdsArray
+          )}`;
+      programsUnderPortfolios.forEach((p) => programIds.add(p.id));
+
+      // Get all projects under these programs
+      const programIdsFromPortfolios = programsUnderPortfolios.map((p) => p.id);
+      if (programIdsFromPortfolios.length > 0) {
+        const projectsUnderPrograms = await sql`
+            SELECT * FROM project WHERE program_id IN ${sql(
+              programIdsFromPortfolios
+            )}`;
+        projectsUnderPrograms.forEach((p) => projectIds.add(p.id));
+      }
+    }
+
+    // Step 3: Process programs to get their projects and portfolios
+    if (userPrograms.length > 0 || programIds.size > 0) {
+      const programIdsArray = Array.from(programIds);
+      // Get portfolios for these programs
+      const programsData = await sql`
+          SELECT * FROM program WHERE id IN ${sql(programIdsArray)}`;
+      programsData.forEach((p) => portfolioIds.add(p.portfolio_id));
+
+      // Get projects for these programs
+      if (programIdsArray.length > 0) {
+        const projectsUnderPrograms = await sql`
+            SELECT * FROM project WHERE program_id IN ${sql(programIdsArray)}`;
+        projectsUnderPrograms.forEach((p) => projectIds.add(p.id));
+      }
+    }
+
+    // Step 4: Process projects to get their programs and portfolios
+    if (userProjects.length > 0) {
+      const projectProgramIds = userProjects.map((p) => p.program_id);
+      if (projectProgramIds.length > 0) {
+        const programsData = await sql`
+            SELECT * FROM program WHERE id IN ${sql(projectProgramIds)}`;
+        programsData.forEach((p) => {
+          programIds.add(p.id);
+          portfolioIds.add(p.portfolio_id);
+        });
+      }
+    }
+
+    // Fetch all entities using collected IDs
+    const portfolios =
+      portfolioIds.size > 0
+        ? await sql`SELECT * FROM portfolio WHERE id IN ${sql(
+            Array.from(portfolioIds)
+          )}`
+        : [];
+    const programs =
+      programIds.size > 0
+        ? await sql`SELECT * FROM program WHERE id IN ${sql(
+            Array.from(programIds)
+          )}`
+        : [];
+    const projects =
+      projectIds.size > 0
+        ? await sql`SELECT * FROM project WHERE id IN ${sql(
+            Array.from(projectIds)
+          )}`
+        : [];
+
+    res.status(200).json({
+      status: "success",
+      message: "All related entities retrieved successfully",
+      result: { portfolios, programs, projects },
+    });
+  } catch (e) {
+    console.error("Error fetching user related entities:", e);
+    res.status(500).json({
+      status: "failure",
+      message: "Internal server error",
+      result: e.message,
+    });
+  }
+};
+
 module.exports = {
   getInitiativeWithAllRelatedData,
   getPortfolioWithAllRelatedData,
   getProgramWithAllRelatedData,
   getProjectWithAllRelatedData,
+  getUserRelatedEntities,
 };
