@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import useAuthStore from "../store/authStore";
 import axios from "axios";
 import logo from "../assets/rakias-logo.png"; // Adjust the path to your logo image
+const PORT = import.meta.env.VITE_PORT;
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -15,7 +16,7 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post("http://localhost:4002/auth/login", {
+      const response = await axios.post(`http://localhost:${PORT}/auth/login`, {
         email,
         password,
       });

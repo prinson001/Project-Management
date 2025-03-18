@@ -67,6 +67,7 @@ const {
   getProgramWithAllRelatedData,
   getProjectWithAllRelatedData,
 } = require("../controllers/accordionDataController");
+const { addProjectDocument } = require("../controllers/documentController");
 
 router.post("/setting", getSetting);
 router.post("/data", getData);
@@ -120,5 +121,6 @@ router.post("/getVendors",getVendors);
 router.post("/addobjective",addObjective);
 router.post("/getObjectives",getObjectives);
 
+//router.post("/addProjectDocument",addProjectDocument);
 
 module.exports = router;
