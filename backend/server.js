@@ -17,6 +17,7 @@ app.use("/db", require("./routes/tempdbConfigRoute"));
 app.use("/data-management", require("./routes/dataManagementRoute"));
 app.use("/pm", require("./routes/pmRoute"));
 app.use("/tasks", require("./routes/tasksRoute"));
+app.use("/deputy", require("./routes/deputyRoute"));
 
 //Error handler middleware to handle and structure the errror
 app.use(errorHandler);
