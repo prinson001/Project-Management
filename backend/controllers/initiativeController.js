@@ -261,4 +261,35 @@ const deleteInitiative = async (req, res) => {
   }
 };
 
-module.exports = { addInitiative, updateInitiative, deleteInitiative };
+//  @Description get all initiatives
+//  @Route site.com/data-management/initiatives
+const getInitiatives = async (req, res) => {
+  try {
+    // Build the query to get all initiatives
+    const queryText = `
+      SELECT * FROM initiative
+      ORDER BY id DESC
+    `;
+
+    // Execute the query
+    const result = await sql.unsafe(queryText);
+
+    // Return success response with all initiatives
+    return res.status(200).json({
+      status: "success",
+      message: "Initiatives retrieved successfully",
+      result: result,
+    });
+  } catch (error) {
+    console.error("Error retrieving initiatives:", error);
+
+    // Handle other errors
+    return res.status(500).json({
+      status: "failure",
+      message: "Error retrieving initiatives",
+      result: error.message || error,
+    });
+  }
+};
+
+module.exports = { addInitiative, updateInitiative, deleteInitiative, getInitiatives };

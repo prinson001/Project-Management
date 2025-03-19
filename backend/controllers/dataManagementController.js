@@ -4,6 +4,10 @@ const sql = require("../database/db");
 //  @Route site.com/data-management//data
 const getData = async (req, res) => {
   let { tableName, userId, page = 1, limit = 4 } = req.body;
+  console.log("Table Name",tableName);
+  console.log("userId",userId);
+ 
+
   if (tableName == "document") {
     tableName = "document_template";
   }

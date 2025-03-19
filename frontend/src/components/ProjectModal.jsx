@@ -19,6 +19,14 @@ const ProjectModal = ({
   const [viewMode, setViewMode] = useState("weeks");
   const { users } = useAuthStore();
   // Initialize react-hook-form
+  const [scheduleTableData, setScheduleTableData] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [initiatives, setInitiatives] = useState([]);
+  const [portfolios, setPortfolios] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [vendors, setVendors] = useState([]);
+  const [objectives, setObjectives] = useState([]);
+
   const {
     register,
     handleSubmit,
@@ -40,12 +48,7 @@ const ProjectModal = ({
       project_manager_id: "",
       alternative_project_manager_id: "",
       vendor_id: "",
-      beneficiaryDepartments: [
-        { id: 1, name: "Beneficiary Department One", checked: true },
-        { id: 2, name: "Beneficiary Department Two", checked: true },
-        { id: 3, name: "Beneficiary Department Three", checked: true },
-        { id: 4, name: "Beneficiary Department four", checked: true },
-      ],
+      beneficiaryDepartments: [],
       objectives: [
         { id: 1, text: "Objective One", checked: true },
         { id: 2, text: "Objective Two", checked: true },
@@ -220,88 +223,240 @@ const ProjectModal = ({
     fetchPhaseDurations();
   }, []);
 
+  // fetch departments
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const response = await axios.post(
+          `http://localhost:${PORT}/data-management/getDepartments`,
+          {},
+          {
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        if (response.data && response.data.status === "success") {
+          // Transform the departments data to include a checked property
+          const departmentsWithChecked = response.data.result.map(dept => ({
+            id: dept.id,
+            name: dept.name,
+            arabic_name: dept.arabic_name,
+            checked: false
+          }));
+          setDepartments(departmentsWithChecked);
+          console.log("Departments");
+          console.log(departments);
+        }
+      } catch (error) {
+        console.error("Error fetching departments:", error);
+        toast.error("Failed to load departments");
+      }
+    };
+  
+    fetchDepartments();
+  }, []);
+
+  // Fetch initiatives
+  useEffect(() => {
+    const fetchInitiatives = async () => {
+      try {
+        const response = await axios.post(
+          `http://localhost:${PORT}/data-management/getInitiatives`
+        );
+        if (response.data && response.data.status === "success") {
+          setInitiatives(response.data.result);
+          console.log("Initiatives loaded:", response.data.result);
+        }
+      } catch (error) {
+        console.error("Error fetching initiatives:", error);
+        toast.error("Failed to load initiatives");
+      }
+    };
+  
+    fetchInitiatives();
+  }, []);
+
+  // Fetch portfolios
+  useEffect(() => {
+    const fetchPortfolios = async () => {
+      try {
+        const response = await axios.post(
+          `http://localhost:${PORT}/data-management/getPortfolios`
+        );
+        if (response.data && response.data.status === "success") {
+          setPortfolios(response.data.result);
+          console.log("Portfolios loaded:", response.data.result);
+        }
+      } catch (error) {
+        console.error("Error fetching portfolios:", error);
+        toast.error("Failed to load portfolios");
+      }
+    };
+  
+    fetchPortfolios();
+  }, []);
+
+  // Fetch programs
+  useEffect(() => {
+    const fetchPrograms = async () => {
+      try {
+        const response = await axios.post(
+          `http://localhost:${PORT}/data-management/getPrograms`,
+          {},
+          {
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        if (response.data && response.data.status === "success") {
+          setPrograms(response.data.result);
+          console.log("Programs loaded:", response.data.result);
+        }
+      } catch (error) {
+        console.error("Error fetching programs:", error);
+        toast.error("Failed to load programs");
+      }
+    };
+  
+    fetchPrograms();
+  }, []);
+
+  // Fetch vendors
+  useEffect(() => {
+    const fetchVendors = async () => {
+      try {
+        const response = await axios.post(
+          `http://localhost:${PORT}/data-management/getVendors`
+        );
+        if (response.data && response.data.status === "success") {
+          setVendors(response.data.result);
+          console.log("Vendors loaded:", response.data.result);
+        }
+      } catch (error) {
+        console.error("Error fetching vendors:", error);
+        toast.error("Failed to load vendors");
+      }
+    };
+  
+    fetchVendors();
+  }, []);
+
+  // Fetch objectives
+  useEffect(() => {
+    const fetchObjectives = async () => {
+      try {
+        const response = await axios.post(
+          `http://localhost:${PORT}/data-management/getObjectives`
+        );
+        if (response.data && response.data.status === "success") {
+          // Transform the objectives data to include a checked property
+          const objectivesWithChecked = response.data.result.map(obj => ({
+            id: obj.id,
+            text: obj.name,
+            arabic_text: obj.arabic_name,
+            checked: false
+          }));
+          setObjectives(objectivesWithChecked);
+          // Update the form's objectives state
+          setValue("objectives", objectivesWithChecked);
+          console.log("Objectives loaded:", objectivesWithChecked);
+        }
+      } catch (error) {
+        console.error("Error fetching objectives:", error);
+        toast.error("Failed to load objectives");
+      }
+    };
+  
+    fetchObjectives();
+  }, [setValue]);
+
+const handleScheduleChange = (data) => {
+  setScheduleTableData(data);
+};
+
   // Handle form submission
   const onSubmit = async (data) => {
     console.log("Form submitted:", data);
-
+  
     try {
+      // Get selected department IDs
+      const selectedDepartmentIds = getSelectedDepartmentIds();
+      
+      // Get selected objective IDs
+      const selectedObjectiveIds = objectives
+        .filter(obj => obj.checked)
+        .map(obj => obj.id);
+      
       // Prepare data for submission
-      // Convert project manager IDs to integers if they exist
-      if (data.project_manager_id) {
-        data.project_manager_id = parseInt(data.project_manager_id, 10);
-      }
-
-      if (data.alternative_project_manager_id) {
-        data.alternative_project_manager_id = parseInt(
-          data.alternative_project_manager_id,
-          10
-        );
-      }
-
-      // Format beneficiary departments and objectives
-      const selectedDepartments = data.beneficiaryDepartments
-        .filter((dept) => dept.checked)
-        .map((dept) => dept.id);
-
-      const selectedObjectives = data.objectives
-        .filter((obj) => obj.checked)
-        .map((obj) => obj.id);
-
-      // Create the payload
       const projectData = {
         name: data.name,
         arabic_name: data.arabic_name,
-        description: data.description,
-        project_type_id: data.project_type_id,
-        current_phase_id: data.current_phase_id,
-        initiative_id: data.initiative_id || null,
-        portfolio_id: data.portfolio_id || null,
-        program_id: data.program_id || null,
-        category: data.category,
-        project_manager_id: data.project_manager_id,
-        alternative_project_manager_id:
-          data.alternative_project_manager_id || null,
-        vendor_id: data.vendor_id || null,
-        beneficiary_departments: selectedDepartments,
-        objectives: selectedObjectives,
-        planned_budget: data.planned_budget || null,
-        approved_budget: data.approved_budget || null,
+        description: data.projectDescription,
+        project_type_id: parseInt(data.projectType) || null,
+        current_phase_id: parseInt(data.currentPhase) || null,
+        initiative_id: parseInt(data.initiativeName) || null,
+        portfolio_id: parseInt(data.portfolioName) || null,
+        program_id: parseInt(data.programName) || null,
+        category: data.projectCategory,
+        project_manager_id: parseInt(data.projectManager) || null,
+        alternative_project_manager_id: parseInt(data.alternativeProjectManager) || null,
+        vendor_id: parseInt(data.vendorName) || null,
+        beneficiary_departments: selectedDepartmentIds,
+        objectives: selectedObjectiveIds,
+        project_budget: data.plannedBudget ? parseFloat(data.plannedBudget) : null,
+        approved_project_budget: data.approvedBudget ? parseFloat(data.approvedBudget) : null,
         execution_start_date: data.execution_start_date?.startDate || null,
         execution_duration: data.execution_duration,
         maintenance_duration: data.maintenance_duration?.startDate || null,
       };
-
-      // Make API call
-      const result = await axios.post(
+  
+      // Step 1: Save the project
+      const projectResponse = await axios.post(
         `http://localhost:${PORT}/data-management/addProject`,
         {
           data: projectData,
-          userId: 1,
+          userId: 1, // Replace with actual user ID
         },
         {
-          timeout: 10000, // 10 seconds timeout
+          timeout: 10000,
           headers: {
             "Content-Type": "application/json",
           },
         }
       );
-
-      // Check response
-      if (result.data && result.data.status === "success") {
-        // Show success notification
-        toast.success("Project added successfully!");
-
-        // Close the modal
-        if (onClose) onClose();
+  
+      if (projectResponse.data && projectResponse.data.status === "success") {
+        const projectId = projectResponse.data.result.id; // Get the projectId from the response
+  
+        // Step 2: Save the schedule plan
+        const schedulePlanResponse = await axios.post(
+          `http://localhost:${PORT}/data-management/upsertSchedulePlan`,
+          {
+            projectId,
+            schedule: scheduleTableData, // Pass the schedule data from SchedulePlanSection
+          }
+        );
+  
+        if (
+          schedulePlanResponse.data &&
+          schedulePlanResponse.data.status === "success"
+        ) {
+          toast.success("Project and schedule plan saved successfully!");
+          if (onClose) onClose(); // Close the modal
+        } else {
+          throw new Error(
+            schedulePlanResponse.data?.message || "Failed to save schedule plan"
+          );
+        }
       } else {
-        throw new Error(result.data?.message || "Failed to add project");
+        throw new Error(projectResponse.data?.message || "Failed to add project");
       }
     } catch (error) {
       console.error("Project submission error:", error);
       const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to add project";
+        error.response?.data?.message || error.message || "Failed to add project";
       toast.error(errorMessage);
     }
   };
@@ -349,6 +504,22 @@ const ProjectModal = ({
       obj.id === objectiveId ? { ...obj, checked: !obj.checked } : obj
     );
     setValue("objectives", updatedObjectives);
+  };
+
+  // Function to handle department selection
+  const handleDepartmentChange = (deptId) => {
+    setDepartments(prevDepartments => 
+      prevDepartments.map(dept => 
+        dept.id === deptId ? { ...dept, checked: !dept.checked } : dept
+      )
+    );
+  };
+
+  // Function to get selected department IDs for submission
+  const getSelectedDepartmentIds = () => {
+    return departments
+      .filter(dept => dept.checked)
+      .map(dept => dept.id);
   };
 
   return (
@@ -530,6 +701,11 @@ const ProjectModal = ({
                           {...field}
                         >
                           <option value="">Select Initiative</option>
+                          {initiatives.map((initiative) => (
+                            <option key={initiative.id} value={initiative.id}>
+                              {initiative.name}
+                            </option>
+                          ))}
                         </select>
                       )}
                     />
@@ -552,6 +728,11 @@ const ProjectModal = ({
                           {...field}
                         >
                           <option value="">Select Portfolio</option>
+                          {portfolios.map((portfolio) => (
+                            <option key={portfolio.id} value={portfolio.id}>
+                              {portfolio.name} {portfolio.portfolio_manager ? `(${portfolio.first_name} ${portfolio.family_name})` : ''}
+                            </option>
+                          ))}
                         </select>
                       )}
                     />
@@ -576,6 +757,16 @@ const ProjectModal = ({
                           {...field}
                         >
                           <option value="">Select Program</option>
+                          {programs.map((program) => (
+                            <option key={program.id} value={program.id}>
+                              {program.name} 
+                              {program.initiative_id ? 
+                                initiatives.find(i => i.id === program.initiative_id) ? 
+                                  ` (${initiatives.find(i => i.id === program.initiative_id).name})` : 
+                                  ` (Initiative ID: ${program.initiative_id})` 
+                                : ''}
+                            </option>
+                          ))}
                         </select>
                       )}
                     />
@@ -687,19 +878,37 @@ const ProjectModal = ({
                   Beneficiary Department <span className="text-red-500">*</span>
                 </label>
                 <div className="border border-gray-300 rounded p-2">
-                  {watch("beneficiaryDepartments").map((dept) => (
-                    <div key={dept.id} className="flex items-center mb-1">
-                      <input
-                        readOnly={readOnly}
-                        type="checkbox"
-                        id={`dept-${dept.id}`}
-                        checked={dept.checked}
-                        onChange={() => toggleBeneficiaryDepartment(dept.id)}
-                        className="mr-2"
-                      />
-                      <label htmlFor={`dept-${dept.id}`}>{dept.name}</label>
+                  {/* Beneficiary Departments */}
+                  <div className="mb-4">
+                    <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">
+                      Beneficiary Departments
+                    </label>
+                    <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto p-2 border rounded">
+                      {departments.length > 0 ? (
+                        departments.map((dept) => (
+                          <div key={dept.id} className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id={`dept-${dept.id}`}
+                              checked={dept.checked}
+                              onChange={() => handleDepartmentChange(dept.id)}
+                              className="mr-2"
+                            />
+                            <label
+                              htmlFor={`dept-${dept.id}`}
+                              className="text-sm text-gray-700 dark:text-gray-300"
+                            >
+                              {dept.name} {dept.arabic_name ? `(${dept.arabic_name})` : ''}
+                            </label>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center text-gray-500">
+                          No departments available. Please add departments first.
+                        </div>
+                      )}
                     </div>
-                  ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -748,6 +957,11 @@ const ProjectModal = ({
                           {...field}
                         >
                           <option value="">Select Vendor</option>
+                          {vendors.map((vendor) => (
+                            <option key={vendor.id} value={vendor.id}>
+                              {vendor.name} {vendor.arabic_name ? `(${vendor.arabic_name})` : ''}
+                            </option>
+                          ))}
                         </select>
                       )}
                     />
@@ -767,22 +981,28 @@ const ProjectModal = ({
                 <label className="block text-sm font-semibold mb-1">
                   Objectives
                 </label>
-                <div className="border border-gray-300 rounded p-2">
-                  {watch("objectives").map((objective) => (
-                    <div key={objective.id} className="flex items-center mb-1">
-                      <input
-                        readOnly={readOnly}
-                        type="checkbox"
-                        id={`obj-${objective.id}`}
-                        checked={objective.checked}
-                        onChange={() => toggleObjective(objective.id)}
-                        className="mr-2"
-                      />
-                      <label htmlFor={`obj-${objective.id}`}>
-                        {objective.text}
-                      </label>
+                <div className="border border-gray-300 rounded p-2 max-h-40 overflow-y-auto">
+                  {objectives.length > 0 ? (
+                    objectives.map((objective) => (
+                      <div key={objective.id} className="flex items-center mb-1">
+                        <input
+                          readOnly={readOnly}
+                          type="checkbox"
+                          id={`obj-${objective.id}`}
+                          checked={objective.checked}
+                          onChange={() => toggleObjective(objective.id)}
+                          className="mr-2"
+                        />
+                        <label htmlFor={`obj-${objective.id}`}>
+                          {objective.text} {objective.arabic_text ? `(${objective.arabic_text})` : ''}
+                        </label>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center text-gray-500">
+                      No objectives available. Please add objectives first.
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
               {shouldShowSection("budget") && (
@@ -935,7 +1155,8 @@ const ProjectModal = ({
                         </div>
                     )} */}
 
-          {shouldShowSection("schedule") && <SchedulePlanSection />}
+          {shouldShowSection("schedule") &&   <SchedulePlanSection onScheduleChange={handleScheduleChange} />
+        }
           {/* Internal Project Schedule Plan */}
           {shouldShowSection("internalSchedule") && (
             <div className="mb-6 border-t pt-4">

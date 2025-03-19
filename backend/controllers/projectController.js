@@ -7,6 +7,8 @@ const {
 //  @Route site.com/data-management/addproject
 const addProject = async (req, res) => {
   // Check if data exists in the request body
+
+  console.log("Project Body",req.body);
   if (!req.body || !req.body.data || typeof req.body.data !== "object") {
     return res.status(400).json({
       status: "failure",
@@ -28,10 +30,24 @@ const addProject = async (req, res) => {
   }
 
   try {
-    // Extract column names and values from the data object
-    const columns = Object.keys(data);
-    const values = Object.values(data);
-    console.log("Column Names: ", columns);
+    // Extract beneficiary_departments from data and remove it from the main data object
+    const { beneficiary_departments, objectives, ...projectData } = data;
+    
+    // Map budget fields to correct column names
+    if (projectData.planned_budget) {
+      projectData.project_budget = projectData.planned_budget;
+      delete projectData.planned_budget;
+    }
+    
+    if (projectData.approved_budget) {
+      projectData.approved_project_budget = projectData.approved_budget;
+      delete projectData.approved_budget;
+    }
+
+    // Extract column names and values from the projectData object
+    const columns = Object.keys(projectData);
+    const values = Object.values(projectData);
+
     // Validate column names to prevent SQL injection
     for (const column of columns) {
       if (!/^[a-zA-Z0-9_]+$/.test(column)) {
@@ -43,23 +59,61 @@ const addProject = async (req, res) => {
       }
     }
 
-    // Build parameterized query
+    // Build parameterized query for inserting the project
     const placeholders = columns.map((_, index) => `$${index + 1}`);
 
     const queryText = `
-        INSERT INTO project (${columns.map((col) => `"${col}"`).join(", ")})
-        VALUES (${placeholders.join(", ")})
-        RETURNING *
-      `;
+      INSERT INTO project (${columns.map((col) => `"${col}"`).join(", ")})
+      VALUES (${placeholders.join(", ")})
+      RETURNING *;
+    `;
 
-    // Execute the query
+    // Execute the query to insert the project
     const result = await sql.unsafe(queryText, values);
+    const projectId = result[0].id; // Get the newly created project ID
+
+    // Insert beneficiary departments into the project_department table
+    if (beneficiary_departments && beneficiary_departments.length > 0) {
+      console.log("Inserting beneficiary departments:", beneficiary_departments);
+      
+      const departmentInsertQueries = beneficiary_departments.map((departmentId) => {
+        return sql`
+          INSERT INTO project_department (project_id, department_id)
+          VALUES (${projectId}, ${departmentId});
+        `;
+      });
+
+      await Promise.all(departmentInsertQueries);
+    }
+
+    // Insert project objectives
+    if (objectives && Array.isArray(objectives) && objectives.length > 0) {
+      console.log("Inserting project objectives:", objectives);
+      
+      try {
+        // Build the query to insert project objectives
+        const objectiveValues = objectives.map(objectiveId => {
+          return `(${projectId}, ${objectiveId})`;
+        }).join(', ');
+        
+        const objectiveQuery = `
+          INSERT INTO project_objective (project_id, objective_id)
+          VALUES ${objectiveValues}
+        `;
+        
+        await sql.unsafe(objectiveQuery);
+        console.log("Project objectives inserted successfully");
+      } catch (error) {
+        console.error("Error inserting project objectives:", error);
+        // Continue execution even if objectives insertion fails
+      }
+    }
 
     // Return success response with the newly created project
     return res.status(201).json({
       status: "success",
-      message: "Project added successfully",
-      result: result[0] || result,
+      message: "Project and beneficiary departments added successfully",
+      result: result[0],
     });
   } catch (error) {
     console.error("Error adding project:", error);
@@ -111,6 +165,12 @@ const updateProject = async (req, res) => {
   }
 
   const { id, data } = req.body;
+  const beneficiaryDepartments = data.beneficiary_departments;
+  
+  // Remove beneficiary_departments from data to avoid SQL errors
+  if (data.beneficiary_departments) {
+    delete data.beneficiary_departments;
+  }
 
   // Make sure we have at least some data to update
   if (Object.keys(data).length === 0) {
@@ -188,6 +248,32 @@ const updateProject = async (req, res) => {
       }
     } catch (e) {
       console.log("there was an error in creation of tasks object ", e);
+    }
+
+    // Update beneficiary departments if provided
+    if (beneficiaryDepartments && Array.isArray(beneficiaryDepartments)) {
+      try {
+        // First, delete existing relationships
+        await sql`
+          DELETE FROM project_department
+          WHERE project_id = ${id}
+        `;
+        
+        // Then insert new relationships
+        if (beneficiaryDepartments.length > 0) {
+          const departmentInsertQueries = beneficiaryDepartments.map((departmentId) => {
+            return sql`
+              INSERT INTO project_department (project_id, department_id)
+              VALUES (${id}, ${departmentId});
+            `;
+          });
+          
+          await Promise.all(departmentInsertQueries);
+        }
+      } catch (error) {
+        console.error("Error updating beneficiary departments:", error);
+        // Continue with the response even if department updates fail
+      }
     }
 
     // Return success response with the updated project
@@ -324,29 +410,42 @@ const getProjectById = async (req, res) => {
       });
     }
 
-    // Build the query with parameterized id
-    const queryText = `
+    // Build the query with parameterized id to get project details
+    const projectQuery = `
         SELECT * FROM project
         WHERE id = $1
-      `;
+    `;
+    
+    // Query to get associated departments
+    const departmentsQuery = `
+        SELECT d.id, d.name, d.arabic_name
+        FROM department d
+        JOIN project_department pd ON d.id = pd.department_id
+        WHERE pd.project_id = $1
+    `;
 
     // Execute the query
-    const result = await sql.unsafe(queryText, [id]);
+    const projectResult = await sql.unsafe(projectQuery, [id]);
+    const departmentsResult = await sql.unsafe(departmentsQuery, [id]);
 
     // Check if any row was found
-    if (!result || result.length === 0) {
+    if (!projectResult || projectResult.length === 0) {
       return res.status(404).json({
         status: "failure",
         message: `Project with id ${id} not found`,
         result: null,
       });
     }
+    
+    // Combine project data with departments
+    const projectData = projectResult[0];
+    projectData.beneficiary_departments = departmentsResult;
 
     // Return success response with project data
     return res.status(200).json({
       status: "success",
       message: "Project retrieved successfully",
-      result: result[0],
+      result: projectData,
     });
   } catch (error) {
     console.error("Error retrieving project:", error);
@@ -421,6 +520,7 @@ const upsertSchedulePlan = async (req, res) => {
             subPhase = ${plan.subPhase},
             phaseId = ${plan.phaseId},
             duration = ${plan.duration},
+            durationType = ${plan.durationType || null}, -- Add durationType
             startDate = ${plan.startDate || null},
             endDate = ${plan.endDate || null}
           WHERE project_id = ${projectId} AND phaseId = ${plan.phaseId}
@@ -439,13 +539,23 @@ const upsertSchedulePlan = async (req, res) => {
       // Insert new schedule plan
       const insertQueries = schedule.map((plan) => {
         return sql`
-          INSERT INTO schedule_plan (project_id, mainPhase, subPhase, phaseId, duration, startDate, endDate)
+          INSERT INTO schedule_plan (
+            project_id,
+            mainPhase,
+            subPhase,
+            phaseId,
+            duration,
+            durationType, -- Add durationType
+            startDate,
+            endDate
+          )
           VALUES (
             ${projectId},
             ${plan.mainPhase},
             ${plan.subPhase},
             ${plan.phaseId},
             ${plan.duration},
+            ${plan.durationType || null}, -- Add durationType
             ${plan.startDate || null},
             ${plan.endDate || null}
           )

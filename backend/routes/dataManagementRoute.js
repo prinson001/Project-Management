@@ -16,23 +16,27 @@ const {
   addInitiative,
   updateInitiative,
   deleteInitiative,
+  getInitiatives,
 } = require("../controllers/initiativeController");
 
 const {
   addPortfolio,
   updatePortfolio,
   deletePortfolio,
+  getPortfolios
 } = require("../controllers/portfolioController");
 
 const {
   addProgram,
   updateProgram,
   deleteProgram,
+  getPrograms,
 } = require("../controllers/programController");
 
 const {
   createDocumentTemplate,
   getCurrentPhaseDocuments,
+  getProjectPhaseDocuments,
 } = require("../controllers/documentTemplateController");
 
 const {
@@ -45,9 +49,17 @@ const {
 } = require("../controllers/projectController");
 
 const {
+  addDepartment,
+
+  getDepartments,
+} = require("../controllers/departmentController");
+
+const {
   getPhaseDurations,
   getPhaseDurationsByBudget,
 } = require("../database/dbConfig");
+const { addVendor, getVendors } = require("../controllers/vendorController");
+const { addObjective, getObjectives } = require("../controllers/objectiveController");
 
 const {
   getInitiativeWithAllRelatedData,
@@ -64,14 +76,17 @@ router.post("/filtereddata", getFilteredData);
 router.post("/addInitiative", addInitiative);
 router.post("/updateInitiative", updateInitiative);
 router.post("/deleteInitiative", deleteInitiative);
+router.post("/getInitiatives",getInitiatives)
 
 router.post("/addPortfolio", addPortfolio);
 router.post("/updatePortfolio", updatePortfolio);
 router.post("/deletePortfolio", deletePortfolio);
+router.post("/getPortfolios",getPortfolios);
 
-router.post("/addProgram", addProgram);
+router.post("/addprogram", addProgram);
 router.post("/updateProgram", updateProgram);
 router.post("/deleteProgram", deleteProgram);
+router.post("/getPrograms",getPrograms);
 
 router.post(
   "/addDocumentTemplate",
@@ -97,5 +112,15 @@ router.post("/getPortfolioWithRelatedData", getPortfolioWithAllRelatedData);
 router.post("/getProgramWithRelatedData", getProgramWithAllRelatedData);
 router.post("/getProjectWithRelatedData", getProgramWithAllRelatedData);
 router.post("/getUserRelatedEntities", getUserRelatedEntities);
+
+router.post("/adddepartment", addDepartment);
+router.post("/getDepartments", getDepartments);
+
+router.post("/addvendor",addVendor);
+router.post("/getVendors",getVendors);
+
+router.post("/addobjective",addObjective);
+router.post("/getObjectives",getObjectives);
+
 
 module.exports = router;

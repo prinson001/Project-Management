@@ -4,15 +4,48 @@ const sql = require("../database/db");
 //  @Route site.com/data-management/addprogram
 const addProgram = async (req, res) => {
   // Check if data exists in the request body
-  if (!req.body || !req.body.data || typeof req.body.data !== "object") {
-    return res.status(400).json({
-      status: "failure",
-      message: "Data missing or invalid format",
-      result: null,
-    });
-  }
 
-  const { data } = req.body;
+  console.log('program body',req.body);
+  // Create a data object from the request body
+  // The form is sending fields directly in the body, not nested under a data property
+  const data = { ...req.body };
+  
+  // Remove userId from data as it's not a column in the program table
+  if (data.userId) {
+    delete data.userId;
+  }
+  
+  // Map form field names to database column names
+  if (data.programEnglish) {
+    data.name = data.programEnglish;
+    delete data.programEnglish;
+  }
+  
+  if (data.programArabic) {
+    data.arabic_name = data.programArabic;
+    delete data.programArabic;
+  }
+  
+  if (data.programManager) {
+    data.program_manager = parseInt(data.programManager, 10);
+    delete data.programManager;
+  }
+  
+  if (data.portfolio_id) {
+    data.portfolio_id = parseInt(data.portfolio_id, 10);
+  }
+  
+  if (data.descriptionEnglish) {
+    data.description = data.descriptionEnglish;
+    delete data.descriptionEnglish;
+  }
+  
+  if (data.descriptionArabic) {
+    data.arabic_description = data.descriptionArabic;
+    delete data.descriptionArabic;
+  }
+  
+  console.log('Processed data:', data);
 
   // Make sure we have at least some data to insert
   if (Object.keys(data).length === 0) {
@@ -281,4 +314,38 @@ const deleteProgram = async (req, res) => {
   }
 };
 
-module.exports = { addProgram, updateProgram, deleteProgram };
+//  @Description get all programs
+//  @Route site.com/data-management/programs
+const getPrograms = async (req, res) => {
+  try {
+    // Build the query to get all programs
+    const queryText = `
+      SELECT p.*, u.first_name, u.family_name, pf.name as portfolio_name
+      FROM program p
+      LEFT JOIN users u ON p.program_manager = u.id
+      LEFT JOIN portfolio pf ON p.portfolio_id = pf.id
+      ORDER BY p.id DESC
+    `;
+
+    // Execute the query
+    const result = await sql.unsafe(queryText);
+
+    // Return success response with all programs
+    return res.status(200).json({
+      status: "success",
+      message: "Programs retrieved successfully",
+      result: result,
+    });
+  } catch (error) {
+    console.error("Error retrieving programs:", error);
+
+    // Handle other errors
+    return res.status(500).json({
+      status: "failure",
+      message: "Error retrieving programs",
+      result: error.message || error,
+    });
+  }
+};
+
+module.exports = { addProgram, updateProgram, deleteProgram, getPrograms };

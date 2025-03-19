@@ -281,4 +281,37 @@ const deletePortfolio = async (req, res) => {
   }
 };
 
-module.exports = { addPortfolio, updatePortfolio, deletePortfolio };
+//  @Description get all portfolios
+//  @Route site.com/data-management/portfolios
+const getPortfolios = async (req, res) => {
+  try {
+    // Build the query to get all portfolios
+    const queryText = `
+      SELECT p.*, u.first_name, u.family_name 
+      FROM portfolio p
+      LEFT JOIN users u ON p.portfolio_manager = u.id
+      ORDER BY p.id DESC
+    `;
+
+    // Execute the query
+    const result = await sql.unsafe(queryText);
+
+    // Return success response with all portfolios
+    return res.status(200).json({
+      status: "success",
+      message: "Portfolios retrieved successfully",
+      result: result,
+    });
+  } catch (error) {
+    console.error("Error retrieving portfolios:", error);
+
+    // Handle other errors
+    return res.status(500).json({
+      status: "failure",
+      message: "Error retrieving portfolios",
+      result: error.message || error,
+    });
+  }
+};
+
+module.exports = { addPortfolio, updatePortfolio, deletePortfolio, getPortfolios };
