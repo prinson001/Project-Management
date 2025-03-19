@@ -475,7 +475,7 @@ const TableData = ({
                       <td colSpan={visibleColumns.length + 1} className="p-0">
                         {" "}
                         {/* Add table cell */}
-                        <TeamAccordion datas={item} />
+                        <TeamAccordion data={item} />
                       </td>
                     </tr>
                   )}

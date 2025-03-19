@@ -10,7 +10,6 @@ import TableConfig from "../components/TableConfig";
 import TableConfigFilter from "../components/TableConfigFilter";
 const PORT = import.meta.env.VITE_PORT;
 
-
 let tablefilters = {};
 let sortClause = {};
 let dateFilter = null;
@@ -46,7 +45,7 @@ const TasksPage = ({
           `http://localhost:${PORT}/data-management/data`,
           {
             tableName,
-            userId: 1,
+            userId: 7,
             limit: 7,
           }
         );
@@ -69,7 +68,7 @@ const TasksPage = ({
           `http://localhost:${PORT}/data-management/setting`,
           {
             tableName,
-            userId: 1,
+            userId: 7,
           }
         );
         console.log(result.data.result[0].setting.setting);
@@ -206,6 +205,7 @@ const TasksPage = ({
           columnSetting={columnSetting}
           filterTableBasedonSearchTerm={filterTableBasedonSearchTerm}
           setColumnSetting={setColumnSetting}
+          tableName={tableName}
         ></TableConfigFilter>
       )}
       {showTableData && (

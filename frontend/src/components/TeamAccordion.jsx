@@ -45,7 +45,7 @@ function TeamAccordion({ datas }) {
       style={{
         display: "flex",
         gap: "16px",
-        height: "500px",
+        height: "300px",
         padding: "16px",
         backgroundColor: "#f5f5f5",
       }}
