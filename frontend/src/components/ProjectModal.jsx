@@ -26,6 +26,8 @@ const ProjectModal = ({
   const [programs, setPrograms] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [objectives, setObjectives] = useState([]);
+  const [documents, setDocuments] = useState([]);
+  const [localFiles, setLocalFiles] = useState([]);
 
   const {
     register,
@@ -408,8 +410,8 @@ const handleScheduleChange = (data) => {
         project_budget: data.plannedBudget ? parseFloat(data.plannedBudget) : null,
         approved_project_budget: data.approvedBudget ? parseFloat(data.approvedBudget) : null,
         execution_start_date: data.execution_start_date?.startDate || null,
-        execution_duration: data.execution_duration,
-        maintenance_duration: data.maintenance_duration?.startDate || null,
+        execution_duration: data.execution_duration ? `${data.execution_duration} days` : null,
+        maintenance_duration: data.maintenance_duration ? `30 days` : null,
       };
   
       // Step 1: Save the project
@@ -430,7 +432,10 @@ const handleScheduleChange = (data) => {
       if (projectResponse.data && projectResponse.data.status === "success") {
         const projectId = projectResponse.data.result.id; // Get the projectId from the response
   
-        // Step 2: Save the schedule plan
+        // Step 2: Upload documents
+        await uploadDocuments(projectId, localFiles); // Use localFiles defined in ProjectModal
+  
+        // Step 3: Save the schedule plan
         const schedulePlanResponse = await axios.post(
           `http://localhost:${PORT}/data-management/upsertSchedulePlan`,
           {
@@ -499,11 +504,11 @@ const handleScheduleChange = (data) => {
 
   // Toggle objective
   const toggleObjective = (objectiveId) => {
-    const currentObjectives = watch("objectives");
-    const updatedObjectives = currentObjectives.map((obj) =>
-      obj.id === objectiveId ? { ...obj, checked: !obj.checked } : obj
+    setObjectives(prevObjectives => 
+      prevObjectives.map(obj => 
+        obj.id === objectiveId ? { ...obj, checked: !obj.checked } : obj
+      )
     );
-    setValue("objectives", updatedObjectives);
   };
 
   // Function to handle department selection
@@ -520,6 +525,43 @@ const handleScheduleChange = (data) => {
     return departments
       .filter(dept => dept.checked)
       .map(dept => dept.id);
+  };
+
+  const uploadDocuments = async (projectId, localFiles) => {
+    console.log("Uploading documents for project ID:", projectId);
+    
+    if (localFiles.length === 0) {
+      console.warn("No files to upload.");
+      return; // Exit if there are no files to upload
+    }
+
+    // Get the current phase value from the form
+    const currentPhase = watch("currentPhase"); // Assuming you are using react-hook-form
+
+    for (const { index, file } of localFiles) {
+      if (!file) {
+        console.error(`File at index ${index} is undefined.`);
+        continue; // Skip this iteration if the file is not found
+      }
+
+      const formData = new FormData();
+      formData.append('file', file); // Ensure this line is correct
+      formData.append('project_id', projectId);
+      formData.append('template_id', documents[index].id); // Ensure template_id is set
+      formData.append('phase', currentPhase); // Add the current phase to FormData
+
+      console.log("FormData before upload:", formData); // Debugging line
+
+      const uploadResponse = await axios.post(`http://localhost:${PORT}/data-management/addProjectDocument`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (uploadResponse.data && uploadResponse.data.status !== "success") {
+        throw new Error(`Failed to upload document: ${uploadResponse.data.message}`);
+      }
+    }
   };
 
   return (
@@ -1290,7 +1332,13 @@ const handleScheduleChange = (data) => {
           )}
           {/* Documents Section - Replaced with ProjectDocumentSection component */}
           <div className="mb-6 border-t pt-4">
-            <ProjectDocumentSection formMethods={{ setValue, watch }} />
+            <ProjectDocumentSection
+              formMethods={{ setValue, watch }}
+              documents={documents}
+              setDocuments={setDocuments}
+              localFiles={localFiles}
+              setLocalFiles={setLocalFiles}
+            />
           </div>
           {/* Form Footer */}
           {showButtons && (

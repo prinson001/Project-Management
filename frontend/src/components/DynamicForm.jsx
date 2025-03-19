@@ -38,7 +38,7 @@ const DynamicForm = ({ title, fields, onSubmit, isEmbedded = false }) => {
               {type === "select" ? (
                 <select
                   {...register(name, { required })}
-                  className="mt-1 w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500"
+                  className="mt-1 w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 >
                   <option value="">Select</option>
                   {options && options.map((option, i) => (
@@ -50,14 +50,14 @@ const DynamicForm = ({ title, fields, onSubmit, isEmbedded = false }) => {
               ) : type === "textarea" ? (
                 <textarea
                   {...register(name, { required })}
-                  className="mt-1 w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500"
+                  className="mt-1 w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   rows={4}
                 />
               ) : (
                 <input
                   type={type}
                   {...register(name, { required })}
-                  className="mt-1 w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500"
+                  className="mt-1 w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 />
               )}
               {errors[name] && (
@@ -93,15 +93,15 @@ const DynamicForm = ({ title, fields, onSubmit, isEmbedded = false }) => {
 
       {/* Modal Overlay */}
       {isModalOpen && (
-        <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 z-50">
+        <div className="fixed inset-0 flex justify-center items-center z-50 bg-green-800">
           {/* Modal Content */}
-          <div className="max-w-3xl bg-white p-6 rounded-lg shadow-lg w-full mx-4">
+          <div className="max-w-3xl bg-white dark:bg-black p-6 rounded-lg shadow-lg w-full mx-4">
             {/* Modal Header */}
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">{title}</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{title}</h2>
               <button
                 onClick={closeModal}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -122,7 +122,7 @@ const DynamicForm = ({ title, fields, onSubmit, isEmbedded = false }) => {
 
             {/* Form */}
             <form
-              onSubmit={handleSubmit(onSubmit)}
+              onSubmit={handleSubmit(handleFormSubmit)}
               className="grid grid-cols-2 gap-4"
             >
               {fields.map(
@@ -131,11 +131,11 @@ const DynamicForm = ({ title, fields, onSubmit, isEmbedded = false }) => {
                   index
                 ) => (
                   <div key={index} className={`w-full ${className || ""}`}>
-                    <label className="block text-sm font-medium">{label}</label>
+                    <label className="block text-sm font-medium text-gray-900 dark:text-white">{label}</label>
                     {type === "select" ? (
                       <select
                         {...register(name, { required })}
-                        className="mt-1 w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500"
+                        className="mt-1 w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                       >
                         <option value="">Select</option>
                         {options.map((option, i) => (
@@ -148,7 +148,7 @@ const DynamicForm = ({ title, fields, onSubmit, isEmbedded = false }) => {
                       <input
                         type={type}
                         {...register(name, { required })}
-                        className="mt-1 w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500"
+                        className="mt-1 w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                       />
                     )}
                     {errors[name] && (
