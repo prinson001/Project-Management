@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axiosInstance from "../axiosInstance";
 import UpdateDynamicForm from "./UpdateDynamicForm";
 import {
   ChevronDown,
@@ -30,7 +30,7 @@ function InitiativeAccordion({ data, title }) {
     setError(null);
 
     try {
-      const result = await axios.post(
+      const result = await axiosInstance.post(
         "http://localhost:4001/data-management/getInitiativeWithRelatedData",
         {
           initiativeId: data.id,

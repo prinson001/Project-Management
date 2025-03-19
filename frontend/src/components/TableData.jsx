@@ -6,6 +6,7 @@ import {
   ChevronDown,
   Stethoscope,
   ChevronsUpDown,
+  ExternalLink,
 } from "lucide-react";
 import UserAccordion from "./UserAccordion";
 import BoqTaskAccordion from "../components/BoqTaskAccordion";
@@ -17,7 +18,7 @@ import InitiativeAccordion from "./initiativeAccordion";
 import PortfolioAccordion from "./portfolioAccordion";
 import ProgramAccordion from "./programAccordion";
 import TeamAccordion from "./TeamAccordion";
-import axios from "axios";
+import axiosInstance from "../axiosInstance";
 import Loader from "./Loader";
 const PORT = import.meta.env.VITE_PORT;
 
@@ -80,8 +81,8 @@ const TableData = ({
     const { id, ...updatedData } = formData;
     toggleForm(-1);
     try {
-      const result = await axios.post(
-        `http://localhost:${PORT}/data-management/update${tableName}`,
+      const result = await axiosInstance.post(
+        `/data-management/update${tableName}`,
         {
           id,
           data: updatedData,
@@ -106,8 +107,8 @@ const TableData = ({
   const handleDeleteClick = async (id) => {
     console.log("the delete clicked id", id);
     try {
-      const result = await axios.post(
-        `http://localhost:${PORT}/data-management/delete${tableName}`,
+      const result = await axiosInstance.post(
+        `/data-management/delete${tableName}`,
         { id }
       );
       console.log(result);
@@ -176,12 +177,9 @@ const TableData = ({
     e.preventDefault();
     console.log(changedinput);
     try {
-      const result = await axios.post(
-        `http://localhost:${PORT}/admin/updateactivityduration`,
-        {
-          data: changedinput,
-        }
-      );
+      const result = await axiosInstance.post(`/admin/updateactivityduration`, {
+        data: changedinput,
+      });
       console.log(result);
     } catch (e) {
       console.log(e);
@@ -304,7 +302,7 @@ const TableData = ({
                         column.isVisible && (
                           <td
                             key={`${index}-${column.dbColumn}`}
-                            className={`px-2 h-16 border-r border-gray-200 dark:border-gray-700 ${
+                            className={`px-2 h-16 border-r border-gray-200 overflow-hidden dark:border-gray-700 ${
                               changedinput[item.id]?.[column.dbColumn] !==
                                 undefined &&
                               changedinput[item.id][column.dbColumn] !==
@@ -317,14 +315,14 @@ const TableData = ({
                             }}
                           >
                             {tableName === "document" &&
-                            column.dbColumn === "name" ? (
+                            column.dbColumn === "document_url" ? (
                               <a
                                 href={item.document_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-blue-600 hover:underline cursor-pointer"
                               >
-                                {item[column.dbColumn]}
+                                <ExternalLink />
                               </a>
                             ) : column.isInput ? (
                               column.dbColumn === "created_date" ||
@@ -366,6 +364,16 @@ const TableData = ({
                     )}
                     <td className="px-2 h-16 text-center">
                       <div className="flex items-center justify-center space-x-2">
+                        {tableName === "document" && (
+                          <a
+                            href={item.document_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline cursor-pointer"
+                          >
+                            <ExternalLink className="w-6 h-5" />
+                          </a>
+                        )}
                         {tableName !== "tasks" && (
                           <button
                             onClick={() => toggleForm(index)}

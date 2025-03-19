@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axiosInstance from "../axiosInstance";
 const PORT = import.meta.env.VITE_PORT;
 
 // ArrowIcon Component
@@ -28,8 +28,6 @@ const ArrowIcon = ({
     </svg>
   );
 };
-
-
 
 // WeekDropdown Component
 const WeekDropdown = ({
@@ -256,9 +254,7 @@ const ProjectTimelineSettings = () => {
   useEffect(() => {
     const fetchranges = async () => {
       try {
-        const result = await axios.get(
-          `http://localhost:${PORT}/admin/getBudgetRanges`
-        );
+        const result = await axiosInstance.get(`/admin/getBudgetRanges`);
         console.log("Fetched Data:", result.data.data);
         setbudgetRanges(result.data.data.map((item) => ({ ...item })));
       } catch (e) {
@@ -267,9 +263,7 @@ const ProjectTimelineSettings = () => {
     };
     const fetchPhaseData = async () => {
       try {
-        const result = await axios.get(
-          `http://localhost:${PORT}/admin/getPhaseDurations`
-        );
+        const result = await axiosInstance.get(`/admin/getPhaseDurations`);
         console.log("the fetched data");
         console.log(result);
         setTimelineData(result.data.data.map((item) => ({ ...item })));
@@ -332,12 +326,9 @@ const ProjectTimelineSettings = () => {
     console.log("Saved ranges:", ranges);
     // Here you would update your application state with the new ranges
     try {
-      const result = await axios.post(
-        `http://localhost:${PORT}/admin/updateBudgetRanges`,
-        {
-          updates: budgetRanges,
-        }
-      );
+      const result = await axiosInstance.post(`/admin/updateBudgetRanges`, {
+        updates: budgetRanges,
+      });
       console.log(result);
     } catch (e) {
       console.log(e);
@@ -347,12 +338,9 @@ const ProjectTimelineSettings = () => {
   async function saveData() {
     console.log("save button clicked");
     try {
-      const result = await axios.post(
-        `http://localhost:${PORT}/admin/updatephaseduration`,
-        {
-          updates: changesToSave,
-        }
-      );
+      const result = await axiosInstance.post(`/admin/updatephaseduration`, {
+        updates: changesToSave,
+      });
       console.log(result);
     } catch (e) {
       console.log(e);

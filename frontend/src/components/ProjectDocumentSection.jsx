@@ -2,7 +2,7 @@ import { useForm } from "react-hook-form";
 import { useState, useEffect } from "react";
 import { Upload, X } from "lucide-react";
 import { Link } from "react-router-dom";
-import axios from "axios";
+import axiosInstance from "../axiosInstance";
 import { supabase } from "../libs/supabase";
 import { toast } from "sonner";
 const PORT = import.meta.env.VITE_PORT;
@@ -20,8 +20,8 @@ const ProjectDocumentSection = ({
 
   const getCurrentPhaseDocumentTemplates = async () => {
     try {
-      const result = await axios.post(
-        `http://localhost:${PORT}/data-management/getCurrentPhaseDocumentTemplates`,
+      const result = await axiosInstance.post(
+        `/data-management/getCurrentPhaseDocumentTemplates`,
         {
           phase: projectPhase,
         }
@@ -35,7 +35,7 @@ const ProjectDocumentSection = ({
 
   const getCurrentPhaseUploadedProjectDocuments = async () => {
     try {
-      const result = await axios.post(
+      const result = await axiosInstance.post(
         "http://localhost:4000/data-management/getCurrentPhaseUploadedProjectDocuments",
         {
           phase: projectPhase,
@@ -44,7 +44,10 @@ const ProjectDocumentSection = ({
       );
       console.log("The retrieved project documents:", result);
     } catch (e) {
-      console.log("There was an error retrieving project documents:", e.message);
+      console.log(
+        "There was an error retrieving project documents:",
+        e.message
+      );
     }
   };
 
@@ -73,18 +76,24 @@ const ProjectDocumentSection = ({
     console.log("Uploading documents for project ID:", projectId);
     for (const { index, file } of localFiles) {
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('project_id', projectId);
-      formData.append('template_id', documents[index].id);
+      formData.append("file", file);
+      formData.append("project_id", projectId);
+      formData.append("template_id", documents[index].id);
 
-      const uploadResponse = await axios.post(`http://localhost:${PORT}/data-management/addProjectDocument`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const uploadResponse = await axiosInstance.post(
+        `/data-management/addProjectDocument`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
       if (uploadResponse.data && uploadResponse.data.status !== "success") {
-        throw new Error(`Failed to upload document: ${uploadResponse.data.message}`);
+        throw new Error(
+          `Failed to upload document: ${uploadResponse.data.message}`
+        );
       }
     }
   };
@@ -147,9 +156,7 @@ const ProjectDocumentSection = ({
           ))}
         </tbody>
       </table>
-      <div className="flex justify-between w-full mt-4">
-     
-      </div>
+      <div className="flex justify-between w-full mt-4"></div>
     </div>
   );
 };

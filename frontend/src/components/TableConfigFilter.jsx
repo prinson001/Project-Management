@@ -1,6 +1,6 @@
 import { constructNow } from "date-fns";
 import React, { useState, useEffect, useRef } from "react";
-import axios from "axios";
+import axiosInstance from "../axiosInstance";
 
 let dateToggler = false;
 
@@ -169,7 +169,7 @@ const TableConfigFilter = ({
   async function handleTableSettingChanges() {
     console.log("called");
     try {
-      const result = await axios.post(
+      const result = await axiosInstance.post(
         "http://localhost:4001/data-management/upsertTableSetting",
         {
           setting: { setting: columnSetting, tableName },

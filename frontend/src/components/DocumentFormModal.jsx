@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Construction, ConstructionIcon, Download, Upload } from "lucide-react";
-import axios from "axios";
+import axiosInstance from "../axiosInstance";
 const PORT = import.meta.env.VITE_PORT;
 
 const phasesList = [
@@ -66,8 +66,8 @@ const DocumentFormModal = ({ onClose }) => {
     formData.append("data", JSON.stringify(payloadData)); // Convert JSON object to string
 
     try {
-      const result = await axios.post(
-        `http://localhost:${PORT}/data-management/addDocumentTemplate`,
+      const result = await axiosInstance.post(
+        `/data-management/addDocumentTemplate`,
         formData,
         {
           headers: {

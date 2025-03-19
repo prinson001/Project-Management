@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Disclosure, Transition } from "@headlessui/react";
-import axios from "axios";
+import axiosInstance from "../axiosInstance";
 const PORT = import.meta.env.VITE_PORT;
 
 const DeliverablesAccordion = ({ projectId = 2, projectPhase }) => {
@@ -16,8 +16,8 @@ const DeliverablesAccordion = ({ projectId = 2, projectPhase }) => {
   useEffect(() => {
     const fetchItemsWithDeliverables = async () => {
       try {
-        const response = await axios.get(
-          `http://localhost:${PORT}/pm/${projectId}/items-with-deliverables`
+        const response = await axiosInstance.get(
+          `/pm/${projectId}/items-with-deliverables`
         );
         console.log("items with deliverables");
         console.log(response);
@@ -28,7 +28,7 @@ const DeliverablesAccordion = ({ projectId = 2, projectPhase }) => {
     };
     const fetchProjectDocuments = async () => {
       try {
-        const response = await axios.get(
+        const response = await axiosInstance.get(
           `http://localhost:4000/pm/getProjectDocuments`,
           {
             projectId,
@@ -218,10 +218,7 @@ const DeliverablesAccordion = ({ projectId = 2, projectPhase }) => {
 
       console.log("Saving payload:", payload);
 
-      await axios.post(
-        `http://localhost:${PORT}/pm/${projectId}/save-deliverables`,
-        payload
-      );
+      await axiosInstance.post(`/pm/${projectId}/save-deliverables`, payload);
 
       setChanges({
         newDeliverables: [],
@@ -247,7 +244,7 @@ const DeliverablesAccordion = ({ projectId = 2, projectPhase }) => {
         Project Deliverables
       </h2>
       <div>
-        {document.map((e) => {
+        {projectDocuments.map((e) => {
           return (
             <div>
               <a href={e.document_url} target="_blank">

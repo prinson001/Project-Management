@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import axios from "axios";
+import axiosInstance from "../axiosInstance";
 import { X, Users, Plus } from "lucide-react"; // Added Plus icon
 import { Calendar, ChevronDown, ChevronUp, Download } from "lucide-react";
 import useAuthStore from "../store/authStore";
@@ -50,9 +50,7 @@ const DataManagementPage = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await axios.get(
-          `http://localhost:${PORT}/data-management/users`
-        );
+        const response = await axiosInstance.get(`/data-management/users`);
         if (response.data.status === "success") {
           setUsers(response.data.result);
         }
@@ -69,8 +67,8 @@ const DataManagementPage = () => {
   useEffect(() => {
     const fetchInitiatives = async () => {
       try {
-        const response = await axios.post(
-          `http://localhost:${PORT}/data-management/getInitiatives`
+        const response = await axiosInstance.post(
+          `/data-management/getInitiatives`
         );
         if (response.data.status === "success") {
           setInitiatives(response.data.result);
@@ -88,8 +86,8 @@ const DataManagementPage = () => {
   useEffect(() => {
     const fetchPortfolios = async () => {
       try {
-        const response = await axios.post(
-          `http://localhost:${PORT}/data-management/getPortfolios`
+        const response = await axiosInstance.post(
+          `/data-management/getPortfolios`
         );
         if (response.data.status === "success") {
           setPortfolios(response.data.result);
@@ -455,13 +453,10 @@ const DataManagementPage = () => {
       //     data.portfolio_id = parseInt(data.portfolio_id, 10);
       //   }
       // }
-      const result = await axios.post(
-        `http://localhost:${PORT}/data-management/${endpoint}`,
-        {
-          ...data,
-          userId: 1,
-        }
-      );
+      const result = await axiosInstance.post(`/data-management/${endpoint}`, {
+        ...data,
+        userId: 1,
+      });
 
       console.log("Form submission result:", result);
 
@@ -485,13 +480,10 @@ const DataManagementPage = () => {
   async function getSetting() {
     console.log("Singular table name", getSingularTabName());
     try {
-      const result = await axios.post(
-        `http://localhost:${PORT}/data-management/setting`,
-        {
-          tableName: getSingularTabName(),
-          userId: 1,
-        }
-      );
+      const result = await axiosInstance.post(`/data-management/setting`, {
+        tableName: getSingularTabName(),
+        userId: 1,
+      });
       console.log("setting", result);
       console.log("Table setting");
       console.log(result.data.result[0].setting.setting);
@@ -503,13 +495,10 @@ const DataManagementPage = () => {
   }
   async function getData() {
     try {
-      const result = await axios.post(
-        `http://localhost:${PORT}/data-management/data`,
-        {
-          tableName: getSingularTabName(), // Remove 's' from the end to get singular form
-          userId: 1,
-        }
-      );
+      const result = await axiosInstance.post(`/data-management/data`, {
+        tableName: getSingularTabName(), // Remove 's' from the end to get singular form
+        userId: 1,
+      });
       console.log("the data");
       console.log(result);
       originalTableData = result.data.result;
@@ -521,17 +510,14 @@ const DataManagementPage = () => {
   }
   async function getFilteredData() {
     try {
-      const result = await axios.post(
-        `http://localhost:${PORT}/data-management/filtereddata`,
-        {
-          tableName: activeTab.slice(0, -1), // Remove 's' from the end to get singular form
-          userId: 1,
-          filters: tablefilters,
-          sort: sortClause,
-          dateFilter,
-          page,
-        }
-      );
+      const result = await axiosInstance.post(`/data-management/filtereddata`, {
+        tableName: activeTab.slice(0, -1), // Remove 's' from the end to get singular form
+        userId: 1,
+        filters: tablefilters,
+        sort: sortClause,
+        dateFilter,
+        page,
+      });
       console.log(result);
       setTableData((state) => result.data.result);
       setPagination((state) => result.data.pagination);

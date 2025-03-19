@@ -2,17 +2,16 @@ import React, { useState, useEffect } from "react";
 import { ChevronUp } from "lucide-react";
 import Datepicker from "react-tailwindcss-datepicker";
 import { Controller, useForm } from "react-hook-form";
-import axios from "axios";
+import axiosInstance from "../axiosInstance";
 import { addDays, addWeeks, addMonths, format } from "date-fns";
 import { toast } from "sonner"; // For notifications
 
 const PORT = import.meta.env.VITE_PORT;
 
-const SchedulePlanSection = ({ projectId ,onScheduleChange}) => {
+const SchedulePlanSection = ({ projectId, onScheduleChange }) => {
   const [activeTab, setActiveTab] = useState("B. Days");
   const [phaseDurations, setPhaseDurations] = useState([]);
   const [scheduleTableData, setScheduleTableData] = useState([]);
-
 
   const [originalDurations, setOriginalDurations] = useState({});
   const [durationTypes, setDurationTypes] = useState({});
@@ -36,8 +35,8 @@ const SchedulePlanSection = ({ projectId ,onScheduleChange}) => {
   useEffect(() => {
     const fetchPhaseDurations = async () => {
       try {
-        const response = await axios.post(
-          `http://localhost:${PORT}/data-management/getPhaseDurationsByBudget`,
+        const response = await axiosInstance.post(
+          `/data-management/getPhaseDurationsByBudget`,
           {
             budget: budget,
           }
@@ -75,7 +74,6 @@ const SchedulePlanSection = ({ projectId ,onScheduleChange}) => {
     };
     fetchPhaseDurations();
   }, []);
-
 
   useEffect(() => {
     if (onScheduleChange) {
@@ -326,15 +324,15 @@ const SchedulePlanSection = ({ projectId ,onScheduleChange}) => {
       return;
     }
     try {
-      const response = await axios.post(
-        `http://localhost:${PORT}/data-management/upsertSchedulePlan`,
+      const response = await axiosInstance.post(
+        `/data-management/upsertSchedulePlan`,
         {
           projectId,
           schedule: scheduleTableData,
         }
       );
       if (response.data && response.data.status === "success") {
-        console.log(response.data)
+        console.log(response.data);
         toast.success("Schedule saved successfully!");
       } else {
         throw new Error(response.data?.message || "Failed to save schedule");
