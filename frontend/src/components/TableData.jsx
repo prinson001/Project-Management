@@ -16,6 +16,7 @@ import UpdateDynamicForm from "./UpdateDynamicForm";
 import InitiativeAccordion from "./initiativeAccordion";
 import PortfolioAccordion from "./portfolioAccordion";
 import ProgramAccordion from "./programAccordion";
+import TeamAccordion from "./TeamAccordion";
 import axios from "axios";
 import Loader from "./Loader";
 const PORT = import.meta.env.VITE_PORT;
@@ -287,7 +288,10 @@ const TableData = ({
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={visibleColumns.length + 1} className="text-center py-4">
+                <td
+                  colSpan={visibleColumns.length + 1}
+                  className="text-center py-4"
+                >
                   <Loader />
                 </td>
               </tr>
@@ -461,6 +465,17 @@ const TableData = ({
                           data={item}
                           title="Portfolio details"
                         />
+                      </td>
+                    </tr>
+                  )}
+                  {tableName === "users" && openAccordion === index && (
+                    <tr>
+                      {" "}
+                      {/* Add table row wrapper */}
+                      <td colSpan={visibleColumns.length + 1} className="p-0">
+                        {" "}
+                        {/* Add table cell */}
+                        <TeamAccordion datas={item} />
                       </td>
                     </tr>
                   )}

@@ -281,7 +281,7 @@ const getProjectWithAllRelatedData = async (req, res) => {
 };
 
 const getUserRelatedEntities = async (req, res) => {
-  const userId = req.user.id; // Assuming user ID is available in request
+  const userId = req.body.id; // Assuming user ID is available in request
 
   if (!userId) {
     return res.status(400).json({
@@ -294,9 +294,9 @@ const getUserRelatedEntities = async (req, res) => {
   try {
     // Step 1: Fetch directly managed portfolios, programs, and projects
     const userPortfolios = await sql`
-        SELECT * FROM portfolio WHERE portfolio_manager_id = ${userId}`;
+        SELECT * FROM portfolio WHERE portfolio_manager = ${userId}`;
     const userPrograms = await sql`
-        SELECT * FROM program WHERE program_manager_id = ${userId}`;
+        SELECT * FROM program WHERE program_manager = ${userId}`;
     const userProjects = await sql`
         SELECT * FROM project WHERE project_manager_id = ${userId}`;
 

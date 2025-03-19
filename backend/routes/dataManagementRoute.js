@@ -23,7 +23,7 @@ const {
   addPortfolio,
   updatePortfolio,
   deletePortfolio,
-  getPortfolios
+  getPortfolios,
 } = require("../controllers/portfolioController");
 
 const {
@@ -59,7 +59,10 @@ const {
   getPhaseDurationsByBudget,
 } = require("../database/dbConfig");
 const { addVendor, getVendors } = require("../controllers/vendorController");
-const { addObjective, getObjectives } = require("../controllers/objectiveController");
+const {
+  addObjective,
+  getObjectives,
+} = require("../controllers/objectiveController");
 
 const {
   getInitiativeWithAllRelatedData,
@@ -77,17 +80,17 @@ router.post("/filtereddata", getFilteredData);
 router.post("/addInitiative", addInitiative);
 router.post("/updateInitiative", updateInitiative);
 router.post("/deleteInitiative", deleteInitiative);
-router.post("/getInitiatives",getInitiatives)
+router.post("/getInitiatives", getInitiatives);
 
 router.post("/addPortfolio", addPortfolio);
 router.post("/updatePortfolio", updatePortfolio);
 router.post("/deletePortfolio", deletePortfolio);
-router.post("/getPortfolios",getPortfolios);
+router.post("/getPortfolios", getPortfolios);
 
 router.post("/addprogram", addProgram);
 router.post("/updateProgram", updateProgram);
 router.post("/deleteProgram", deleteProgram);
-router.post("/getPrograms",getPrograms);
+router.post("/getPrograms", getPrograms);
 
 router.post(
   "/addDocumentTemplate",
@@ -117,11 +120,11 @@ router.post("/getUserRelatedEntities", getUserRelatedEntities);
 router.post("/adddepartment", addDepartment);
 router.post("/getDepartments", getDepartments);
 
-router.post("/addvendor",addVendor);
-router.post("/getVendors",getVendors);
+router.post("/addvendor", addVendor);
+router.post("/getVendors", getVendors);
 
-router.post("/addobjective",addObjective);
-router.post("/getObjectives",getObjectives);
+router.post("/addobjective", addObjective);
+router.post("/getObjectives", getObjectives);
 
 //router.post("/addProjectDocument",addProjectDocument);
 

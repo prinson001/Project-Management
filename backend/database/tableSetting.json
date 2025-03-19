@@ -1,40 +1,34 @@
 {
-  "tableName": "tasks",
+  "tableName": "project",
   "setting": [
     {
-      "columnName": "Created Date",
-      "dbColumn": "created_date",
+      "columnName": "name",
+      "dbColumn": "Project name",
       "columnOrder": 0,
       "isVisible": true
     },
     {
-      "columnName": "Task Type",
-      "dbColumn": "title",
+      "columnName": "Arabic name",
+      "dbColumn": "arabic_name",
       "columnOrder": 1,
       "isVisible": true
     },
     {
-      "columnName": "Project Name",
-      "dbColumn": "project_name",
+      "columnName": "Created Date",
+      "dbColumn": "created_date",
       "columnOrder": 2,
       "isVisible": true
     },
     {
-      "columnName": "To",
-      "dbColumn": "first_name",
+      "columnName": "Project Manager",
+      "dbColumn": "project_manager_name",
       "columnOrder": 3,
       "isVisible": true
     },
     {
-      "columnName": "Targeted",
-      "dbColumn": "due_date",
+      "columnName": "Category",
+      "dbColumn": "category",
       "columnOrder": 4,
-      "isVisible": true
-    },
-    {
-      "columnName": "Status",
-      "dbColumn": "status",
-      "columnOrder": 5,
       "isVisible": true
     }
   ]

@@ -30,7 +30,7 @@ const DataManagementPage = () => {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("initiatives");
   const processedCategory = useMemo(
-    () => activeTab.replace(/s$/, ""),
+    () => (activeTab === "team" ? "users" : activeTab.replace(/s$/, "")),
     [activeTab]
   );
 
@@ -408,7 +408,7 @@ const DataManagementPage = () => {
     } else if (activeTab === "companies") {
       return "company";
     } else if (activeTab === "team") {
-      return "member";
+      return "userss";
     } else if (activeTab === "programs") {
       return "program";
     } else if (activeTab === "documents") {

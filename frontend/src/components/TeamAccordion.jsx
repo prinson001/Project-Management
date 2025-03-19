@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios"; // Make sure to install axios
 
-function TeamAccordion() {
+function TeamAccordion({ datas }) {
   const [data, setData] = useState({
     portfolios: [],
     programs: [],
@@ -12,13 +12,12 @@ function TeamAccordion() {
 
   useEffect(() => {
     const fetchData = async () => {
+      console.log("the data recived", data);
       try {
-        const response = await axios.get(
+        const response = await axios.post(
           "http://localhost:4001/data-management/getUserRelatedEntities",
           {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`, // Adjust auth as needed
-            },
+            id: datas.id,
           }
         );
         setData(response.data.result);
