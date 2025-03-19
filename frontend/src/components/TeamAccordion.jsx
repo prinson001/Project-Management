@@ -12,7 +12,7 @@ function TeamAccordion({ datas }) {
 
   useEffect(() => {
     const fetchData = async () => {
-      console.log("the data recived", data);
+      console.log("the data recived", datas);
       try {
         const response = await axios.post(
           "http://localhost:4001/data-management/getUserRelatedEntities",

@@ -366,18 +366,22 @@ const TableData = ({
                     )}
                     <td className="px-2 h-16 text-center">
                       <div className="flex items-center justify-center space-x-2">
-                        <button
-                          onClick={() => toggleForm(index)}
-                          className="text-blue-500 hover:text-blue-700"
-                        >
-                          <Edit className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClick(item.id)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
+                        {tableName !== "tasks" && (
+                          <button
+                            onClick={() => toggleForm(index)}
+                            className="text-blue-500 hover:text-blue-700"
+                          >
+                            <Edit className="w-5 h-5" />
+                          </button>
+                        )}
+                        {tableName !== "tasks" && (
+                          <button
+                            onClick={() => handleDeleteClick(item.id)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        )}
                         <button
                           onClick={() => toggleAccordion(index)}
                           className="text-gray-500 hover:text-gray-700"
@@ -475,7 +479,7 @@ const TableData = ({
                       <td colSpan={visibleColumns.length + 1} className="p-0">
                         {" "}
                         {/* Add table cell */}
-                        <TeamAccordion data={item} />
+                        <TeamAccordion datas={item} />
                       </td>
                     </tr>
                   )}
