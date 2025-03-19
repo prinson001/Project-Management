@@ -15,7 +15,7 @@ function TeamAccordion({ datas }) {
       console.log("the data recived", datas);
       try {
         const response = await axiosInstance.post(
-          "http://localhost:4001/data-management/getUserRelatedEntities",
+          "/data-management/getUserRelatedEntities",
           {
             id: datas.id,
           }

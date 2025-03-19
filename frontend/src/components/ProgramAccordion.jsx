@@ -31,7 +31,7 @@ function ProgramAccordion({ data, title }) {
 
     try {
       const result = await axiosInstance.post(
-        "http://localhost:4001/data-management/getProgramWithRelatedData",
+        "/data-management/getProgramWithRelatedData",
         {
           programId: data.id,
         }

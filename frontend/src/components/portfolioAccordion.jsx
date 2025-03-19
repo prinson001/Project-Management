@@ -31,7 +31,7 @@ function PortfolioAccordion({ data, title }) {
 
     try {
       const result = await axiosInstance.post(
-        "http://localhost:4001/data-management/getPortfolioWithRelatedData",
+        "/data-management/getPortfolioWithRelatedData",
         {
           portfolioId: data.id,
         }

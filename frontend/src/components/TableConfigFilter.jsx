@@ -170,7 +170,7 @@ const TableConfigFilter = ({
     console.log("called");
     try {
       const result = await axiosInstance.post(
-        "http://localhost:4001/data-management/upsertTableSetting",
+        "/data-management/upsertTableSetting",
         {
           setting: { setting: columnSetting, tableName },
           user_id: 7,

@@ -31,7 +31,7 @@ function InitiativeAccordion({ data, title }) {
 
     try {
       const result = await axiosInstance.post(
-        "http://localhost:4001/data-management/getInitiativeWithRelatedData",
+        "/data-management/getInitiativeWithRelatedData",
         {
           initiativeId: data.id,
         }
