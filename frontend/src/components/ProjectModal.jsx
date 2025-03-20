@@ -8,7 +8,7 @@ import useAuthStore from "../store/authStore";
 import axiosInstance from "../axiosInstance";
 import SchedulePlanSection from "./SchedulePlanSection";
 const PORT = import.meta.env.VITE_PORT;
-
+import axios from "axios";
 const ProjectModal = ({
   onClose,
   showButtons = true,
