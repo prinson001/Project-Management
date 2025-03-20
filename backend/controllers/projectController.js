@@ -8,7 +8,7 @@ const {
 const addProject = async (req, res) => {
   // Check if data exists in the request body
 
-  console.log("Project Body",req.body);
+  console.log("Project Body", req.body);
   if (!req.body || !req.body.data || typeof req.body.data !== "object") {
     return res.status(400).json({
       status: "failure",
@@ -32,13 +32,13 @@ const addProject = async (req, res) => {
   try {
     // Extract beneficiary_departments from data and remove it from the main data object
     const { beneficiary_departments, objectives, ...projectData } = data;
-    
+
     // Map budget fields to correct column names
     if (projectData.planned_budget) {
       projectData.project_budget = projectData.planned_budget;
       delete projectData.planned_budget;
     }
-    
+
     if (projectData.approved_budget) {
       projectData.approved_project_budget = projectData.approved_budget;
       delete projectData.approved_budget;
@@ -74,14 +74,19 @@ const addProject = async (req, res) => {
 
     // Insert beneficiary departments into the project_department table
     if (beneficiary_departments && beneficiary_departments.length > 0) {
-      console.log("Inserting beneficiary departments:", beneficiary_departments);
-      
-      const departmentInsertQueries = beneficiary_departments.map((departmentId) => {
-        return sql`
+      console.log(
+        "Inserting beneficiary departments:",
+        beneficiary_departments
+      );
+
+      const departmentInsertQueries = beneficiary_departments.map(
+        (departmentId) => {
+          return sql`
           INSERT INTO project_department (project_id, department_id)
           VALUES (${projectId}, ${departmentId});
         `;
-      });
+        }
+      );
 
       await Promise.all(departmentInsertQueries);
     }
@@ -89,18 +94,20 @@ const addProject = async (req, res) => {
     // Insert project objectives
     if (objectives && Array.isArray(objectives) && objectives.length > 0) {
       console.log("Inserting project objectives:", objectives);
-      
+
       try {
         // Build the query to insert project objectives
-        const objectiveValues = objectives.map(objectiveId => {
-          return `(${projectId}, ${objectiveId})`;
-        }).join(', ');
-        
+        const objectiveValues = objectives
+          .map((objectiveId) => {
+            return `(${projectId}, ${objectiveId})`;
+          })
+          .join(", ");
+
         const objectiveQuery = `
           INSERT INTO project_objective (project_id, objective_id)
           VALUES ${objectiveValues}
         `;
-        
+
         await sql.unsafe(objectiveQuery);
         console.log("Project objectives inserted successfully");
       } catch (error) {
@@ -166,7 +173,7 @@ const updateProject = async (req, res) => {
 
   const { id, data } = req.body;
   const beneficiaryDepartments = data.beneficiary_departments;
-  
+
   // Remove beneficiary_departments from data to avoid SQL errors
   if (data.beneficiary_departments) {
     delete data.beneficiary_departments;
@@ -258,16 +265,18 @@ const updateProject = async (req, res) => {
           DELETE FROM project_department
           WHERE project_id = ${id}
         `;
-        
+
         // Then insert new relationships
         if (beneficiaryDepartments.length > 0) {
-          const departmentInsertQueries = beneficiaryDepartments.map((departmentId) => {
-            return sql`
+          const departmentInsertQueries = beneficiaryDepartments.map(
+            (departmentId) => {
+              return sql`
               INSERT INTO project_department (project_id, department_id)
               VALUES (${id}, ${departmentId});
             `;
-          });
-          
+            }
+          );
+
           await Promise.all(departmentInsertQueries);
         }
       } catch (error) {
@@ -415,7 +424,7 @@ const getProjectById = async (req, res) => {
         SELECT * FROM project
         WHERE id = $1
     `;
-    
+
     // Query to get associated departments
     const departmentsQuery = `
         SELECT d.id, d.name, d.arabic_name
@@ -436,7 +445,7 @@ const getProjectById = async (req, res) => {
         result: null,
       });
     }
-    
+
     // Combine project data with departments
     const projectData = projectResult[0];
     projectData.beneficiary_departments = departmentsResult;
@@ -593,11 +602,116 @@ const upsertSchedulePlan = async (req, res) => {
   }
 };
 
+// @Description Get all project phases
+// @Route site.com/data-management/getProjectPhases
+const getProjectPhases = async (req, res) => {
+  try {
+    const result = await sql`
+      SELECT id, name, description FROM project_phase;
+    `;
+
+    return res.status(200).json({
+      status: "success",
+      message: "Project phases retrieved successfully",
+      result: result,
+    });
+  } catch (error) {
+    console.error("Error retrieving project phases:", error);
+    return res.status(500).json({
+      status: "failure",
+      message: "Error retrieving project phases",
+      result: error.message || error,
+    });
+  }
+};
+
+// @Description Get all project types
+// @Route site.com/data-management/getProjectTypes
+const getProjectTypes = async (req, res) => {
+  try {
+    const result = await sql`
+      SELECT id, name, description FROM project_type;
+    `;
+
+    return res.status(200).json({
+      status: "success",
+      message: "Project types retrieved successfully",
+      result: result,
+    });
+  } catch (error) {
+    console.error("Error retrieving project types:", error);
+    return res.status(500).json({
+      status: "failure",
+      message: "Error retrieving project types",
+      result: error.message || error,
+    });
+  }
+};
+
+// @Description Get project phase information by phase ID
+// @Route site.com/data-management/getProjectPhase
+const getProjectPhase = async (req, res) => {
+  // Check if phase_id exists in the request body
+  if (!req.body || !req.body.phase_id) {
+    return res.status(400).json({
+      status: "failure",
+      message: "Required field missing: phase_id is required",
+      result: null,
+    });
+  }
+
+  const { phase_id } = req.body;
+
+  try {
+    // Validate that phase_id is numeric
+    if (isNaN(phase_id)) {
+      return res.status(400).json({
+        status: "failure",
+        message: "Invalid phase_id format: must be a number",
+        result: null,
+      });
+    }
+
+    // Query to get phase information
+    const result = await sql`
+      SELECT id, name, arabic_name 
+      FROM project_phase
+      WHERE id = ${phase_id}
+    `;
+
+    // Check if phase was found
+    if (!result || result.length === 0) {
+      return res.status(404).json({
+        status: "failure",
+        message: `Phase with id ${phase_id} not found`,
+        result: null,
+      });
+    }
+
+    // Return success response with the phase information
+    return res.status(200).json({
+      status: "success",
+      message: "Phase information retrieved successfully",
+      result: result[0],
+    });
+  } catch (error) {
+    console.error("Error retrieving phase information:", error);
+    return res.status(500).json({
+      status: "failure",
+      message: "Error retrieving phase information",
+      result: error.message || error,
+    });
+  }
+};
+
 module.exports = {
   addProject,
   updateProject,
   deleteProject,
   getProjectById,
   updateProjectApprovalbyDeputy,
-  upsertSchedulePlan
+  upsertSchedulePlan,
+  getProjectPhases,
+  getProjectPhase,
+  getProjectTypes,
 };

@@ -35,8 +35,8 @@ const {
 
 const {
   createDocumentTemplate,
-  getCurrentPhaseDocuments,
   getProjectPhaseDocuments,
+  getCurrentPhaseDocumentTemplates,
 } = require("../controllers/documentTemplateController");
 
 const {
@@ -46,6 +46,9 @@ const {
   getProjectById,
   updateProjectApprovalbyDeputy,
   upsertSchedulePlan,
+  getProjectPhases,
+  getProjectPhase,
+  getProjectTypes,
 } = require("../controllers/projectController");
 
 const {
@@ -71,7 +74,11 @@ const {
   getProjectWithAllRelatedData,
   getUserRelatedEntities,
 } = require("../controllers/accordionDataController");
-const { addProjectDocument } = require("../controllers/documentController");
+const {
+  addProjectDocument,
+  getProjectDocuments,
+  deleteProjectDocument,
+} = require("../controllers/documentController");
 
 router.post("/setting", getSetting);
 router.post("/data", getData);
@@ -97,7 +104,10 @@ router.post(
   upload.single("file"),
   createDocumentTemplate
 );
-router.post("/getCurrentPhaseDocumentTemplates", getCurrentPhaseDocuments);
+router.post(
+  "/getCurrentPhaseDocumentTemplates",
+  getCurrentPhaseDocumentTemplates
+);
 
 router.get("/users", getUsers);
 
@@ -125,7 +135,12 @@ router.post("/getVendors", getVendors);
 
 router.post("/addobjective", addObjective);
 router.post("/getObjectives", getObjectives);
-
+router.post("/getProjectDocuments", getProjectDocuments);
 //router.post("/addProjectDocument",addProjectDocument);
+router.post("/getProjectPhases", getProjectPhases);
+router.post("/getProjectPhase", getProjectPhase);
+router.post("/getProjectTypes", getProjectTypes);
+
+router.post("/deleteProjectDocument", deleteProjectDocument);
 
 module.exports = router;

@@ -169,7 +169,7 @@ const createDocumentTemplate = async (req, res) => {
   }
 };
 
-const getCurrentPhaseDocuments = async (req, res) => {
+const getCurrentPhaseDocumentTemplates = async (req, res) => {
   try {
     const { phase } = req.body;
 
@@ -239,6 +239,6 @@ const getProjectPhaseDocuments = async (req, res) => {
 
 module.exports = {
   createDocumentTemplate,
-  getCurrentPhaseDocuments,
+  getCurrentPhaseDocumentTemplates,
   getProjectPhaseDocuments,
 };

@@ -8,11 +8,10 @@ import { toast } from "sonner"; // For notifications
 
 const PORT = import.meta.env.VITE_PORT;
 
-const SchedulePlanSection = ({ projectId ,onScheduleChange}) => {
+const SchedulePlanSection = ({ projectId, onScheduleChange }) => {
   const [activeTab, setActiveTab] = useState("B. Days");
   const [phaseDurations, setPhaseDurations] = useState([]);
   const [scheduleTableData, setScheduleTableData] = useState([]);
-
 
   const [originalDurations, setOriginalDurations] = useState({});
   const [durationTypes, setDurationTypes] = useState({});
@@ -75,7 +74,6 @@ const SchedulePlanSection = ({ projectId ,onScheduleChange}) => {
     };
     fetchPhaseDurations();
   }, []);
-
 
   useEffect(() => {
     if (onScheduleChange) {
@@ -334,7 +332,7 @@ const SchedulePlanSection = ({ projectId ,onScheduleChange}) => {
         }
       );
       if (response.data && response.data.status === "success") {
-        console.log(response.data)
+        console.log(response.data);
         toast.success("Schedule saved successfully!");
       } else {
         throw new Error(response.data?.message || "Failed to save schedule");
@@ -537,16 +535,7 @@ const SchedulePlanSection = ({ projectId ,onScheduleChange}) => {
         </table>
       </div>
 
-      {/* Save Schedule Button */}
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={handleSaveSchedule}
-          className="bg-blue-500 text-white px-4 py-2 rounded"
-        >
-          Save Schedule
-        </button>
-      </div>
+      {/* Save Schedule Button - Removed */}
     </div>
   );
 };

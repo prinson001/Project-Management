@@ -1,98 +1,104 @@
-import { useForm } from "react-hook-form";
 import { useState, useEffect } from "react";
 import { Upload, X } from "lucide-react";
-import { Link } from "react-router-dom";
 import axios from "axios";
-import { supabase } from "../libs/supabase";
 import { toast } from "sonner";
+
 const PORT = import.meta.env.VITE_PORT;
 
 const ProjectDocumentSection = ({
   projectPhase = "Execution",
   projectId = null,
   formMethods,
-  documents,
+  documents: initialDocuments = [],
   setDocuments,
   localFiles,
   setLocalFiles,
 }) => {
-  const { register, setValue, watch } = formMethods;
+  const { setValue, watch } = formMethods;
+  const [documents, setDocumentsState] = useState([]);
 
+  // Fetch document templates and merge with uploaded documents
   const getCurrentPhaseDocumentTemplates = async () => {
     try {
       const result = await axios.post(
         `http://localhost:${PORT}/data-management/getCurrentPhaseDocumentTemplates`,
-        {
-          phase: projectPhase,
-        }
+        { phase: projectPhase }
       );
-      console.log("The retrieved documents:", result.data.data);
-      setDocuments(result.data.data);
-    } catch (e) {
-      console.error("Error retrieving document templates:", e);
-    }
-  };
+      const templates = result.data.data;
 
-  const getCurrentPhaseUploadedProjectDocuments = async () => {
-    try {
-      const result = await axios.post(
-        "http://localhost:4000/data-management/getCurrentPhaseUploadedProjectDocuments",
-        {
-          phase: projectPhase,
-          projectId,
-        }
-      );
-      console.log("The retrieved project documents:", result);
-    } catch (e) {
-      console.log("There was an error retrieving project documents:", e.message);
+      // If projectId exists, fetch uploaded documents and merge with templates
+      if (projectId) {
+        const uploadedDocsResponse = await axios.post(
+          `http://localhost:${PORT}/data-management/getProjectDocuments`,
+          { project_id: projectId }
+        );
+        const uploadedDocs = uploadedDocsResponse.data.result;
+        console.log(uploadedDocs);
+        // Merge templates with uploaded documents
+        const mergedDocuments = templates.map((template) => {
+          const uploadedDoc = uploadedDocs.find((doc) => doc.template_id === template.id);
+          return uploadedDoc
+            ? { ...template, file: uploadedDoc.file, date: uploadedDoc.uploaded_date }
+            : template;
+        });
+
+        setDocumentsState(mergedDocuments);
+        setDocuments(mergedDocuments);
+      } else {
+        // For new projects, just set the templates
+        setDocumentsState(templates);
+        setDocuments(templates);
+      }
+    } catch (error) {
+      console.error("Error retrieving document templates:", error);
+      toast.error("Failed to load document templates");
     }
   };
 
   useEffect(() => {
     getCurrentPhaseDocumentTemplates();
-    if (projectId) {
-      getCurrentPhaseUploadedProjectDocuments();
-    }
   }, [projectPhase, projectId]);
 
+  // Handle file upload
   const handleUpload = (index, file) => {
-    console.log("File selected:", file);
     if (!file) {
-      console.error("No file selected for upload.");
-      return; // Exit if no file is selected
+      toast.error("No file selected for upload.");
+      return;
     }
 
     const newDocs = [...documents];
     newDocs[index].file = file;
     newDocs[index].date = new Date().toLocaleDateString();
     setLocalFiles((prev) => [...prev, { index, file }]);
+    setDocumentsState(newDocs);
     setDocuments(newDocs);
   };
 
-  const uploadDocuments = async (projectId) => {
-    console.log("Uploading documents for project ID:", projectId);
-    for (const { index, file } of localFiles) {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('project_id', projectId);
-      formData.append('template_id', documents[index].id);
+  // Handle file removal
+  const handleRemove = async (index) => {
+    const newDocs = [...documents];
+    const fileToRemove = newDocs[index].file;
 
-      const uploadResponse = await axios.post(`http://localhost:${PORT}/data-management/addProjectDocument`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      if (uploadResponse.data && uploadResponse.data.status !== "success") {
-        throw new Error(`Failed to upload document: ${uploadResponse.data.message}`);
+    if (projectId && fileToRemove) {
+      try {
+        // Call API to delete the document from the server
+        await axios.post(`http://localhost:${PORT}/data-management/deleteProjectDocument`, {
+          project_id: projectId,
+          document_id: fileToRemove.id, // Assuming the file object has an `id`
+        });
+        toast.success("Document deleted successfully");
+      } catch (error) {
+        console.error("Error deleting document:", error);
+        toast.error("Failed to delete document");
+        return;
       }
     }
-  };
 
-  const handleRemove = (index) => {
-    const newDocs = [...documents];
+    // Update local state
     newDocs[index].file = null;
+    newDocs[index].date = null;
     setLocalFiles((prev) => prev.filter((file) => file.index !== index));
+    setDocumentsState(newDocs);
     setDocuments(newDocs);
   };
 
@@ -112,18 +118,8 @@ const ProjectDocumentSection = ({
         <tbody>
           {documents.map((doc, index) => (
             <tr key={index} className="border">
-              <td className="p-2 border">
-                <a
-                  href={doc.document_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {doc.name}
-                </a>
-              </td>
-              <td className="p-2 border">
-                {doc.isrequired ? "Yes" : "Optional"}
-              </td>
+              <td className="p-2 border">{doc.name}</td>
+              <td className="p-2 border">{doc.isrequired ? "Yes" : "Optional"}</td>
               <td className="p-2 border">{doc.file ? doc.file.name : "-"}</td>
               <td className="p-2 border">{doc.date || "-"}</td>
               <td className="p-2 border flex items-center gap-2">
@@ -147,9 +143,6 @@ const ProjectDocumentSection = ({
           ))}
         </tbody>
       </table>
-      <div className="flex justify-between w-full mt-4">
-     
-      </div>
     </div>
   );
 };

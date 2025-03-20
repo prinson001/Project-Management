@@ -9,6 +9,7 @@ const UpdateDynamicForm = ({
   data,
   tableName,
 }) => {
+  console.log("update dynamic form opened... in",tableName);
   const getFormFields = () => ({
     initiative: [
       {
