@@ -1,5 +1,5 @@
 import React from "react";
-import axios from "axios";
+import axiosInstance from "../axiosInstance";
 import DynamicForm from "./DynamicForm";
 import ProjectModal from "./ProjectModal";
 
@@ -11,7 +11,7 @@ function ProjectCreationAccordion({ project }) {
     }
 
     try {
-      const response = await axios.put(
+      const response = await axiosInstance.put(
         "http://localhost:4000/deputy/updateApprovalStatus",
         {
           id: project.id,

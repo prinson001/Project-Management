@@ -11,6 +11,7 @@ const {
   getSetting,
   getFilteredData,
   getUsers,
+  upsertTableSetting,
 } = require("../controllers/dataManagementController");
 const {
   addInitiative,
@@ -83,6 +84,7 @@ const {
 router.post("/setting", getSetting);
 router.post("/data", getData);
 router.post("/filtereddata", getFilteredData);
+router.post("/upsertTableSetting", upsertTableSetting);
 
 router.post("/addInitiative", addInitiative);
 router.post("/updateInitiative", updateInitiative);

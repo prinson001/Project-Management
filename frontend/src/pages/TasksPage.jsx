@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axiosInstanceInstance from "../axiosInstance";
 import { AlignVerticalJustifyEnd, Users } from "lucide-react";
 import Pagination from "../components/Pagination";
 
@@ -9,7 +9,6 @@ import TableData from "../components/TableData";
 import TableConfig from "../components/TableConfig";
 import TableConfigFilter from "../components/TableConfigFilter";
 const PORT = import.meta.env.VITE_PORT;
-
 
 let tablefilters = {};
 let sortClause = {};
@@ -36,20 +35,17 @@ const TasksPage = ({
       console.log("the dableName in getData function", tableName);
       let result = [];
       if (tableName == "tasks") {
-        result = await axios.post(`http://localhost:${PORT}/tasks/getTasks`, {
+        result = await axiosInstanceInstance.post(`/tasks/getTasks`, {
           tableName,
           userId: 5,
           limit: 7,
         });
       } else {
-        result = await axios.post(
-          `http://localhost:${PORT}/data-management/data`,
-          {
-            tableName,
-            userId: 1,
-            limit: 7,
-          }
-        );
+        result = await axiosInstanceInstance.post(`/data-management/data`, {
+          tableName,
+          userId: 7,
+          limit: 7,
+        });
       }
 
       console.log("the data");
@@ -65,11 +61,11 @@ const TasksPage = ({
     console.log("Component Mounted!");
     async function getSetting() {
       try {
-        const result = await axios.post(
-          `http://localhost:${PORT}/data-management/setting`,
+        const result = await axiosInstanceInstance.post(
+          `/data-management/setting`,
           {
             tableName,
-            userId: 1,
+            userId: 7,
           }
         );
         console.log(result.data.result[0].setting.setting);
@@ -92,19 +88,16 @@ const TasksPage = ({
     if (tableName === "tasks") {
       const { project_name, filters } = tablefilters;
       try {
-        const result = await axios.post(
-          `http://localhost:${PORT}/tasks/filtertasks`,
-          {
-            userId: 5,
-            limit: 7,
-            filters: filters,
-            project_name,
-            getAllTasks,
-            taskStatus,
-            dateFilter,
-            sort: sortClause,
-          }
-        );
+        const result = await axiosInstanceInstance.post(`/tasks/filtertasks`, {
+          userId: 5,
+          limit: 7,
+          filters: filters,
+          project_name,
+          getAllTasks,
+          taskStatus,
+          dateFilter,
+          sort: sortClause,
+        });
         console.log(result);
         setTableData((state) => result.data.result);
         setPagination((state) => result.data.pagination);
@@ -114,8 +107,8 @@ const TasksPage = ({
       }
     } else {
       try {
-        const result = await axios.post(
-          `http://localhost:${PORT}/data-management/filtereddata`,
+        const result = await axiosInstanceInstance.post(
+          `/data-management/filtereddata`,
           {
             tableName,
             limit: 7,
@@ -206,6 +199,7 @@ const TasksPage = ({
           columnSetting={columnSetting}
           filterTableBasedonSearchTerm={filterTableBasedonSearchTerm}
           setColumnSetting={setColumnSetting}
+          tableName={tableName}
         ></TableConfigFilter>
       )}
       {showTableData && (

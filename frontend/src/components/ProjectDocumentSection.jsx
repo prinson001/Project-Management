@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Upload, X } from "lucide-react";
-import axios from "axios";
+import { Link } from "react-router-dom";
+import axiosInstance from "../axiosInstance";
+import { supabase } from "../libs/supabase";
 import { toast } from "sonner";
 
 const PORT = import.meta.env.VITE_PORT;
@@ -20,38 +22,34 @@ const ProjectDocumentSection = ({
   // Fetch document templates and merge with uploaded documents
   const getCurrentPhaseDocumentTemplates = async () => {
     try {
-      const result = await axios.post(
-        `http://localhost:${PORT}/data-management/getCurrentPhaseDocumentTemplates`,
-        { phase: projectPhase }
+      const result = await axiosInstance.post(
+        `/data-management/getCurrentPhaseDocumentTemplates`,
+        {
+          phase: projectPhase,
+        }
       );
-      const templates = result.data.data;
+      console.log("The retrieved documents:", result.data.data);
+      setDocuments(result.data.data);
+    } catch (e) {
+      console.error("Error retrieving document templates:", e);
+    }
+  };
 
-      // If projectId exists, fetch uploaded documents and merge with templates
-      if (projectId) {
-        const uploadedDocsResponse = await axios.post(
-          `http://localhost:${PORT}/data-management/getProjectDocuments`,
-          { project_id: projectId }
-        );
-        const uploadedDocs = uploadedDocsResponse.data.result;
-        console.log(uploadedDocs);
-        // Merge templates with uploaded documents
-        const mergedDocuments = templates.map((template) => {
-          const uploadedDoc = uploadedDocs.find((doc) => doc.template_id === template.id);
-          return uploadedDoc
-            ? { ...template, file: uploadedDoc.file, date: uploadedDoc.uploaded_date }
-            : template;
-        });
-
-        setDocumentsState(mergedDocuments);
-        setDocuments(mergedDocuments);
-      } else {
-        // For new projects, just set the templates
-        setDocumentsState(templates);
-        setDocuments(templates);
-      }
-    } catch (error) {
-      console.error("Error retrieving document templates:", error);
-      toast.error("Failed to load document templates");
+  const getCurrentPhaseUploadedProjectDocuments = async () => {
+    try {
+      const result = await axiosInstance.post(
+        "http://localhost:4000/data-management/getCurrentPhaseUploadedProjectDocuments",
+        {
+          phase: projectPhase,
+          projectId,
+        }
+      );
+      console.log("The retrieved project documents:", result);
+    } catch (e) {
+      console.log(
+        "There was an error retrieving project documents:",
+        e.message
+      );
     }
   };
 
@@ -74,27 +72,34 @@ const ProjectDocumentSection = ({
     setDocuments(newDocs);
   };
 
-  // Handle file removal
-  const handleRemove = async (index) => {
-    const newDocs = [...documents];
-    const fileToRemove = newDocs[index].file;
+  const uploadDocuments = async (projectId) => {
+    console.log("Uploading documents for project ID:", projectId);
+    for (const { index, file } of localFiles) {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("project_id", projectId);
+      formData.append("template_id", documents[index].id);
 
-    if (projectId && fileToRemove) {
-      try {
-        // Call API to delete the document from the server
-        await axios.post(`http://localhost:${PORT}/data-management/deleteProjectDocument`, {
-          project_id: projectId,
-          document_id: fileToRemove.id, // Assuming the file object has an `id`
-        });
-        toast.success("Document deleted successfully");
-      } catch (error) {
-        console.error("Error deleting document:", error);
-        toast.error("Failed to delete document");
-        return;
+      const uploadResponse = await axiosInstance.post(
+        `/data-management/addProjectDocument`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      if (uploadResponse.data && uploadResponse.data.status !== "success") {
+        throw new Error(
+          `Failed to upload document: ${uploadResponse.data.message}`
+        );
       }
     }
+  };
 
-    // Update local state
+  const handleRemove = (index) => {
+    const newDocs = [...documents];
     newDocs[index].file = null;
     newDocs[index].date = null;
     setLocalFiles((prev) => prev.filter((file) => file.index !== index));
@@ -119,7 +124,9 @@ const ProjectDocumentSection = ({
           {documents.map((doc, index) => (
             <tr key={index} className="border">
               <td className="p-2 border">{doc.name}</td>
-              <td className="p-2 border">{doc.isrequired ? "Yes" : "Optional"}</td>
+              <td className="p-2 border">
+                {doc.isrequired ? "Yes" : "Optional"}
+              </td>
               <td className="p-2 border">{doc.file ? doc.file.name : "-"}</td>
               <td className="p-2 border">{doc.date || "-"}</td>
               <td className="p-2 border flex items-center gap-2">
@@ -143,6 +150,7 @@ const ProjectDocumentSection = ({
           ))}
         </tbody>
       </table>
+      <div className="flex justify-between w-full mt-4"></div>
     </div>
   );
 };

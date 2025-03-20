@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { ChevronUp } from "lucide-react";
 import Datepicker from "react-tailwindcss-datepicker";
 import { Controller, useForm } from "react-hook-form";
-import axios from "axios";
+import axiosInstance from "../axiosInstance";
 import { addDays, addWeeks, addMonths, format } from "date-fns";
 import { toast } from "sonner"; // For notifications
 
@@ -35,8 +35,8 @@ const SchedulePlanSection = ({ projectId, onScheduleChange }) => {
   useEffect(() => {
     const fetchPhaseDurations = async () => {
       try {
-        const response = await axios.post(
-          `http://localhost:${PORT}/data-management/getPhaseDurationsByBudget`,
+        const response = await axiosInstance.post(
+          `/data-management/getPhaseDurationsByBudget`,
           {
             budget: budget,
           }
@@ -324,8 +324,8 @@ const SchedulePlanSection = ({ projectId, onScheduleChange }) => {
       return;
     }
     try {
-      const response = await axios.post(
-        `http://localhost:${PORT}/data-management/upsertSchedulePlan`,
+      const response = await axiosInstance.post(
+        `/data-management/upsertSchedulePlan`,
         {
           projectId,
           schedule: scheduleTableData,

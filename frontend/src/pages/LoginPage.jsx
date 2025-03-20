@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "../store/authStore";
-import axios from "axios";
+import axiosInstance from "../axiosInstance";
 import logo from "../assets/rakias-logo.png"; // Adjust the path to your logo image
 const PORT = import.meta.env.VITE_PORT;
 
@@ -16,7 +16,7 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post(`http://localhost:${PORT}/auth/login`, {
+      const response = await axiosInstance.post(`/auth/login`, {
         email,
         password,
       });
@@ -25,11 +25,11 @@ const LoginPage = () => {
         const data = response.data;
         console.log("Data", data);
         setToken(data.token);
-        
+
         // Store the user role
         const userRole = data.role;
         setRole(userRole);
-        
+
         // Redirect based on role
         switch (userRole) {
           case "PM":

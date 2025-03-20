@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axiosInstance from "../axiosInstance";
 import UpdateDynamicForm from "./UpdateDynamicForm";
 import {
   ChevronDown,
@@ -30,8 +30,8 @@ function ProgramAccordion({ data, title }) {
     setError(null);
 
     try {
-      const result = await axios.post(
-        "http://localhost:4001/data-management/getProgramWithRelatedData",
+      const result = await axiosInstance.post(
+        "/data-management/getProgramWithRelatedData",
         {
           programId: data.id,
         }

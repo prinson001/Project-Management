@@ -1,5 +1,6 @@
 import { constructNow } from "date-fns";
 import React, { useState, useEffect, useRef } from "react";
+import axiosInstance from "../axiosInstance";
 
 let dateToggler = false;
 
@@ -11,6 +12,7 @@ const TableConfigFilter = ({
   columnSetting,
   setColumnSetting,
   filterBasedOnDays,
+  tableName,
 }) => {
   const [selectedOption, setSelectedOption] = useState("All");
   const [selectedOption2, setSelectedOption2] = useState("Select Filter");
@@ -162,6 +164,25 @@ const TableConfigFilter = ({
 
     console.log(data);
     setColumnSetting((state) => data);
+  }
+
+  async function handleTableSettingChanges() {
+    console.log("called");
+    try {
+      const result = await axiosInstance.post(
+        "/data-management/upsertTableSetting",
+        {
+          setting: { setting: columnSetting, tableName },
+          user_id: 7,
+          table_name: tableName,
+        }
+      );
+      console.log("success");
+      console.log(result);
+    } catch (e) {
+      console.log("there was an errror saving the table setting");
+      console.log(e);
+    }
   }
 
   return (
@@ -327,6 +348,12 @@ const TableConfigFilter = ({
                         </li>
                       ))}
                     </ul>
+                    <button
+                      className="p-2 bg-gray-300 mx-auto my-4 block rounded-sm cursor-pointer"
+                      onClick={handleTableSettingChanges}
+                    >
+                      Save Setting
+                    </button>
                   </div>
                 )}
               </div>

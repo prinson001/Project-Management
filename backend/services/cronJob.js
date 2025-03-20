@@ -5,6 +5,7 @@ function initCronJobs() {
   console.log("Initializing cron jobs...");
 
   async function updateOverdueTasks() {
+    console.log("running");
     try {
       const result = await sql`
         UPDATE tasks
@@ -21,7 +22,7 @@ function initCronJobs() {
     }
   }
 
-  cron.schedule("5 0 * * *", updateOverdueTasks, {
+  cron.schedule("39 10 * * *", updateOverdueTasks, {
     timezone: "Asia/Kolkata",
   });
 

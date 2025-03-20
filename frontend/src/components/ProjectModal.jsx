@@ -5,7 +5,7 @@ import Datepicker from "react-tailwindcss-datepicker";
 import ProjectDocumentSection from "./ProjectDocumentSection";
 import { toast } from "sonner";
 import useAuthStore from "../store/authStore";
-import axios from "axios";
+import axiosInstance from "../axiosInstance";
 import SchedulePlanSection from "./SchedulePlanSection";
 const PORT = import.meta.env.VITE_PORT;
 
@@ -196,8 +196,8 @@ const ProjectModal = ({
   useEffect(() => {
     const fetchPhaseDurations = async () => {
       try {
-        const response = await axios.get(
-          `http://localhost:${PORT}/data-management/phase-durations`
+        const response = await axiosInstance.get(
+          `/data-management/phase-durations`
         );
         if (response.data && response.data.status === "success") {
           setPhaseDurations(response.data.data);
@@ -231,22 +231,22 @@ const ProjectModal = ({
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        const response = await axios.post(
-          `http://localhost:${PORT}/data-management/getDepartments`,
+        const response = await axiosInstance.post(
+          `/data-management/getDepartments`,
           {},
           {
             headers: {
-              'Content-Type': 'application/json'
-            }
+              "Content-Type": "application/json",
+            },
           }
         );
         if (response.data && response.data.status === "success") {
           // Transform the departments data to include a checked property
-          const departmentsWithChecked = response.data.result.map(dept => ({
+          const departmentsWithChecked = response.data.result.map((dept) => ({
             id: dept.id,
             name: dept.name,
             arabic_name: dept.arabic_name,
-            checked: false
+            checked: false,
           }));
           setDepartments(departmentsWithChecked);
           console.log("Departments");
@@ -257,7 +257,7 @@ const ProjectModal = ({
         toast.error("Failed to load departments");
       }
     };
-  
+
     fetchDepartments();
   }, []);
 
@@ -265,8 +265,8 @@ const ProjectModal = ({
   useEffect(() => {
     const fetchInitiatives = async () => {
       try {
-        const response = await axios.post(
-          `http://localhost:${PORT}/data-management/getInitiatives`
+        const response = await axiosInstance.post(
+          `/data-management/getInitiatives`
         );
         if (response.data && response.data.status === "success") {
           setInitiatives(response.data.result);
@@ -277,7 +277,7 @@ const ProjectModal = ({
         toast.error("Failed to load initiatives");
       }
     };
-  
+
     fetchInitiatives();
   }, []);
 
@@ -285,8 +285,8 @@ const ProjectModal = ({
   useEffect(() => {
     const fetchPortfolios = async () => {
       try {
-        const response = await axios.post(
-          `http://localhost:${PORT}/data-management/getPortfolios`
+        const response = await axiosInstance.post(
+          `/data-management/getPortfolios`
         );
         if (response.data && response.data.status === "success") {
           setPortfolios(response.data.result);
@@ -297,7 +297,7 @@ const ProjectModal = ({
         toast.error("Failed to load portfolios");
       }
     };
-  
+
     fetchPortfolios();
   }, []);
 
@@ -305,13 +305,13 @@ const ProjectModal = ({
   useEffect(() => {
     const fetchPrograms = async () => {
       try {
-        const response = await axios.post(
-          `http://localhost:${PORT}/data-management/getPrograms`,
+        const response = await axiosInstance.post(
+          `/data-management/getPrograms`,
           {},
           {
             headers: {
-              'Content-Type': 'application/json'
-            }
+              "Content-Type": "application/json",
+            },
           }
         );
         if (response.data && response.data.status === "success") {
@@ -323,7 +323,7 @@ const ProjectModal = ({
         toast.error("Failed to load programs");
       }
     };
-  
+
     fetchPrograms();
   }, []);
 
@@ -331,8 +331,8 @@ const ProjectModal = ({
   useEffect(() => {
     const fetchVendors = async () => {
       try {
-        const response = await axios.post(
-          `http://localhost:${PORT}/data-management/getVendors`
+        const response = await axiosInstance.post(
+          `/data-management/getVendors`
         );
         if (response.data && response.data.status === "success") {
           setVendors(response.data.result);
@@ -343,7 +343,7 @@ const ProjectModal = ({
         toast.error("Failed to load vendors");
       }
     };
-  
+
     fetchVendors();
   }, []);
 
@@ -351,16 +351,16 @@ const ProjectModal = ({
   useEffect(() => {
     const fetchObjectives = async () => {
       try {
-        const response = await axios.post(
-          `http://localhost:${PORT}/data-management/getObjectives`
+        const response = await axiosInstance.post(
+          `/data-management/getObjectives`
         );
         if (response.data && response.data.status === "success") {
           // Transform the objectives data to include a checked property
-          const objectivesWithChecked = response.data.result.map(obj => ({
+          const objectivesWithChecked = response.data.result.map((obj) => ({
             id: obj.id,
             text: obj.name,
             arabic_text: obj.arabic_name,
-            checked: false
+            checked: false,
           }));
           setObjectives(objectivesWithChecked);
           // Update the form's objectives state
@@ -372,7 +372,7 @@ const ProjectModal = ({
         toast.error("Failed to load objectives");
       }
     };
-  
+
     fetchObjectives();
   }, [setValue]);
 
@@ -380,7 +380,9 @@ const ProjectModal = ({
   useEffect(() => {
     const fetchProjectPhases = async () => {
       try {
-        const response = await axios.post(`http://localhost:${PORT}/data-management/getProjectPhases`);
+        const response = await axios.post(
+          `http://localhost:${PORT}/data-management/getProjectPhases`
+        );
         if (response.data.status === "success") {
           setProjectPhases(response.data.result);
         } else {
@@ -399,7 +401,9 @@ const ProjectModal = ({
   useEffect(() => {
     const fetchProjectTypes = async () => {
       try {
-        const response = await axios.post(`http://localhost:${PORT}/data-management/getProjectTypes`);
+        const response = await axios.post(
+          `http://localhost:${PORT}/data-management/getProjectTypes`
+        );
         if (response.data.status === "success") {
           setProjectTypes(response.data.result);
         } else {
@@ -414,23 +418,23 @@ const ProjectModal = ({
     fetchProjectTypes();
   }, []);
 
-const handleScheduleChange = (data) => {
-  setScheduleTableData(data);
-};
+  const handleScheduleChange = (data) => {
+    setScheduleTableData(data);
+  };
 
   // Handle form submission
   const onSubmit = async (data) => {
     console.log("Form submitted:", data);
-  
+
     try {
       // Get selected department IDs
       const selectedDepartmentIds = getSelectedDepartmentIds();
-      
+
       // Get selected objective IDs
       const selectedObjectiveIds = objectives
-        .filter(obj => obj.checked)
-        .map(obj => obj.id);
-      
+        .filter((obj) => obj.checked)
+        .map((obj) => obj.id);
+
       // Prepare data for submission
       const projectData = {
         name: data.name,
@@ -443,20 +447,27 @@ const handleScheduleChange = (data) => {
         program_id: parseInt(data.programName) || null,
         category: data.projectCategory,
         project_manager_id: parseInt(data.projectManager) || null,
-        alternative_project_manager_id: parseInt(data.alternativeProjectManager) || null,
+        alternative_project_manager_id:
+          parseInt(data.alternativeProjectManager) || null,
         vendor_id: parseInt(data.vendorName) || null,
         beneficiary_departments: selectedDepartmentIds,
         objectives: selectedObjectiveIds,
-        project_budget: data.plannedBudget ? parseFloat(data.plannedBudget) : null,
-        approved_project_budget: data.approvedBudget ? parseFloat(data.approvedBudget) : null,
+        project_budget: data.plannedBudget
+          ? parseFloat(data.plannedBudget)
+          : null,
+        approved_project_budget: data.approvedBudget
+          ? parseFloat(data.approvedBudget)
+          : null,
         execution_start_date: data.execution_start_date?.startDate || null,
-        execution_duration: data.execution_duration ? `${data.execution_duration} days` : null,
+        execution_duration: data.execution_duration
+          ? `${data.execution_duration} days`
+          : null,
         maintenance_duration: data.maintenance_duration ? `30 days` : null,
       };
-  
+
       // Step 1: Save the project
-      const projectResponse = await axios.post(
-        `http://localhost:${PORT}/data-management/addProject`,
+      const projectResponse = await axiosInstance.post(
+        `/data-management/addProject`,
         {
           data: projectData,
           userId: 1, // Replace with actual user ID
@@ -468,22 +479,22 @@ const handleScheduleChange = (data) => {
           },
         }
       );
-  
+
       if (projectResponse.data && projectResponse.data.status === "success") {
         const projectId = projectResponse.data.result.id; // Get the projectId from the response
-  
+
         // Step 2: Upload documents
         await uploadDocuments(projectId, localFiles); // Use localFiles defined in ProjectModal
-  
+
         // Step 3: Save the schedule plan
-        const schedulePlanResponse = await axios.post(
-          `http://localhost:${PORT}/data-management/upsertSchedulePlan`,
+        const schedulePlanResponse = await axiosInstance.post(
+          `/data-management/upsertSchedulePlan`,
           {
             projectId,
             schedule: scheduleTableData, // Pass the schedule data from SchedulePlanSection
           }
         );
-  
+
         if (
           schedulePlanResponse.data &&
           schedulePlanResponse.data.status === "success"
@@ -496,12 +507,16 @@ const handleScheduleChange = (data) => {
           );
         }
       } else {
-        throw new Error(projectResponse.data?.message || "Failed to add project");
+        throw new Error(
+          projectResponse.data?.message || "Failed to add project"
+        );
       }
     } catch (error) {
       console.error("Project submission error:", error);
       const errorMessage =
-        error.response?.data?.message || error.message || "Failed to add project";
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to add project";
       toast.error(errorMessage);
     }
   };
@@ -544,8 +559,8 @@ const handleScheduleChange = (data) => {
 
   // Toggle objective
   const toggleObjective = (objectiveId) => {
-    setObjectives(prevObjectives => 
-      prevObjectives.map(obj => 
+    setObjectives((prevObjectives) =>
+      prevObjectives.map((obj) =>
         obj.id === objectiveId ? { ...obj, checked: !obj.checked } : obj
       )
     );
@@ -553,8 +568,8 @@ const handleScheduleChange = (data) => {
 
   // Function to handle department selection
   const handleDepartmentChange = (deptId) => {
-    setDepartments(prevDepartments => 
-      prevDepartments.map(dept => 
+    setDepartments((prevDepartments) =>
+      prevDepartments.map((dept) =>
         dept.id === deptId ? { ...dept, checked: !dept.checked } : dept
       )
     );
@@ -562,14 +577,12 @@ const handleScheduleChange = (data) => {
 
   // Function to get selected department IDs for submission
   const getSelectedDepartmentIds = () => {
-    return departments
-      .filter(dept => dept.checked)
-      .map(dept => dept.id);
+    return departments.filter((dept) => dept.checked).map((dept) => dept.id);
   };
 
   const uploadDocuments = async (projectId, localFiles) => {
     console.log("Uploading documents for project ID:", projectId);
-    
+
     if (localFiles.length === 0) {
       console.warn("No files to upload.");
       return; // Exit if there are no files to upload
@@ -585,21 +598,27 @@ const handleScheduleChange = (data) => {
       }
 
       const formData = new FormData();
-      formData.append('file', file); // Ensure this line is correct
-      formData.append('project_id', projectId);
-      formData.append('template_id', documents[index].id); // Ensure template_id is set
-      formData.append('phase', currentPhase); // Add the current phase to FormData
+      formData.append("file", file); // Ensure this line is correct
+      formData.append("project_id", projectId);
+      formData.append("template_id", documents[index].id); // Ensure template_id is set
+      formData.append("phase", currentPhase); // Add the current phase to FormData
 
       console.log("FormData before upload:", formData); // Debugging line
 
-      const uploadResponse = await axios.post(`http://localhost:${PORT}/data-management/addProjectDocument`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const uploadResponse = await axiosInstance.post(
+        `/data-management/addProjectDocument`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
       if (uploadResponse.data && uploadResponse.data.status !== "success") {
-        throw new Error(`Failed to upload document: ${uploadResponse.data.message}`);
+        throw new Error(
+          `Failed to upload document: ${uploadResponse.data.message}`
+        );
       }
     }
   };
@@ -698,7 +717,11 @@ const handleScheduleChange = (data) => {
                   rules={{ required: "Project type is required" }}
                   render={({ field }) => (
                     <select
-                      className={`w-full p-2 border ${errors.projectType ? "border-red-500" : "border-gray-300"} rounded appearance-none bg-white`}
+                      className={`w-full p-2 border ${
+                        errors.projectType
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      } rounded appearance-none bg-white`}
                       {...field}
                     >
                       <option value="">Select Project Type</option>
@@ -731,7 +754,11 @@ const handleScheduleChange = (data) => {
                   rules={{ required: "Current phase is required" }}
                   render={({ field }) => (
                     <select
-                      className={`w-full p-2 border ${errors.currentPhase ? "border-red-500" : "border-gray-300"} rounded appearance-none bg-white`}
+                      className={`w-full p-2 border ${
+                        errors.currentPhase
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      } rounded appearance-none bg-white`}
                       {...field}
                     >
                       <option value="">Select Current Phase</option>
@@ -802,7 +829,10 @@ const handleScheduleChange = (data) => {
                           <option value="">Select Portfolio</option>
                           {portfolios.map((portfolio) => (
                             <option key={portfolio.id} value={portfolio.id}>
-                              {portfolio.name} {portfolio.portfolio_manager ? `(${portfolio.first_name} ${portfolio.family_name})` : ''}
+                              {portfolio.name}{" "}
+                              {portfolio.portfolio_manager
+                                ? `(${portfolio.first_name} ${portfolio.family_name})`
+                                : ""}
                             </option>
                           ))}
                         </select>
@@ -831,12 +861,18 @@ const handleScheduleChange = (data) => {
                           <option value="">Select Program</option>
                           {programs.map((program) => (
                             <option key={program.id} value={program.id}>
-                              {program.name} 
-                              {program.initiative_id ? 
-                                initiatives.find(i => i.id === program.initiative_id) ? 
-                                  ` (${initiatives.find(i => i.id === program.initiative_id).name})` : 
-                                  ` (Initiative ID: ${program.initiative_id})` 
-                                : ''}
+                              {program.name}
+                              {program.initiative_id
+                                ? initiatives.find(
+                                    (i) => i.id === program.initiative_id
+                                  )
+                                  ? ` (${
+                                      initiatives.find(
+                                        (i) => i.id === program.initiative_id
+                                      ).name
+                                    })`
+                                  : ` (Initiative ID: ${program.initiative_id})`
+                                : ""}
                             </option>
                           ))}
                         </select>
@@ -970,13 +1006,15 @@ const handleScheduleChange = (data) => {
                               htmlFor={`dept-${dept.id}`}
                               className="text-sm text-gray-700 dark:text-gray-300"
                             >
-                              {dept.name} {dept.arabic_name ? `(${dept.arabic_name})` : ''}
+                              {dept.name}{" "}
+                              {dept.arabic_name ? `(${dept.arabic_name})` : ""}
                             </label>
                           </div>
                         ))
                       ) : (
                         <div className="text-center text-gray-500">
-                          No departments available. Please add departments first.
+                          No departments available. Please add departments
+                          first.
                         </div>
                       )}
                     </div>
@@ -1031,7 +1069,10 @@ const handleScheduleChange = (data) => {
                           <option value="">Select Vendor</option>
                           {vendors.map((vendor) => (
                             <option key={vendor.id} value={vendor.id}>
-                              {vendor.name} {vendor.arabic_name ? `(${vendor.arabic_name})` : ''}
+                              {vendor.name}{" "}
+                              {vendor.arabic_name
+                                ? `(${vendor.arabic_name})`
+                                : ""}
                             </option>
                           ))}
                         </select>
@@ -1056,7 +1097,10 @@ const handleScheduleChange = (data) => {
                 <div className="border border-gray-300 rounded p-2 max-h-40 overflow-y-auto">
                   {objectives.length > 0 ? (
                     objectives.map((objective) => (
-                      <div key={objective.id} className="flex items-center mb-1">
+                      <div
+                        key={objective.id}
+                        className="flex items-center mb-1"
+                      >
                         <input
                           readOnly={readOnly}
                           type="checkbox"
@@ -1066,7 +1110,10 @@ const handleScheduleChange = (data) => {
                           className="mr-2"
                         />
                         <label htmlFor={`obj-${objective.id}`}>
-                          {objective.text} {objective.arabic_text ? `(${objective.arabic_text})` : ''}
+                          {objective.text}{" "}
+                          {objective.arabic_text
+                            ? `(${objective.arabic_text})`
+                            : ""}
                         </label>
                       </div>
                     ))
@@ -1227,8 +1274,9 @@ const handleScheduleChange = (data) => {
                         </div>
                     )} */}
 
-          {shouldShowSection("schedule") &&   <SchedulePlanSection onScheduleChange={handleScheduleChange} />
-        }
+          {shouldShowSection("schedule") && (
+            <SchedulePlanSection onScheduleChange={handleScheduleChange} />
+          )}
           {/* Internal Project Schedule Plan */}
           {shouldShowSection("internalSchedule") && (
             <div className="mb-6 border-t pt-4">
@@ -1370,14 +1418,14 @@ const handleScheduleChange = (data) => {
               setLocalFiles={setLocalFiles}
             /> */}
 
-          <ProjectDocumentSection
-            projectPhase={watch(currentPhase)} // Pass the current phase
-            formMethods={{ setValue, watch }}
-            documents={documents}
-            setDocuments={setDocuments}
-            localFiles={localFiles}
-            setLocalFiles={setLocalFiles}
-          />
+            <ProjectDocumentSection
+              projectPhase={watch(currentPhase)} // Pass the current phase
+              formMethods={{ setValue, watch }}
+              documents={documents}
+              setDocuments={setDocuments}
+              localFiles={localFiles}
+              setLocalFiles={setLocalFiles}
+            />
           </div>
           {/* Form Footer */}
           {showButtons && (

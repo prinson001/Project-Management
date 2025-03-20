@@ -1,14 +1,24 @@
-import React, { useState, useEffect } from "react";
-import { differenceInCalendarDays } from "date-fns";
-import { Edit, Trash2, ChevronDown, ChevronsUpDown } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { format, differenceInCalendarDays } from "date-fns";
+import {
+  Edit,
+  Trash2,
+  ChevronDown,
+  Stethoscope,
+  ChevronsUpDown,
+  ExternalLink,
+} from "lucide-react";
+import UserAccordion from "./UserAccordion";
+import BoqTaskAccordion from "../components/BoqTaskAccordion";
+import ProjectCreationAccordion from "../components/ProjectCreationAccordion";
+import DeliverableAccordion2 from "../components/DeliverableAccordion2";
+import DeliverableAccordion from "../components/DeliverableAccordion";
+import UpdateDynamicForm from "./UpdateDynamicForm";
 import InitiativeAccordion from "./initiativeAccordion";
 import PortfolioAccordion from "./portfolioAccordion";
 import ProgramAccordion from "./programAccordion";
 import TeamAccordion from "./TeamAccordion";
-import BoqTaskAccordion from "../components/BoqTaskAccordion";
-import ProjectCreationAccordion from "../components/ProjectCreationAccordion";
-import DeliverableAccordion2 from "../components/DeliverableAccordion2";
-import axios from "axios";
+import axiosInstance from "../axiosInstance";
 import Loader from "./Loader";
 import UpdateProjectModal from "./UpdateProjectModal";
 import UpdateDynamicForm from "./UpdateDynamicForm";
@@ -62,9 +72,12 @@ const TableData = ({
     const { id, ...updatedData } = formData;
     toggleForm(-1);
     try {
-      const result = await axios.post(
-        `http://localhost:${PORT}/data-management/update${tableName}`,
-        { id, data: updatedData }
+      const result = await axiosInstance.post(
+        `/data-management/update${tableName}`,
+        {
+          id,
+          data: updatedData,
+        }
       );
       if (result.status === 200) {
         setTableData((prevData) =>
@@ -81,8 +94,8 @@ const TableData = ({
 
   const handleDeleteClick = async (id) => {
     try {
-      await axios.post(
-        `http://localhost:${PORT}/data-management/delete${tableName}`,
+      const result = await axiosInstance.post(
+        `/data-management/delete${tableName}`,
         { id }
       );
       setTableData((prevData) => prevData.filter((e) => e.id !== id));
@@ -132,10 +145,10 @@ const TableData = ({
   const handleBackendSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(
-        `http://localhost:${PORT}/admin/updateactivityduration`,
-        { data: changedinput }
-      );
+      const result = await axiosInstance.post(`/admin/updateactivityduration`, {
+        data: changedinput,
+      });
+      console.log(result);
     } catch (e) {
       console.log("Error submitting changes:", e);
     }
@@ -200,7 +213,9 @@ const TableData = ({
                       style={{ width: `${columnWidths[column.dbColumn]}px` }}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="truncate pr-1">{column.columnName}</span>
+                        <span className="truncate pr-1">
+                          {column.columnName}
+                        </span>
                         <ChevronsUpDown
                           className="mr-4 cursor-pointer"
                           data-name={column.dbColumn}
@@ -209,9 +224,13 @@ const TableData = ({
                         />
                         <div
                           className={`absolute right-0 top-0 h-full w-4 cursor-col-resize hover:bg-gray-300 dark:hover:bg-gray-600 ${
-                            resizingColumn === column.dbColumn ? "bg-blue-400 opacity-50" : ""
+                            resizingColumn === column.dbColumn
+                              ? "bg-blue-400 opacity-50"
+                              : ""
                           }`}
-                          onMouseDown={(e) => handleResizeStart(e, column.dbColumn)}
+                          onMouseDown={(e) =>
+                            handleResizeStart(e, column.dbColumn)
+                          }
                         />
                       </div>
                     </th>
@@ -223,7 +242,10 @@ const TableData = ({
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={visibleColumns.length + 1} className="text-center py-4">
+                <td
+                  colSpan={visibleColumns.length + 1}
+                  className="text-center py-4"
+                >
                   <Loader />
                 </td>
               </tr>
@@ -235,23 +257,28 @@ const TableData = ({
                       (column) =>
                         column.isVisible && (
                           <td
-                            key={`${item.id}-${column.dbColumn}`}
-                            className={`px-2 h-16 border-r border-gray-200 dark:border-gray-700 ${
-                              changedinput[item.id]?.[column.dbColumn] !== undefined &&
-                              changedinput[item.id][column.dbColumn] !== item[column.dbColumn]
+                            key={`${index}-${column.dbColumn}`}
+                            className={`px-2 h-16 border-r border-gray-200 overflow-hidden dark:border-gray-700 ${
+                              changedinput[item.id]?.[column.dbColumn] !==
+                                undefined &&
+                              changedinput[item.id][column.dbColumn] !==
+                                item[column.dbColumn]
                                 ? "bg-amber-100 border-2 border-amber-500"
                                 : ""
                             }`}
-                            style={{ width: `${columnWidths[column.dbColumn]}px` }}
+                            style={{
+                              width: `${columnWidths[column.dbColumn]}px`,
+                            }}
                           >
-                            {tableName === "document" && column.dbColumn === "name" ? (
+                            {tableName === "document" &&
+                            column.dbColumn === "document_url" ? (
                               <a
                                 href={item.document_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-blue-600 hover:underline cursor-pointer"
                               >
-                                {item[column.dbColumn]}
+                                <ExternalLink />
                               </a>
                             ) : column.isInput ? (
                               column.dbColumn === "created_date" ||
@@ -270,7 +297,8 @@ const TableData = ({
                                   data-rowid={item.id}
                                   onChange={handleInputDataChange}
                                   value={
-                                    changedinput[item.id]?.[column.dbColumn] ?? item[column.dbColumn]
+                                    changedinput[item.id]?.[column.dbColumn] ??
+                                    item[column.dbColumn]
                                   }
                                 />
                               )
@@ -283,25 +311,41 @@ const TableData = ({
                                 getRelativeDate(item[column.dbColumn])
                               )
                             ) : (
-                              <span className="truncate block">{item[column.dbColumn]}</span>
+                              <span className="truncate block">
+                                {item[column.dbColumn]}
+                              </span>
                             )}
                           </td>
                         )
                     )}
                     <td className="px-2 h-16 text-center">
                       <div className="flex items-center justify-center space-x-2">
-                        <button
-                          onClick={() => toggleForm(index)}
-                          className="text-blue-500 hover:text-blue-700"
-                        >
-                          <Edit className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClick(item.id)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
+                        {tableName === "document" && (
+                          <a
+                            href={item.document_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline cursor-pointer"
+                          >
+                            <ExternalLink className="w-6 h-5" />
+                          </a>
+                        )}
+                        {tableName !== "tasks" && (
+                          <button
+                            onClick={() => toggleForm(index)}
+                            className="text-blue-500 hover:text-blue-700"
+                          >
+                            <Edit className="w-5 h-5" />
+                          </button>
+                        )}
+                        {tableName !== "tasks" && (
+                          <button
+                            onClick={() => handleDeleteClick(item.id)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        )}
                         <button
                           onClick={() => toggleAccordion(index)}
                           className="text-gray-500 hover:text-gray-700"
@@ -319,7 +363,9 @@ const TableData = ({
                     <tr>
                       <td colSpan={visibleColumns.length + 1} className="p-0">
                         <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 dark:text-white">
-                          {item.title === "Approve Project Creation" && <ProjectCreationAccordion />}
+                          {item.title === "Approve Project Creation" && (
+                            <ProjectCreationAccordion />
+                          )}
                           {item.title === "Upload BOQ" && (
                             <BoqTaskAccordion
                               parentId={item.id}
@@ -339,21 +385,33 @@ const TableData = ({
                   {tableName === "initiative" && openAccordion === index && (
                     <tr>
                       <td colSpan={visibleColumns.length + 1} className="p-0">
-                        <InitiativeAccordion tableName="initiative" data={item} title="Initiative details" />
+                        <InitiativeAccordion
+                          tableName="initiative"
+                          data={item}
+                          title="Initiative details"
+                        />
                       </td>
                     </tr>
                   )}
                   {tableName === "portfolio" && openAccordion === index && (
                     <tr>
                       <td colSpan={visibleColumns.length + 1} className="p-0">
-                        <PortfolioAccordion tableName="portfolio" data={item} title="Portfolio details" />
+                        <PortfolioAccordion
+                          tableName="portfolio"
+                          data={item}
+                          title="Portfolio details"
+                        />
                       </td>
                     </tr>
                   )}
                   {tableName === "program" && openAccordion === index && (
                     <tr>
                       <td colSpan={visibleColumns.length + 1} className="p-0">
-                        <ProgramAccordion tableName="program" data={item} title="Program details" />
+                        <ProgramAccordion
+                          tableName="program"
+                          data={item}
+                          title="Program details"
+                        />
                       </td>
                     </tr>
                   )}
@@ -398,7 +456,12 @@ const TableData = ({
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>

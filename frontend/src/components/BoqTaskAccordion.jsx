@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import axios from "axios";
+import axiosInstance from "../axiosInstance";
 const PORT = import.meta.env.VITE_PORT;
 const BoqTaskAccordion = ({ parentId = null, projectBudget = 0 }) => {
   // State management
@@ -37,7 +37,7 @@ const BoqTaskAccordion = ({ parentId = null, projectBudget = 0 }) => {
   // Data fetching
   const fetchItems = async () => {
     try {
-      const { data } = await axios.post(`http://localhost:${PORT}/pm/getItems`, {
+      const { data } = await axiosInstance.post(`/pm/getItems`, {
         projectId: parentId,
       });
       console.log(data);
@@ -106,7 +106,7 @@ const BoqTaskAccordion = ({ parentId = null, projectBudget = 0 }) => {
       };
       console.log(payload);
       // API call
-      const { data } = await axios.post(`http://localhost:${PORT}/pm/saveItems`, {
+      const { data } = await axiosInstance.post(`/pm/saveItems`, {
         projectId: parentId,
         ...payload,
       });

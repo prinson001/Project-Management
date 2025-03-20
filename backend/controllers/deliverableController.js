@@ -11,7 +11,7 @@ const getItemsWithDeliverables = async (req, res) => {
               ) as deliverables
             FROM item i
             LEFT JOIN deliverable d ON d.item_id = i.id
-            WHERE i.project_id = 2
+            WHERE i.project_id = 2 AND i.type != 'Operation'
             GROUP BY i.id
           `;
 
@@ -74,7 +74,7 @@ const getDeliverables = async (req, res) => {
   }
   try {
     const result =
-      await sql`SELECT * FROM "deliverable" where item_id = ${itemId}`;
+      await sql`SELECT * FROM "deliverable" where item_id = ${itemId} `;
     res.status(200).json({
       status: "success",
       message: "tasks records fetched successfully",

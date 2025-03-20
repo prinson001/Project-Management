@@ -4,9 +4,8 @@ const sql = require("../database/db");
 //  @Route site.com/data-management//data
 const getData = async (req, res) => {
   let { tableName, userId, page = 1, limit = 4 } = req.body;
-  console.log("Table Name",tableName);
-  console.log("userId",userId);
- 
+  console.log("Table Name", tableName);
+  console.log("userId", userId);
 
   if (tableName == "document") {
     tableName = "document_template";
@@ -340,8 +339,21 @@ const getSetting = async (req, res) => {
     const result = await sql`SELECT * FROM "user_table_settings" 
           WHERE (("user_id" =${req.body.userId}) OR ("user_id" IS NULL AND "is_default" = TRUE))   AND table_name = ${req.body.tableName};
         `;
+
+    let finalResult = null;
+
+    if (result.length === 2) {
+      // Return the record with user_id if two records are found
+      finalResult = result.find((record) => record.user_id !== null);
+    } else if (result.length === 1) {
+      // If only one record is found, return that
+      finalResult = result[0];
+    }
+
     res.status(200);
-    res.json({ status: "success", message: "", result });
+    console.log(result);
+    console.log(finalResult);
+    res.json({ status: "success", message: "", result: [finalResult] });
   } catch (e) {
     res.status(500);
     res.json({
@@ -351,6 +363,7 @@ const getSetting = async (req, res) => {
     });
   }
 };
+
 const getUsers = async (req, res) => {
   try {
     const result = await sql`
@@ -373,4 +386,63 @@ const getUsers = async (req, res) => {
     });
   }
 };
-module.exports = { getData, getSetting, getFilteredData, getUsers };
+
+const upsertTableSetting = async (req, res) => {
+  const { user_id, table_name, setting } = req.body;
+
+  if (!table_name || !setting) {
+    return res.status(400).json({
+      status: "failure",
+      message: "Missing required fields: table_name, setting",
+    });
+  }
+
+  try {
+    // Check if the record already exists
+    const existingRecord = await sql`
+      SELECT id FROM user_table_settings 
+      WHERE user_id = ${user_id} 
+      AND table_name = ${table_name}
+    `;
+
+    let result;
+
+    if (existingRecord.length > 0) {
+      // Record exists → UPDATE
+      result = await sql`
+        UPDATE user_table_settings 
+        SET setting = ${sql.json(setting)}
+        WHERE user_id = ${user_id} AND table_name = ${table_name}
+        RETURNING *;
+      `;
+    } else {
+      // Record does not exist → INSERT
+      result = await sql`
+        INSERT INTO user_table_settings (user_id, table_name, setting, is_default)
+        VALUES (${user_id}, ${table_name}, ${sql.json(setting)} , FALSE)
+        RETURNING *;
+      `;
+    }
+
+    res.status(200).json({
+      status: "success",
+      message: "Table setting saved successfully",
+      result,
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({
+      status: "failure",
+      message: "Error saving table setting",
+      error: e.message,
+    });
+  }
+};
+
+module.exports = {
+  getData,
+  getSetting,
+  getFilteredData,
+  getUsers,
+  upsertTableSetting,
+};

@@ -111,7 +111,7 @@ const filterTasks = async (req, res) => {
     }
 
     // Add status filter
-    if (taskStatus && taskStatus.trim() !== "") {
+    if (taskStatus && taskStatus.trim() !== "" && taskStatus != "Open") {
       whereConditions.push(`tasks.status = $${whereConditions.length + 1}`);
       queryParams.push(taskStatus.trim());
     }

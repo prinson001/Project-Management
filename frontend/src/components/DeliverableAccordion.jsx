@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import axios from "axios";
+import axiosInstance from "../axiosInstance";
 const PORT = import.meta.env.VITE_PORT;
 
 const DeliverableAccordion = ({ parentId = 1, projectBudget = 10000 }) => {
@@ -39,12 +39,9 @@ const DeliverableAccordion = ({ parentId = 1, projectBudget = 10000 }) => {
   useEffect(() => {
     const fetchItems = async () => {
       try {
-        const { data } = await axios.post(
-          `http://localhost:${PORT}/pm/getDeliverables`,
-          {
-            itemId: parentId,
-          }
-        );
+        const { data } = await axiosInstance.post(`/pm/getDeliverables`, {
+          itemId: parentId,
+        });
         console.log(data);
         setItems(
           data.result?.map((item) => ({
@@ -152,13 +149,10 @@ const DeliverableAccordion = ({ parentId = 1, projectBudget = 10000 }) => {
 
       console.log(payload);
       // API call
-      const { data } = await axios.post(
-        `http://localhost:${PORT}/pm/saveDeliverables`,
-        {
-          itemId: parentId,
-          ...payload,
-        }
-      );
+      const { data } = await axiosInstance.post(`/pm/saveDeliverables`, {
+        itemId: parentId,
+        ...payload,
+      });
 
       console.log(data);
     } catch (err) {

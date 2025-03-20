@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios"; // Make sure to install axios
+import axiosInstance from "../axiosInstance"; // Make sure to install axiosInstance
 
 function TeamAccordion({ datas }) {
   const [data, setData] = useState({
@@ -12,10 +12,10 @@ function TeamAccordion({ datas }) {
 
   useEffect(() => {
     const fetchData = async () => {
-      console.log("the data recived", data);
+      console.log("the data recived", datas);
       try {
-        const response = await axios.post(
-          "http://localhost:4001/data-management/getUserRelatedEntities",
+        const response = await axiosInstance.post(
+          "/data-management/getUserRelatedEntities",
           {
             id: datas.id,
           }
@@ -45,7 +45,7 @@ function TeamAccordion({ datas }) {
       style={{
         display: "flex",
         gap: "16px",
-        height: "500px",
+        height: "300px",
         padding: "16px",
         backgroundColor: "#f5f5f5",
       }}
