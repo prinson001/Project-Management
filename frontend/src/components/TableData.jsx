@@ -21,7 +21,6 @@ import TeamAccordion from "./TeamAccordion";
 import axiosInstance from "../axiosInstance";
 import Loader from "./Loader";
 import UpdateProjectModal from "./UpdateProjectModal";
-import UpdateDynamicForm from "./UpdateDynamicForm";
 
 const PORT = import.meta.env.VITE_PORT;
 
