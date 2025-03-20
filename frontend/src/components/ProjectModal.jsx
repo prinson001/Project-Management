@@ -380,8 +380,8 @@ const ProjectModal = ({
   useEffect(() => {
     const fetchProjectPhases = async () => {
       try {
-        const response = await axios.post(
-          `http://localhost:${PORT}/data-management/getProjectPhases`
+        const response = await axiosInstance.post(
+          `/data-management/getProjectPhases`
         );
         if (response.data.status === "success") {
           setProjectPhases(response.data.result);
