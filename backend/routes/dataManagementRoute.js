@@ -46,13 +46,12 @@ const {
   deleteProject,
   getProjectById,
   updateProjectApprovalbyDeputy,
-  upsertSchedulePlan,
   getProjectPhases,
   getProjectPhase,
   getProjectTypes,
-  getPhases,
-  getSchedulePlan,
+  
 } = require("../controllers/projectController");
+const {getSchedulePlan,  upsertSchedulePlan,getPhases}=require("../controllers/schedulePlanController");
 
 const {
   addDepartment,
