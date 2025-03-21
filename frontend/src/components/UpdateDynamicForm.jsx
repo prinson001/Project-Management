@@ -155,6 +155,24 @@ const UpdateDynamicForm = ({
         className: "text-right",
       },
     ],
+    department: [
+      {
+        dbName: "name",
+        name:"departmentEnglishName",
+        label: "Department English Name",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
+      {
+        dbName: "arabic_name",
+        name:"departmentArabicName",
+        label: "اسم الإدارة بالعربي",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
+    ],
   });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -181,7 +199,7 @@ const UpdateDynamicForm = ({
   const formContent = (
     <form
       onSubmit={handleSubmit(handleFormSubmit)}
-      className="grid grid-cols-2 gap-4 p-4 bg-white shadow-md rounded-md w-full"
+      className="grid grid-cols-2 gap-4 p-4 bg-white dark:bg-gray-800 shadow-md rounded-md w-full"
     >
       {getFormFields()[tableName].map(
         (
@@ -203,13 +221,13 @@ const UpdateDynamicForm = ({
               className || ""
             }`}
           >
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
               {label}
             </label>
             {type === "select" ? (
               <select
                 {...register(dbName, { required })}
-                className="mt-1 w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500"
+                className="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
               >
                 <option value="">Select</option>
                 {options?.map((option, i) => (
@@ -221,14 +239,14 @@ const UpdateDynamicForm = ({
             ) : type === "textarea" ? (
               <textarea
                 {...register(dbName, { required })}
-                className="mt-1 w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500"
+                className="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 rows={4}
               />
             ) : (
               <input
                 type={type}
                 {...register(dbName, { required })}
-                className="mt-1 w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500"
+                className="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
               />
             )}
             {errors[dbName] && (
@@ -248,9 +266,10 @@ const UpdateDynamicForm = ({
       </div>
     </form>
   );
-
+  console.log(getFormFields()[tableName]);
   const viewContent = (
-    <div className="grid grid-cols-2 gap-4 p-4 bg-white shadow-md rounded-md w-full">
+   
+    <div className="grid grid-cols-2 gap-4 p-4 bg-white dark:bg-gray-800 shadow-md rounded-md w-full">
       {getFormFields()[tableName].map(
         ({ dbName, label, className, columnSpan }, index) => (
           <div
@@ -259,10 +278,10 @@ const UpdateDynamicForm = ({
               className || ""
             }`}
           >
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
               {label}
             </label>
-            <div className="mt-1 p-2 bg-gray-50 rounded-md text-gray-900 w-full">
+            <div className="mt-1 p-2 bg-gray-50 dark:bg-gray-700 rounded-md text-gray-900 dark:text-white w-full">
               {data?.[dbName] || "N/A"}
             </div>
           </div>
@@ -285,9 +304,9 @@ const UpdateDynamicForm = ({
       </button>
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex justify-center items-center">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl">
-            <h2 className="text-lg font-bold mb-4">{title || "Update Form"}</h2>
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 dark:bg-opacity-70 flex justify-center items-center">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg w-full max-w-2xl">
+            <h2 className="text-lg font-bold mb-4 dark:text-white">{title || "Update Form"}</h2>
             {formContent}
             <button
               onClick={closeModal}

@@ -24,6 +24,7 @@ const TasksPage = ({
   showTableConfigFilter = true,
   showTablePagination = true,
   accordionComponentName = null,
+  refreshTrigger,
 }) => {
   const [columnSetting, setColumnSetting] = useState([]);
   const [tableData, setTableData] = useState([]);
@@ -77,12 +78,11 @@ const TasksPage = ({
     }
     getSetting();
     getData();
-
     return () => {
       console.log("Component Unmounted!");
-      console.log("the tableName is" + tableName);
+      console.log("the tableName is " + tableName);
     };
-  }, []);
+  }, [tableName,refreshTrigger]); // Add tableName as a dependency
 
   async function getFilteredData() {
     if (tableName === "tasks") {

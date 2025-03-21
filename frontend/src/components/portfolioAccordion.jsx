@@ -114,24 +114,22 @@ function PortfolioAccordion({ data, title }) {
   }
 
   return (
-    <div className="w-full bg-white rounded-lg shadow-md">
+    <div className="w-full bg-white dark:bg-gray-800 rounded-lg shadow-md">
       {/* Initiative Section - if there is an initiative */}
       {portfolioData.initiative && (
-        <div className="border-b">
+        <div className="border-b dark:border-gray-700">
           <div
-            className="flex items-center p-4 bg-blue-50 cursor-pointer"
+            className="flex items-center p-4 bg-blue-50 dark:bg-blue-900/30 cursor-pointer"
             onClick={toggleInitiativeExpand}
           >
             {expandedInitiative ? (
-              <ChevronDown size={20} />
+              <ChevronDown size={20} className="dark:text-gray-200" />
             ) : (
-              <ChevronRight size={20} />
+              <ChevronRight size={20} className="dark:text-gray-200" />
             )}
-            <Layers className="ml-2 text-blue-600" size={20} />
-            <h2 className="text-lg font-semibold ml-2">
-              Initiative:{" "}
-              {portfolioData.initiative.name ||
-                `Initiative ${portfolioData.initiative.id}`}
+            <Layers className="ml-2 text-blue-600 dark:text-blue-400" size={20} />
+            <h2 className="text-lg font-semibold ml-2 dark:text-gray-200">
+              Initiative: {portfolioData.initiative.name || `Initiative ${portfolioData.initiative.id}`}
             </h2>
           </div>
 
@@ -151,22 +149,19 @@ function PortfolioAccordion({ data, title }) {
       )}
 
       {/* Portfolio Section */}
-      <div className="border-b">
+      <div className="border-b dark:border-gray-700">
         <div
-          className="flex items-center p-4 bg-amber-50 cursor-pointer"
+          className="flex items-center p-4 bg-amber-50 dark:bg-amber-900/30 cursor-pointer"
           onClick={togglePortfolioExpand}
         >
           {expandedPortfolio ? (
-            <ChevronDown size={20} />
+            <ChevronDown size={20} className="dark:text-gray-200" />
           ) : (
-            <ChevronRight size={20} />
+            <ChevronRight size={20} className="dark:text-gray-200" />
           )}
-          <FolderOpen className="ml-2 text-amber-600" size={20} />
-          <h2 className="text-lg font-semibold ml-2">
-            {title ||
-              `Portfolio: ${
-                portfolioData.portfolio.name || portfolioData.portfolio.id
-              }`}
+          <FolderOpen className="ml-2 text-amber-600 dark:text-amber-400" size={20} />
+          <h2 className="text-lg font-semibold ml-2 dark:text-gray-200">
+            {title || `Portfolio: ${portfolioData.portfolio.name || portfolioData.portfolio.id}`}
           </h2>
         </div>
 
@@ -186,24 +181,24 @@ function PortfolioAccordion({ data, title }) {
 
       {/* Programs Section */}
       <div className="ml-6">
-        <h3 className="font-semibold p-2 text-gray-700">
+        <h3 className="font-semibold p-2 text-gray-700 dark:text-gray-300">
           Programs ({portfolioData.programs?.length || 0})
         </h3>
 
         {portfolioData.programs?.length > 0 ? (
           portfolioData.programs.map((program) => (
-            <div key={program.id} className="mb-2 border rounded-md">
+            <div key={program.id} className="mb-2 border dark:border-gray-700 rounded-md">
               <div
-                className="flex items-center p-3 bg-gray-50 cursor-pointer"
+                className="flex items-center p-3 bg-gray-50 dark:bg-gray-700 cursor-pointer"
                 onClick={() => toggleProgramExpand(program.id)}
               >
                 {expandedPrograms[program.id] ? (
-                  <ChevronDown size={18} />
+                  <ChevronDown size={18} className="dark:text-gray-200" />
                 ) : (
-                  <ChevronRight size={18} />
+                  <ChevronRight size={18} className="dark:text-gray-200" />
                 )}
-                <Archive className="ml-2 text-purple-600" size={18} />
-                <h4 className="font-medium ml-2">
+                <Archive className="ml-2 text-purple-600 dark:text-purple-400" size={18} />
+                <h4 className="font-medium ml-2 dark:text-gray-200">
                   {program.name || `Program ${program.id}`}
                 </h4>
               </div>
@@ -221,7 +216,7 @@ function PortfolioAccordion({ data, title }) {
 
                   {/* Projects under this program */}
                   <div className="ml-4 mt-3">
-                    <h5 className="font-semibold text-sm text-gray-700">
+                    <h5 className="font-semibold text-sm text-gray-700 dark:text-gray-300">
                       Projects ({getRelatedProjects(program.id).length})
                     </h5>
 
@@ -229,11 +224,11 @@ function PortfolioAccordion({ data, title }) {
                       getRelatedProjects(program.id).map((project) => (
                         <div
                           key={project.id}
-                          className="mt-2 border rounded-md"
+                          className="mt-2 border dark:border-gray-700 rounded-md"
                         >
                           <div className="flex items-center p-2">
-                            <FileText className="text-green-600" size={16} />
-                            <h6 className="font-medium ml-2 text-sm">
+                            <FileText className="text-green-600 dark:text-green-400" size={16} />
+                            <h6 className="font-medium ml-2 text-sm dark:text-gray-200">
                               {project.name || `Project ${project.id}`}
                             </h6>
                           </div>
@@ -251,7 +246,7 @@ function PortfolioAccordion({ data, title }) {
                         </div>
                       ))
                     ) : (
-                      <div className="text-sm text-gray-500 p-1">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 p-1">
                         No projects found
                       </div>
                     )}
@@ -261,7 +256,7 @@ function PortfolioAccordion({ data, title }) {
             </div>
           ))
         ) : (
-          <div className="text-sm text-gray-500 p-2">No programs found</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400 p-2">No programs found</div>
         )}
       </div>
     </div>

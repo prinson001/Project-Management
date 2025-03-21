@@ -43,6 +43,7 @@ const DataManagementPage = () => {
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [initiatives, setInitiatives] = useState([]);
   const [portfolios, setPortfolios] = useState([]);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   // Get users from auth store
   const { users, setUsers } = useAuthStore();
   let originalTableData = [];
@@ -105,14 +106,14 @@ const DataManagementPage = () => {
   const getFormFields = () => ({
     initiative: [
       {
-        name: "initiativeEnglishName",
+        name: "name",
         label: "Initiative English Name",
         type: "text",
         required: true,
         columnSpan: 1,
       },
       {
-        name: "initiativeArabicName",
+        name: "arabic_name",
         label: "اسم المبادرة بالعربي",
         type: "text",
         required: true,
@@ -120,14 +121,14 @@ const DataManagementPage = () => {
         className: "text-right",
       },
       {
-        name: "descriptionEnglish",
+        name: "description",
         label: "Description in English",
         type: "textarea",
         required: true,
         columnSpan: 2,
       },
       {
-        name: "descriptionArabic",
+        name: "arabic_description",
         label: "الوصف بالعربي",
         type: "textarea",
         required: true,
@@ -137,14 +138,14 @@ const DataManagementPage = () => {
     ],
     portfolio: [
       {
-        name: "portfolioEnglishName",
+        name: "name",
         label: "Portfolio English Name",
         type: "text",
         required: true,
         columnSpan: 1,
       },
       {
-        name: "portfolioArabicName",
+        name: "arabic_name",
         label: "اسم المحفظة بالعربي",
         type: "text",
         required: true,
@@ -152,7 +153,7 @@ const DataManagementPage = () => {
         className: "text-right",
       },
       {
-        name: "portfolioManager",
+        name: "portfolio_manager",
         label: "Portfolio Manager",
         type: "select",
         required: true,
@@ -166,14 +167,14 @@ const DataManagementPage = () => {
             : [],
       },
       {
-        name: "descriptionEnglish",
+        name: "description",
         label: "Description in English",
         type: "textarea",
         required: true,
         columnSpan: 2,
       },
       {
-        name: "descriptionArabic",
+        name: "arabic_description",
         label: "الوصف بالعربي",
         type: "textarea",
         required: true,
@@ -271,14 +272,14 @@ const DataManagementPage = () => {
     ],
     department: [
       {
-        name: "departmentEnglish",
+        name: "name",
         label: "Department English Name",
         type: "text",
         required: true,
         columnSpan: 1,
       },
       {
-        name: "departmentArabic",
+        name: "arabic_name",
         label: "اسم الإدارة بالعربي",
         type: "text",
         required: true,
@@ -430,44 +431,29 @@ const DataManagementPage = () => {
   // Handle form submission
   const handleFormSubmit = async (data) => {
     console.log(`${getSingularTabName()} Data:`, data);
-
     try {
       let endpoint = "";
       if (activeTab === "portfolios") {
         endpoint = "addportfolio";
       } else if (activeTab === "initiatives") {
-        endpoint = "addinitiative";
+        endpoint = "addInitiative";
       } else {
         endpoint = `add${getSingularTabName()}`;
       }
-      // For portfolio, ensure portfolioManager is sent as an integer
       if (activeTab === "portfolios" && data.portfolioManager) {
         data.portfolioManager = parseInt(data.portfolioManager, 10);
       }
-      // For program, ensure programManager and portfolio_id are sent as integers
-      // if (activeTab === "programs") {
-      //   if (data.programManager) {
-      //     data.programManager = parseInt(data.programManager, 10);
-      //   }
-      //   if (data.portfolio_id) {
-      //     data.portfolio_id = parseInt(data.portfolio_id, 10);
-      //   }
-      // }
       const result = await axiosInstance.post(`/data-management/${endpoint}`, {
-        ...data,
+        data: { ...data },
         userId: 1,
       });
-
       console.log("Form submission result:", result);
-
-      // Show success toast notification
-      toast.success(`${getSingularTabName()} added successfully!`);
-
-      // Refresh data after successful submission
-      getData();
-
-      // Close the form
-      setShowForm(false);
+      if (result.data.status === "success") {
+        toast.success(`${getSingularTabName()} added successfully!`);
+        await getData(); // Ensure it completes before closing the form
+        setRefreshTrigger((prev) => prev + 1);
+        setShowForm(false);
+      }
     } catch (e) {
       console.log("Error submitting form:", e);
       toast.error(
@@ -670,7 +656,7 @@ const DataManagementPage = () => {
         </div>
         <Pagination pagination={pagination} getPageData={getPageData} /> */}
 
-        <TasksPage key={processedCategory} tableName={processedCategory} />
+        <TasksPage key={processedCategory} tableName={processedCategory} getData={getData} refreshTrigger={refreshTrigger}/>
 
         <style jsx global>{`
           .resizer {
