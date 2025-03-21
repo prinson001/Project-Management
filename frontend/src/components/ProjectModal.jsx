@@ -30,6 +30,8 @@ const ProjectModal = ({
   const [localFiles, setLocalFiles] = useState([]);
   const [projectPhases, setProjectPhases] = useState([]);
   const [projectTypes, setProjectTypes] = useState([]);
+  const [phaseDurations, setPhaseDurations] = useState([]);
+  const [durationOptions, setDurationOptions] = useState([]);
 
   const {
     register,
@@ -196,8 +198,8 @@ const ProjectModal = ({
   useEffect(() => {
     const fetchPhaseDurations = async () => {
       try {
-        const response = await axiosInstance.get(
-          `/data-management/phase-durations`
+        const response = await axiosInstance.post(
+          `/data-management/getPhaseDurations`
         );
         if (response.data && response.data.status === "success") {
           setPhaseDurations(response.data.data);
@@ -452,11 +454,11 @@ const ProjectModal = ({
         vendor_id: parseInt(data.vendorName) || null,
         beneficiary_departments: selectedDepartmentIds,
         objectives: selectedObjectiveIds,
-        project_budget: data.plannedBudget
-          ? parseFloat(data.plannedBudget)
+        project_budget: data.planned_budget
+          ? parseFloat(data.planned_budget)
           : null,
-        approved_project_budget: data.approvedBudget
-          ? parseFloat(data.approvedBudget)
+        approved_project_budget: data.approved_budget
+          ? parseFloat(data.approved_budget)
           : null,
         execution_start_date: data.execution_start_date?.startDate || null,
         execution_duration: data.execution_duration
@@ -469,11 +471,14 @@ const ProjectModal = ({
       const projectResponse = await axiosInstance.post(
         `/data-management/addProject`,
         {
-          data: projectData,
-          userId: 1, // Replace with actual user ID
+          data: {
+            ...projectData,
+            planned_budget: data.planned_budget,
+          },
+          userId: 1,
         },
         {
-          timeout: 10000,
+          // timeout: 10000,
           headers: {
             "Content-Type": "application/json",
           },
@@ -481,17 +486,22 @@ const ProjectModal = ({
       );
 
       if (projectResponse.data && projectResponse.data.status === "success") {
-        const projectId = projectResponse.data.result.id; // Get the projectId from the response
+        const projectId = projectResponse.data.result.id;
 
         // Step 2: Upload documents
         await uploadDocuments(projectId, localFiles); // Use localFiles defined in ProjectModal
-
+        console.log(scheduleData);
         // Step 3: Save the schedule plan
         const schedulePlanResponse = await axiosInstance.post(
           `/data-management/upsertSchedulePlan`,
           {
             projectId,
-            schedule: scheduleTableData, // Pass the schedule data from SchedulePlanSection
+            schedule: scheduleTableData.map((phase) => ({
+              phaseId: phase.phaseId,
+              durationDays: phase.durationDays,
+              startDate: phase.startDate,
+              endDate: phase.endDate,
+            })),
           }
         );
 
@@ -1135,7 +1145,7 @@ const ProjectModal = ({
                       type="text"
                       className="w-full p-2 border border-gray-300 rounded"
                       placeholder=""
-                      {...register("plannedBudget")}
+                      {...register("planned_budget")}
                     />
                   </div>
                   <div>
@@ -1147,135 +1157,19 @@ const ProjectModal = ({
                       type="text"
                       className="w-full p-2 border border-gray-300 rounded"
                       placeholder=""
-                      {...register("approvedBudget")}
+                      {...register("approved_budget")}
                     />
                   </div>
                 </div>
               )}
             </div>
           </div>
-          {/* Schedule Plan
-                    {shouldShowSection('schedule') && (
-                        <div className="mb-6 border-t pt-4">
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="font-semibold">Schedule Plan</h3>
-                                <div className="flex border border-gray-300 rounded">
-                                    <button type="button" className="px-3 py-1 bg-blue-100 text-blue-800 font-medium rounded-l">B. Days</button>
-                                    <button type="button" className="px-3 py-1">Weeks</button>
-                                    <button type="button" className="px-3 py-1 rounded-r">Months</button>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-3 gap-6 mb-4">
-                                <div>
-                                    <label className="block text-sm font-semibold mb-1">
-                                        Execution targeted start date
-                                    </label>
-                                    <Controller
-                                        name="executionStartDate"
-                                        control={control}
-                                        render={({ field }) => (
-                                            <Datepicker
-                                                value={field.value}
-                                                onChange={(newValue) => field.onChange(newValue)}
-                                                asSingle={true}
-                                                useRange={false}
-                                                displayFormat="DD-MMM-YYYY"
-                                                placeholder="Select date"
-                                            />
-                                        )}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-semibold mb-1">
-                                        Execution duration <span className="text-red-500">*</span>
-                                    </label>
-                                    <div className="relative">
-                                        <Controller
-                                            name="executionDuration"
-                                            control={control}
-                                            rules={{ required: "Execution duration is required" }}
-                                            render={({ field }) => (
-                                                <select
-                                                    className={`w-full p-2 border ${errors.executionDuration ? 'border-red-500' : 'border-gray-300'} rounded appearance-none bg-white`}
-                                                    {...field}
-                                                >
-                                                    <option value="4 weeks">4 weeks</option>
-                                                    <option value="8 weeks">8 weeks</option>
-                                                    <option value="12 weeks">12 weeks</option>
-                                                </select>
-                                            )}
-                                        />
-                                        <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                                            <ChevronUp size={16} />
-                                        </div>
-                                    </div>
-                                    {errors.executionDuration && (
-                                        <p className="text-red-500 text-xs mt-1">{errors.executionDuration.message}</p>
-                                    )}
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-semibold mb-1">
-                                        Maintenance & operation duration <span className="text-red-500">*</span>
-                                    </label>
-                                    <Controller
-                                        name="maintenanceDate"
-                                        control={control}
-                                        rules={{ required: "Maintenance date is required" }}
-                                        render={({ field }) => (
-                                            <Datepicker
-                                                value={field.value}
-                                                onChange={(newValue) => field.onChange(newValue)}
-                                                asSingle={true}
-                                                useRange={false}
-                                                displayFormat="DD-MMM-YYYY"
-                                                placeholder="Select date"
-                                            />
-                                        )}
-                                    />
-                                    {errors.maintenanceDate && (
-                                        <p className="text-red-500 text-xs mt-1">{errors.maintenanceDate.message}</p>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="overflow-x-auto mb-4">
-                                <table className="w-full border-collapse">
-                                    <thead>
-                                        <tr>
-                                            <th className="border border-gray-300 p-2 text-left">Main Phase</th>
-                                            <th className="border border-gray-300 p-2 text-left">Sub Phase</th>
-                                            <th className="border border-gray-300 p-2 text-center">Duration</th>
-                                            <th className="border border-gray-300 p-2 text-left">Start Date</th>
-                                            <th className="border border-gray-300 p-2 text-left">End Date</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {scheduleData.map((row, index) => (
-                                            <tr key={index} className={
-                                                row.mainPhase === 'Planning' ? 'bg-green-100' :
-                                                    row.mainPhase === 'Bidding' ? 'bg-blue-100' :
-                                                        row.mainPhase === 'Before execution' ? 'bg-orange-100' :
-                                                            'bg-white'
-                                            }>
-                                                <td className="border border-gray-300 p-2">{row.mainPhase}</td>
-                                                <td className="border border-gray-300 p-2">{row.subPhase}</td>
-                                                <td className="border border-gray-300 p-2 text-center">
-                                                    <div className="flex items-center justify-center">
-                                                        <span>{row.duration}</span>
-                                                        <ChevronUp size={16} className="ml-1" />
-                                                    </div>
-                                                </td>
-                                                <td className="border border-gray-300 p-2">{row.startDate}</td>
-                                                <td className="border border-gray-300 p-2">{row.endDate}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    )} */}
-
+          {/* Schedule Plan */}
           {shouldShowSection("schedule") && (
-            <SchedulePlanSection onScheduleChange={handleScheduleChange} />
+            <SchedulePlanSection
+              budget={watch("planned_budget")}
+              onScheduleChange={handleScheduleChange}
+            />
           )}
           {/* Internal Project Schedule Plan */}
           {shouldShowSection("internalSchedule") && (

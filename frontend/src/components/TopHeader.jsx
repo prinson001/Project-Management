@@ -8,6 +8,8 @@ import {
   LayoutDashboard,
   Settings,
   LogOut,
+  X,
+  Users,
 } from "lucide-react";
 import logo from "../assets/rakias-logo.png";
 import userPicture from "../assets/userlogo.png";
@@ -62,6 +64,10 @@ const TopHeader = () => {
     setIsProfileOpen(false); // Close other dropdowns
   };
 
+  const closeAppsMenu = () => {
+    setIsAppsOpen(false);
+  };
+
   const toggleDarkMode = () => {
     if (isDarkMode) {
       document.documentElement.classList.remove("dark");
@@ -113,35 +119,47 @@ const TopHeader = () => {
                 className="p-2 text-gray-500 rounded-lg hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700 focus:ring-4 focus:ring-gray-300 dark:focus:ring-gray-600"
                 onClick={handleAppsClick}
               >
-                <span className="sr-only">View Apps</span>
-                <LayoutGrid className="w-6 h-6" /> {/* Use LayoutGrid */}
+                <span className="sr-only">Quick Services</span>
+                <LayoutGrid className="w-6 h-6" />
               </button>
 
-              {/* Apps Dropdown */}
+              {/* Quick Services Dropdown - Updated to match the second image */}
               {isAppsOpen && (
                 <div
-                  className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white dark:bg-gray-700 ring-1 ring-black ring-opacity-5 focus:outline-none z-50"
+                  className="absolute right-0 mt-2 w-80 rounded-md shadow-lg bg-white dark:bg-gray-700 ring-1 ring-black ring-opacity-5 focus:outline-none z-50"
                   role="menu"
                   aria-orientation="vertical"
                   aria-labelledby="apps-menu-button"
                 >
-                  <div className="py-1" role="none">
-                    <a
-                      href="#"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600 dark:hover:text-white"
-                      role="menuitem"
-                    >
-                      <LayoutDashboard className="mr-2 inline-block h-5 w-5" />
-                      Dashboard
-                    </a>
-                    <a
-                      href="#"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600 dark:hover:text-white"
-                      role="menuitem"
-                    >
-                      <Settings className="mr-2 inline-block h-5 w-5" />
-                      Settings
-                    </a>
+                  <div className="p-4" role="none">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="font-bold text-lg text-gray-900 dark:text-white">
+                        Quick services
+                      </h3>
+                      <button 
+                        onClick={closeAppsMenu}
+                        className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="border rounded-md p-3 flex flex-col items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer">
+                        <Users className="w-8 h-8 mb-2 text-gray-700 dark:text-gray-300" />
+                        <span className="text-xs text-center font-medium text-gray-800 dark:text-gray-300">
+                          Meeting Request
+                        </span>
+                      </div>
+                      
+                      <div className="border rounded-md p-3 flex flex-col items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer">
+                        {/* Empty service slot */}
+                      </div>
+                      
+                      <div className="border rounded-md p-3 flex flex-col items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer">
+                        {/* Empty service slot */}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

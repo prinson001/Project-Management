@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import useAuthStore from "../store/authStore";
 import axios from "axios";
 import SchedulePlanSection from "./SchedulePlanSection";
+import UpdateSchedulePlanSection from "./UpdateSchedulePlanSection";
 
 const PORT = import.meta.env.VITE_PORT;
 
@@ -29,6 +30,8 @@ const UpdateProjectModal = ({
   const [documents, setDocuments] = useState([]);
   const [localFiles, setLocalFiles] = useState([]);
   const [phaseInfo, setPhaseInfo] = useState(null);
+  const [projectTypes, setProjectTypes] = useState([]);
+  const [projectPhases, setProjectPhases] = useState([]);
 
   const {
     register,
@@ -55,8 +58,12 @@ const UpdateProjectModal = ({
       vendor_id: projectData?.vendor_id?.toString() || "",
       beneficiaryDepartments: [],
       objectives: [],
-      planned_budget: projectData?.project_budget?.toString() || "",
-      approved_budget: projectData?.approved_project_budget?.toString() || "",
+      planned_budget: projectData?.project_budget
+        ? parseInt(projectData.project_budget, 10).toString()
+        : "",
+      approved_budget: projectData?.approved_project_budget
+        ? parseInt(projectData.approved_project_budget, 10).toString()
+        : "",
       execution_start_date: {
         startDate: projectData?.execution_start_date
           ? new Date(projectData.execution_start_date)
@@ -82,17 +89,56 @@ const UpdateProjectModal = ({
   const projectType = watch("project_type_id");
   const currentPhase = watch("current_phase_id");
 
+  // Fetch project types
+  useEffect(() => {
+    console.log(projectData);
+    const fetchProjectTypes = async () => {
+      try {
+        const response = await axios.post(
+          `http://localhost:${PORT}/data-management/getProjectTypes`
+        );
+        if (response.data.status === "success") {
+          setProjectTypes(response.data.result);
+        }
+      } catch (error) {
+        console.error("Error fetching project types:", error);
+        toast.error("Failed to load project types");
+      }
+    };
+
+    fetchProjectTypes();
+  }, []);
+
+  // Fetch project phases
+  useEffect(() => {
+    const fetchProjectPhases = async () => {
+      try {
+        const response = await axios.post(
+          `http://localhost:${PORT}/data-management/getProjectPhases`
+        );
+        if (response.data.status === "success") {
+          setProjectPhases(response.data.result);
+        }
+      } catch (error) {
+        console.error("Error fetching project phases:", error);
+        toast.error("Failed to load project phases");
+      }
+    };
+
+    fetchProjectPhases();
+  }, []);
+
   // Fetch phase information when currentPhase changes
   useEffect(() => {
     const fetchPhaseInfo = async () => {
       if (!currentPhase) return;
-      
+
       try {
         const response = await axios.post(
           `http://localhost:${PORT}/data-management/getProjectPhase`,
           { phase_id: currentPhase }
         );
-        
+
         if (response.data.status === "success") {
           setPhaseInfo(response.data.result);
         } else {
@@ -107,6 +153,131 @@ const UpdateProjectModal = ({
     fetchPhaseInfo();
   }, [currentPhase]);
 
+  // Fetch departments
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const response = await axios.post(
+          `http://localhost:${PORT}/data-management/getDepartments`
+        );
+        if (response.data.status === "success") {
+          const fetchedDepartments = response.data.result.map((dept) => ({
+            ...dept,
+            checked: projectData?.beneficiary_departments?.some(
+              (d) => d.id === dept.id
+            ) || false,
+          }));
+          setDepartments(fetchedDepartments);
+        }
+      } catch (error) {
+        console.error("Error fetching departments:", error);
+        toast.error("Failed to load departments");
+      }
+    };
+
+    fetchDepartments();
+  }, [projectData?.beneficiary_departments]);
+
+  // Fetch objectives
+  useEffect(() => {
+    const fetchObjectives = async () => {
+      try {
+        const response = await axios.post(
+          `http://localhost:${PORT}/data-management/getObjectives`
+        );
+        if (response.data.status === "success") {
+          const fetchedObjectives = response.data.result.map((obj) => ({
+            ...obj,
+            checked: projectData?.objectives?.some((o) => o.id === obj.id) || false,
+          }));
+          setObjectives(fetchedObjectives);
+        }
+      } catch (error) {
+        console.error("Error fetching objectives:", error);
+        toast.error("Failed to load objectives");
+      }
+    };
+
+    fetchObjectives();
+  }, [projectData?.objectives]);
+
+  // Fetch initiatives
+  useEffect(() => {
+    const fetchInitiatives = async () => {
+      try {
+        const response = await axios.post(
+          `http://localhost:${PORT}/data-management/getInitiatives`
+        );
+        if (response.data.status === "success") {
+          setInitiatives(response.data.result);
+        }
+      } catch (error) {
+        console.error("Error fetching initiatives:", error);
+        toast.error("Failed to load initiatives");
+      }
+    };
+
+    fetchInitiatives();
+  }, []);
+
+  // Fetch portfolios
+  useEffect(() => {
+    const fetchPortfolios = async () => {
+      try {
+        const response = await axios.post(
+          `http://localhost:${PORT}/data-management/getPortfolios`
+        );
+        if (response.data.status === "success") {
+          setPortfolios(response.data.result);
+        }
+      } catch (error) {
+        console.error("Error fetching portfolios:", error);
+        toast.error("Failed to load portfolios");
+      }
+    };
+
+    fetchPortfolios();
+  }, []);
+
+  // Fetch programs
+  useEffect(() => {
+    const fetchPrograms = async () => {
+      try {
+        const response = await axios.post(
+          `http://localhost:${PORT}/data-management/getPrograms`
+        );
+        if (response.data.status === "success") {
+          setPrograms(response.data.result);
+        }
+      } catch (error) {
+        console.error("Error fetching programs:", error);
+        toast.error("Failed to load programs");
+      }
+    };
+
+    fetchPrograms();
+  }, []);
+
+  // Fetch vendors
+  useEffect(() => {
+    const fetchVendors = async () => {
+      try {
+        const response = await axios.post(
+          `http://localhost:${PORT}/data-management/getVendors`
+        );
+        if (response.data.status === "success") {
+          setVendors(response.data.result);
+        }
+      } catch (error) {
+        console.error("Error fetching vendors:", error);
+        toast.error("Failed to load vendors");
+      }
+    };
+
+    fetchVendors();
+  }, []);
+
+  // Fetch documents
   useEffect(() => {
     const fetchDocuments = async () => {
       if (!projectData?.id) return;
@@ -164,10 +335,10 @@ const UpdateProjectModal = ({
         beneficiary_departments: selectedDepartmentIds,
         objectives: selectedObjectiveIds,
         project_budget: data.planned_budget
-          ? parseFloat(data.planned_budget)
+          ? parseInt(data.planned_budget)
           : null,
         approved_project_budget: data.approved_budget
-          ? parseFloat(data.approved_budget)
+          ? parseInt(data.approved_budget)
           : null,
         execution_start_date: data.execution_start_date?.startDate || null,
         execution_duration: data.execution_duration || null,
@@ -186,7 +357,15 @@ const UpdateProjectModal = ({
         if (scheduleTableData.length > 0) {
           await axios.post(
             `http://localhost:${PORT}/data-management/upsertSchedulePlan`,
-            { projectId: projectData.id, schedule: scheduleTableData }
+            {
+              projectId: projectData.id,
+              schedule: scheduleTableData.map((plan) => ({
+                phaseId: plan.phaseId,
+                durationDays: plan.durationDays,
+                startDate: plan.startDate,
+                endDate: plan.endDate,
+              })),
+            }
           );
         }
         toast.success("Project updated successfully!");
@@ -205,17 +384,17 @@ const UpdateProjectModal = ({
     if (activeSection === "all") return true;
     switch (section) {
       case "category":
-        return !["Internal", "PoC"].includes(projectType);
+        return !["1", "4"].includes(projectType); // Internal (1), PoC (4)
       case "vendor":
-        return ["PoC", "External", "Strategic"].includes(projectType);
+        return ["2", "3", "4"].includes(projectType); // External (2), Strategic (3), PoC (4)
       case "budget":
-        if (projectType === "Internal") return false;
-        if (["Planning", "Bidding"].includes(currentPhase)) return false;
-        return ["External", "Strategic"].includes(projectType);
+        if (projectType === "1") return false; // Internal (1)
+        if (["1", "2"].includes(currentPhase)) return false; // Planning (1), Bidding (2)
+        return ["2", "3"].includes(projectType); // External (2), Strategic (3)
       case "schedule":
-        return ["External", "Strategic"].includes(projectType);
+        return ["2", "3"].includes(projectType); // External (2), Strategic (3)
       case "internalSchedule":
-        return ["Internal", "PoC"].includes(projectType);
+        return ["1", "4"].includes(projectType); // Internal (1), PoC (4)
       default:
         return true;
     }
@@ -237,7 +416,6 @@ const UpdateProjectModal = ({
     );
   };
 
-  // Update the uploadDocuments function to use phaseInfo
   const uploadDocuments = async (projectId, localFiles) => {
     for (const { index, file, template_id } of localFiles) {
       if (!file) continue;
@@ -245,7 +423,7 @@ const UpdateProjectModal = ({
       formData.append("file", file);
       formData.append("project_id", projectId);
       formData.append("template_id", template_id);
-      formData.append("phase", phaseInfo?.name || "Execution"); // Use phase name from phaseInfo
+      formData.append("phase", phaseInfo?.name || "Execution");
 
       const response = await axios.post(
         `http://localhost:${PORT}/data-management/addProjectDocument`,
@@ -258,6 +436,16 @@ const UpdateProjectModal = ({
       }
     }
   };
+
+  // If projectData is not fully loaded, show a loading state
+  if (!projectData || !projectData.id || !projectData.project_budget) {
+    return (
+      <div className="flex flex-col rounded-lg border border-gray-200 shadow-md bg-white max-w-6xl mx-auto max-h-[90vh] p-4">
+        <h2 className="text-xl font-semibold mb-4">{title}</h2>
+        <p>Loading project data...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col rounded-lg border border-gray-200 shadow-md bg-white max-w-6xl mx-auto max-h-[90vh]">
@@ -351,10 +539,11 @@ const UpdateProjectModal = ({
                     {...field}
                   >
                     <option value="">Select Project Type</option>
-                    <option value="Internal">Internal Project</option>
-                    <option value="External">External Project</option>
-                    <option value="Strategic">Strategic Project</option>
-                    <option value="PoC">Proof of Concept</option>
+                    {projectTypes.map((type) => (
+                      <option key={type.id} value={type.id}>
+                        {type.name}
+                      </option>
+                    ))}
                   </select>
                 )}
               />
@@ -382,14 +571,11 @@ const UpdateProjectModal = ({
                     {...field}
                   >
                     <option value="">Select Current Phase</option>
-                    <option value="Planning">Planning</option>
-                    <option value="Bidding">Bidding</option>
-                    <option value="Pre-execution">Pre-execution</option>
-                    <option value="Execution">Execution</option>
-                    <option value="Maintenance and operation">
-                      Maintenance and operation
-                    </option>
-                    <option value="Closed">Closed</option>
+                    {projectPhases.map((phase) => (
+                      <option key={phase.id} value={phase.id}>
+                        {phase.name}
+                      </option>
+                    ))}
                   </select>
                 )}
               />
@@ -716,7 +902,7 @@ const UpdateProjectModal = ({
                       Project Planned Budget
                     </label>
                     <input
-                      type="text"
+                      type="number"
                       className="w-full p-2 border border-gray-300 rounded"
                       {...register("planned_budget")}
                     />
@@ -726,7 +912,7 @@ const UpdateProjectModal = ({
                       Project Approved Budget
                     </label>
                     <input
-                      type="text"
+                      type="number"
                       className="w-full p-2 border border-gray-300 rounded"
                       {...register("approved_budget")}
                     />
@@ -735,13 +921,25 @@ const UpdateProjectModal = ({
               )}
             </div>
           </div>
-          {shouldShowSection("schedule") && (
-            <SchedulePlanSection onScheduleChange={handleScheduleChange} />
+          {/* Conditionally render SchedulePlanSection only when projectData is fully available */}
+          {shouldShowSection("schedule") && projectData?.id && projectData?.project_budget && (
+            // <SchedulePlanSection
+            //   projectId={projectData.id}
+            //   budget={projectData.approved_project_budget} // Pass budget directly from projectData
+            //   onScheduleChange={handleScheduleChange}
+            //   projectData={projectData} // Pass projectData for execution_start_date
+            // />
+            <UpdateSchedulePlanSection
+              projectId={projectData.id}
+              budget={projectData.approved_project_budget} // Pass budget directly from projectData
+              onScheduleChange={handleScheduleChange}
+              projectData={projectData}
+            />
           )}
           {currentPhase && phaseInfo && (
             <div className="mb-6 border-t pt-4">
               <UpdateProjectDocumentSection
-                projectId={projectData?.id}
+                projectId={projectData.id}
                 projectPhaseId={currentPhase}
                 phaseName={phaseInfo?.name}
                 formMethods={{ setValue, watch }}

@@ -29,6 +29,8 @@ const ProjectDocumentSection = ({
         }
       );
       console.log("The retrieved documents:", result.data.data);
+      // Update both the local state and parent state
+      setDocumentsState(result.data.data);
       setDocuments(result.data.data);
     } catch (e) {
       console.error("Error retrieving document templates:", e);
@@ -45,6 +47,32 @@ const ProjectDocumentSection = ({
         }
       );
       console.log("The retrieved project documents:", result);
+      
+      // If we have project documents, merge them with templates
+      if (result.data && result.data.data && result.data.data.length > 0) {
+        const uploadedDocs = result.data.data;
+        
+        // Create a map of template documents by ID for easier lookup
+        const updatedDocs = [...documents];
+        
+        // Update the documents with uploaded file information
+        uploadedDocs.forEach(uploadedDoc => {
+          const index = updatedDocs.findIndex(doc => doc.id === uploadedDoc.template_id);
+          if (index !== -1) {
+            updatedDocs[index] = {
+              ...updatedDocs[index],
+              filename: uploadedDoc.filename,
+              date: new Date(uploadedDoc.created_at).toLocaleDateString(),
+              uploaded: true,
+              file_id: uploadedDoc.id
+            };
+          }
+        });
+        
+        // Update both states
+        setDocumentsState(updatedDocs);
+        setDocuments(updatedDocs);
+      }
     } catch (e) {
       console.log(
         "There was an error retrieving project documents:",
@@ -54,8 +82,14 @@ const ProjectDocumentSection = ({
   };
 
   useEffect(() => {
-    getCurrentPhaseDocumentTemplates();
-  }, [projectPhase, projectId]);
+    if (projectPhase) { // Only fetch if projectPhase has a value
+      getCurrentPhaseDocumentTemplates();
+      // Only fetch project documents if we have a projectId
+      if (projectId) {
+        getCurrentPhaseUploadedProjectDocuments(); 
+      }
+    }
+  }, [projectPhase]); // Only depend on projectPhase changes
 
   // Handle file upload
   const handleUpload = (index, file) => {
@@ -66,8 +100,18 @@ const ProjectDocumentSection = ({
 
     const newDocs = [...documents];
     newDocs[index].file = file;
+    newDocs[index].filename = file.name;
     newDocs[index].date = new Date().toLocaleDateString();
-    setLocalFiles((prev) => [...prev, { index, file }]);
+    newDocs[index].uploaded = true;
+    
+    // Update local files for later upload
+    setLocalFiles((prev) => {
+      // Remove any existing file at this index
+      const filtered = prev.filter(item => item.index !== index);
+      return [...filtered, { index, file }];
+    });
+    
+    // Update both states
     setDocumentsState(newDocs);
     setDocuments(newDocs);
   };

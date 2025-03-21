@@ -50,6 +50,8 @@ const {
   getProjectPhases,
   getProjectPhase,
   getProjectTypes,
+  getPhases,
+  getSchedulePlan,
 } = require("../controllers/projectController");
 
 const {
@@ -144,5 +146,8 @@ router.post("/getProjectPhase", getProjectPhase);
 router.post("/getProjectTypes", getProjectTypes);
 
 router.post("/deleteProjectDocument", deleteProjectDocument);
+router.post("/getPhases",getPhases);
+router.post("/getPhaseDurations",getPhaseDurations);
 
+router.post("/getSchedulePlan", getSchedulePlan);
 module.exports = router;
