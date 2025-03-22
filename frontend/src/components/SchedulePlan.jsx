@@ -1,9 +1,9 @@
 import React from "react";
-import TasksPage from "../pages/TasksPage";
+import DataSection from "../pages/DataSection";
 function SchedulePlan() {
   return (
     <div>
-      <TasksPage tableName="item" />
+      <DataSection tableName="item" />
     </div>
   );
 }

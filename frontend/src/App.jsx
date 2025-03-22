@@ -9,7 +9,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import UsersPage from "./pages/UsersPage";
 import LoginPage from "./pages/LoginPage";
 import SidebarPage from "./pages/SidebarPage";
-import TasksPage from "./pages/TasksPage";
+import DataSection from "./pages/DataSection";
 import DataManagementPage from "./pages/DataManagementPage";
 import DashboardPage from "./pages/DashboardPage";
 import ActivitiesPage from "./pages/ActivitiesPage";
@@ -37,12 +37,12 @@ const App = () => {
   );
 };
 
-const accordionItems = [
-  {
-    title: "Tasks",
-    content: <TasksPage />,
-  },
-];
+// const accordionItems = [
+//   {
+//     title: "Tasks",
+//     content: <TasksPage />,
+//   },
+// ];
 
 export const router = createBrowserRouter([
   {

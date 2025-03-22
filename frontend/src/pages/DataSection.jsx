@@ -17,7 +17,7 @@ let getAllTasks = null;
 let taskStatus = null;
 
 let page = 1;
-const TasksPage = ({
+const DataSection = ({
   tableName,
   showTableData = true,
   showTableConfig = false,
@@ -31,6 +31,7 @@ const TasksPage = ({
   const [showDate, setShowDate] = useState(false);
   const [pagination, setPagination] = useState({});
   let originalTableData = [];
+
   async function getData() {
     try {
       console.log("the dableName in getData function", tableName);
@@ -58,31 +59,40 @@ const TasksPage = ({
       console.log(e);
     }
   }
+
+  async function getSetting() {
+    try {
+      const result = await axiosInstanceInstance.post(
+        `/data-management/setting`,
+        {
+          tableName,
+          userId: 7,
+        }
+      );
+      console.log(result.data.result[0].setting.setting);
+      const data = result.data.result[0].setting.setting;
+      setColumnSetting((state) => data);
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
   useEffect(() => {
     console.log("Component Mounted!");
-    async function getSetting() {
+    async function fetchData() {
       try {
-        const result = await axiosInstanceInstance.post(
-          `/data-management/setting`,
-          {
-            tableName,
-            userId: 7,
-          }
-        );
-        console.log(result.data.result[0].setting.setting);
-        const data = result.data.result[0].setting.setting;
-        setColumnSetting((state) => data);
+        await getSetting(); // Ensure getSetting is completed first
+        await getData(); // Then fetch getData
       } catch (e) {
-        console.log(e);
+        console.error("Error fetching data:", e);
       }
     }
-    getSetting();
-    getData();
+    fetchData();
     return () => {
       console.log("Component Unmounted!");
       console.log("the tableName is " + tableName);
     };
-  }, [tableName,refreshTrigger]); // Add tableName as a dependency
+  }, [tableName, refreshTrigger]); // Add tableName as a dependency
 
   async function getFilteredData() {
     if (tableName === "tasks") {
@@ -128,6 +138,7 @@ const TasksPage = ({
       }
     }
   }
+
   async function filterTable(filters) {
     if (Object.keys(filters) == 0) {
       tablefilters = {};
@@ -136,6 +147,7 @@ const TasksPage = ({
     }
     await getFilteredData();
   }
+
   async function filterTableBasedonSearchTerm(searchTerm) {
     console.log(tablefilters);
     tablefilters.searchTerm = searchTerm;
@@ -161,6 +173,7 @@ const TasksPage = ({
     page = NavigatePage;
     await getFilteredData();
   }
+
   function updateShowDateFunctionality() {
     setShowDate((state) => !state);
   }
@@ -175,6 +188,7 @@ const TasksPage = ({
     }
     await getFilteredData();
   }
+
   async function updateOpenorClosedTaskRetreival(value) {
     console.log(value);
     taskStatus = value;
@@ -221,4 +235,4 @@ const TasksPage = ({
   );
 };
 
-export default TasksPage;
+export default DataSection;

@@ -1,9 +1,9 @@
 import React from "react";
-import TasksPage from "../pages/TasksPage";
+import DataSection from "../pages/DataSection";
 const MainRoles = () => {
   return (
     <div>
-      <TasksPage tableName="users" accordionComponentName="userAccordion" />
+      <DataSection tableName="users" accordionComponentName="userAccordion" />
     </div>
   );
 };

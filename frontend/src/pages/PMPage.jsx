@@ -4,7 +4,7 @@ import SidebarPage from "./SidebarPage";
 import useAuth from "../hooks/userAuth";
 import DataManagementPage from "./DataManagementPage";
 import Accordion from "../components/Accordion"; // Import the new Accordion component
-import TasksPage from "./TasksPage";
+import DataSection from "./DataSection";
 
 const PMPage = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -25,7 +25,7 @@ const PMPage = () => {
         />
         <main className="flex-1 overflow-auto p-4">
           <Accordion title="Tasks" defaultOpen={true} className="mb-4">
-            <TasksPage tableName="tasks" showTableConfig={true} />
+            <DataSection tableName="tasks" showTableConfig={true} />
           </Accordion>
 
           {/* You can add more accordions with other content */}

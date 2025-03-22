@@ -34,7 +34,7 @@ const DynamicForm = ({ title, fields, onSubmit, isEmbedded = false }) => {
               key={index} 
               className={`${columnSpan === 2 ? 'col-span-2' : ''} ${className || ""}`}
             >
-              <label className="block text-sm font-medium">{label}</label>
+              <label className="block text-sm font-medium dark:text-white">{label}</label>
               {type === "select" ? (
                 <select
                   {...register(name, { required })}

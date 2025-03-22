@@ -17,7 +17,7 @@ import DynamicForm from "../components/DynamicForm";
 import DocumentFormModal from "../components/DocumentFormModal";
 import DataManagementTabs from "../components/datamanagementtabs";
 import ProjectModal from "../components/ProjectModal";
-import TasksPage from "./TasksPage";
+import DataSection from "./DataSection";
 
 const PORT = import.meta.env.VITE_PORT;
 
@@ -656,7 +656,12 @@ const DataManagementPage = () => {
         </div>
         <Pagination pagination={pagination} getPageData={getPageData} /> */}
 
-        <TasksPage key={processedCategory} tableName={processedCategory} getData={getData} refreshTrigger={refreshTrigger}/>
+        <DataSection
+          key={processedCategory}
+          tableName={processedCategory}
+          getData={getData}
+          refreshTrigger={refreshTrigger}
+        />
 
         <style jsx global>{`
           .resizer {

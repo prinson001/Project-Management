@@ -4,60 +4,60 @@ const sql = require("../database/db");
 //  @Route site.com/data-management/addObjective
 const addObjective = async (req, res) => {
   // Check if data exists in the request body
-  console.log('Objective Body', req.body);
-  
+  console.log("Objective Body", req.body);
+
   // Create a data object from the request body
-  const data = { ...req.body };
-  
+  const data = { ...req.body.data };
+
   // Remove userId from data as it's not a column in the objective table
   if (data.userId) {
     delete data.userId;
   }
-  
+
   // Map form field names to database column names based on the actual schema
   // English fields
   if (data.objectiveEnglish) {
     data.name = data.objectiveEnglish;
     delete data.objectiveEnglish;
   }
-  
+
   if (data.objectiveEnglishName) {
     data.name = data.objectiveEnglishName;
     delete data.objectiveEnglishName;
   }
-  
+
   if (data.descriptionEnglish) {
     data.description = data.descriptionEnglish;
     delete data.descriptionEnglish;
   }
-  
+
   if (data.objectiveEnglishDescription) {
     data.description = data.objectiveEnglishDescription;
     delete data.objectiveEnglishDescription;
   }
-  
+
   // Arabic fields
   if (data.objectiveArabic) {
     data.arabic_name = data.objectiveArabic;
     delete data.objectiveArabic;
   }
-  
+
   if (data.objectiveArabicName) {
     data.arabic_name = data.objectiveArabicName;
     delete data.objectiveArabicName;
   }
-  
+
   if (data.descriptionArabic) {
     data.arabic_description = data.descriptionArabic;
     delete data.descriptionArabic;
   }
-  
+
   if (data.objectiveArabicDescription) {
     data.arabic_description = data.objectiveArabicDescription;
     delete data.objectiveArabicDescription;
   }
-  
-  console.log('Processed data:', data);
+
+  console.log("Processed data:", data);
 
   // Make sure we have at least some data to insert
   if (Object.keys(data).length === 0) {
@@ -106,7 +106,7 @@ const addObjective = async (req, res) => {
     console.error("Error adding objective:", error);
 
     // Handle column does not exist errors
-    if (error.code === '42703') {
+    if (error.code === "42703") {
       return res.status(400).json({
         status: "failure",
         message: `Column error: ${error.message}`,

@@ -33,7 +33,7 @@ const SchedulePlanSection = ({ projectId, budget, onScheduleChange }) => {
   useEffect(() => {
     const fetchPhases = async () => {
       if (!budget) {
-        toast.error("Budget is required to fetch phase durations");
+        // toast.error("Budget is required to fetch phase durations");
         return;
       }
 

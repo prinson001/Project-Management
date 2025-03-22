@@ -4,47 +4,46 @@ const sql = require("../database/db");
 //  @Route site.com/data-management/addprogram
 const addProgram = async (req, res) => {
   // Check if data exists in the request body
+  console.log('program body', req.body);
 
-  console.log('program body',req.body);
-  // Create a data object from the request body
-  // The form is sending fields directly in the body, not nested under a data property
-  const data = { ...req.body };
-  
+  // Flatten the data object from the request body
+  const data = { ...req.body.data };
+
   // Remove userId from data as it's not a column in the program table
   if (data.userId) {
     delete data.userId;
   }
-  
+
   // Map form field names to database column names
   if (data.programEnglish) {
     data.name = data.programEnglish;
     delete data.programEnglish;
   }
-  
+
   if (data.programArabic) {
     data.arabic_name = data.programArabic;
     delete data.programArabic;
   }
-  
+
   if (data.programManager) {
     data.program_manager = parseInt(data.programManager, 10);
     delete data.programManager;
   }
-  
+
   if (data.portfolio_id) {
     data.portfolio_id = parseInt(data.portfolio_id, 10);
   }
-  
+
   if (data.descriptionEnglish) {
     data.description = data.descriptionEnglish;
     delete data.descriptionEnglish;
   }
-  
+
   if (data.descriptionArabic) {
     data.arabic_description = data.descriptionArabic;
     delete data.descriptionArabic;
   }
-  
+
   console.log('Processed data:', data);
 
   // Make sure we have at least some data to insert

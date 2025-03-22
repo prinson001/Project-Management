@@ -3,7 +3,6 @@ import TopHeader from "../components/TopHeader";
 import SidebarPage from "./SidebarPage";
 import useAuth from "../hooks/userAuth";
 import Accordion from "../components/Accordion"; // Import the new Accordion component
-import TasksPage from "./TasksPage";
 import SystemSettingsPage from "./SystemSettingsPage";
 
 const AdminPage = () => {
@@ -29,7 +28,7 @@ const AdminPage = () => {
             defaultOpen={true}
             className="mb-4"
           >
-           <SystemSettingsPage/>
+            <SystemSettingsPage />
           </Accordion>
 
           {/* You can add more accordions with other content */}

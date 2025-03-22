@@ -93,12 +93,12 @@ function ProgramAccordion({ data, title }) {
   }
 
   return (
-    <div className="w-full bg-white rounded-lg shadow-md">
+    <div className="w-full bg-white dark:bg-gray-800 rounded-lg shadow-md dark:shadow-gray-900">
       {/* Initiative Section */}
       {programData.initiative && (
-        <div className="border-b">
+        <div className="border-b dark:border-gray-700">
           <div
-            className="flex items-center p-4 bg-blue-50 cursor-pointer"
+            className="flex items-center p-4 bg-blue-50 dark:bg-blue-900 cursor-pointer"
             onClick={toggleInitiativeExpand}
           >
             {expandedInitiative ? (
@@ -131,9 +131,9 @@ function ProgramAccordion({ data, title }) {
 
       {/* Portfolio Section */}
       {programData.portfolio && (
-        <div className="border-b">
+        <div className="border-b dark:border-gray-700">
           <div
-            className="flex items-center p-4 bg-amber-50 cursor-pointer"
+            className="flex items-center p-4 bg-amber-50 dark:bg-amber-900 cursor-pointer"
             onClick={togglePortfolioExpand}
           >
             {expandedPortfolio ? (
@@ -165,9 +165,9 @@ function ProgramAccordion({ data, title }) {
       )}
 
       {/* Program Section */}
-      <div className="border-b">
+      <div className="border-b dark:border-gray-700">
         <div
-          className="flex items-center p-4 bg-purple-50 cursor-pointer"
+          className="flex items-center p-4 bg-purple-50 dark:bg-purple-900 cursor-pointer"
           onClick={toggleProgramExpand}
         >
           {expandedProgram ? (
