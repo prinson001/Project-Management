@@ -3,22 +3,30 @@ const sql = require("../database/db");
 // @Description Upsert schedule plan for a project
 // @Route site.com/data-management/upsertSchedulePlan
 const upsertSchedulePlan = async (req, res) => {
+  console.log("schedule plan body:", req.body);
   const { projectId, schedule } = req.body;
 
   if (!projectId || !schedule || !Array.isArray(schedule)) {
     return res.status(400).json({
       status: "failure",
-      message: "Invalid data provided: projectId and schedule array are required",
+      message:
+        "Invalid data provided: projectId and schedule array are required",
       result: null,
     });
   }
 
   try {
     for (const plan of schedule) {
-      if (!plan.phaseId || !plan.durationDays || !plan.startDate || !plan.endDate) {
+      if (
+        !plan.phaseId ||
+        !plan.durationDays ||
+        !plan.startDate ||
+        !plan.endDate
+      ) {
         return res.status(400).json({
           status: "failure",
-          message: "Missing required fields in schedule data: phaseId, durationDays, startDate, and endDate are required",
+          message:
+            "Missing required fields in schedule data: phaseId, durationDays, startDate, and endDate are required",
           result: null,
         });
       }

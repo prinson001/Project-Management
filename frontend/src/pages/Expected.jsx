@@ -1,13 +1,13 @@
 import DataManagementPage from "./DataManagementPage";
-import TasksPage from "./TasksPage";
+import DataSection from "./DataSection";
 function Expected() {
   return (
     <>
-      <TasksPage
+      <DataSection
         tableName="activity_duration"
         showTableConfigFilter={false}
         showTablePagination={false}
-      ></TasksPage>
+      ></DataSection>
     </>
   );
 }

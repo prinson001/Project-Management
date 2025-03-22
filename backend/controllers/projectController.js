@@ -64,13 +64,18 @@ const addProject = async (req, res) => {
     const projectId = result[0].id;
 
     if (beneficiary_departments && beneficiary_departments.length > 0) {
-      console.log("Inserting beneficiary departments:", beneficiary_departments);
-      const departmentInsertQueries = beneficiary_departments.map((departmentId) => {
-        return sql`
+      console.log(
+        "Inserting beneficiary departments:",
+        beneficiary_departments
+      );
+      const departmentInsertQueries = beneficiary_departments.map(
+        (departmentId) => {
+          return sql`
           INSERT INTO project_department (project_id, department_id)
           VALUES (${projectId}, ${departmentId});
         `;
-      });
+        }
+      );
       await Promise.all(departmentInsertQueries);
     }
 
@@ -210,7 +215,7 @@ const updateProject = async (req, res) => {
       if (req.body.approval == true) {
         console.log(req.body.approval);
         console.log("the approval is true");
-        createProjectCreationTaskForDeputy(req.body.id);
+        // createProjectCreationTaskForDeputy(req.body.id);
       }
     } catch (e) {
       console.log("there was an error in creation of tasks object ", e);
@@ -223,12 +228,14 @@ const updateProject = async (req, res) => {
           WHERE project_id = ${id}
         `;
         if (beneficiaryDepartments.length > 0) {
-          const departmentInsertQueries = beneficiaryDepartments.map((departmentId) => {
-            return sql`
+          const departmentInsertQueries = beneficiaryDepartments.map(
+            (departmentId) => {
+              return sql`
               INSERT INTO project_department (project_id, department_id)
               VALUES (${id}, ${departmentId});
             `;
-          });
+            }
+          );
           await Promise.all(departmentInsertQueries);
         }
       } catch (error) {
@@ -332,7 +339,8 @@ const deleteProject = async (req, res) => {
     if (error.code === "23503") {
       return res.status(409).json({
         status: "failure",
-        message: "Cannot delete this project because it's referenced by other records",
+        message:
+          "Cannot delete this project because it's referenced by other records",
         result: error.detail || error,
       });
     }
@@ -453,20 +461,29 @@ const updateProjectApprovalbyDeputy = async (req, res) => {
 const upsertSchedulePlan = async (req, res) => {
   const { projectId, schedule } = req.body;
 
+  console.log("Schedule plan data:", req.body);
+
   if (!projectId || !schedule || !Array.isArray(schedule)) {
     return res.status(400).json({
       status: "failure",
-      message: "Invalid data provided: projectId and schedule array are required",
+      message:
+        "Invalid data provided: projectId and schedule array are required",
       result: null,
     });
   }
 
   try {
     for (const plan of schedule) {
-      if (!plan.phaseId || !plan.durationDays || !plan.startDate || !plan.endDate) {
+      if (
+        !plan.phaseId ||
+        !plan.durationDays ||
+        !plan.startDate ||
+        !plan.endDate
+      ) {
         return res.status(400).json({
           status: "failure",
-          message: "Missing required fields in schedule data: phaseId, durationDays, startDate, and endDate are required",
+          message:
+            "Missing required fields in schedule data: phaseId, durationDays, startDate, and endDate are required",
           result: null,
         });
       }

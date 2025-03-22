@@ -1,8 +1,9 @@
 const sql = require("../database/db");
 
-const createProjectCreationTaskForDeputy = async (projectId) => {
+const createProjectCreationTaskForDeputy = async (req, res) => {
   let result = null;
-
+  let { projectId } = req.body;
+  console.log("Deputy project Id", projectId);
   try {
     // Get the activity duration for "Approve project creation"
     result =
@@ -29,7 +30,7 @@ const createProjectCreationTaskForDeputy = async (projectId) => {
     }
 
     const deputy = deputies[0]; // Assigning to the first deputy found
-    console.log(deputy);
+    console.log("Found Deputy", deputy);
 
     // Calculate due date (today's date + activity duration in days)
     const today = new Date();
@@ -52,10 +53,15 @@ const createProjectCreationTaskForDeputy = async (projectId) => {
     `;
 
     console.log(
-      `Task created for Deputy ${deputy} (ID: ${deputy.id}) with due date ${
+      `Task created for Deputy (ID: ${deputy.id}) with due date ${
         dueDate.toISOString().split("T")[0]
       }`
     );
+    return res.status(400).json({
+      status: "success",
+      message: "Approve Project Sent Successfully",
+      result: null,
+    });
   } catch (e) {
     console.error("Error creating project creation task for deputy:", e);
   }

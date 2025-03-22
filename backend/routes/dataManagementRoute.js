@@ -49,9 +49,12 @@ const {
   getProjectPhases,
   getProjectPhase,
   getProjectTypes,
-  
 } = require("../controllers/projectController");
-const {getSchedulePlan,  upsertSchedulePlan,getPhases}=require("../controllers/schedulePlanController");
+const {
+  getSchedulePlan,
+  upsertSchedulePlan,
+  getPhases,
+} = require("../controllers/schedulePlanController");
 
 const {
   addDepartment,
@@ -81,6 +84,9 @@ const {
   getProjectDocuments,
   deleteProjectDocument,
 } = require("../controllers/documentController");
+const {
+  createProjectCreationTaskForDeputy,
+} = require("../controllers/taskCreationController");
 
 router.post("/setting", getSetting);
 router.post("/data", getData);
@@ -145,8 +151,13 @@ router.post("/getProjectPhase", getProjectPhase);
 router.post("/getProjectTypes", getProjectTypes);
 
 router.post("/deleteProjectDocument", deleteProjectDocument);
-router.post("/getPhases",getPhases);
-router.post("/getPhaseDurations",getPhaseDurations);
+router.post("/getPhases", getPhases);
+router.post("/getPhaseDurations", getPhaseDurations);
 
 router.post("/getSchedulePlan", getSchedulePlan);
+
+router.post(
+  "/createProjectCreationTaskForDeputy",
+  createProjectCreationTaskForDeputy
+);
 module.exports = router;

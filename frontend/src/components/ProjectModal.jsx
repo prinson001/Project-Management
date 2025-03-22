@@ -424,20 +424,177 @@ const ProjectModal = ({
     setScheduleTableData(data);
   };
 
+  const handleSaveDraft = async () => {
+    await handleSubmit(async (data) => {
+      try {
+        const projectData = await onSubmit({
+          ...data,
+          approval_status: "Not initiated", // Using enum value for draft
+        });
+
+        toast.success("Project saved as draft successfully!");
+        if (onClose) onClose();
+      } catch (error) {
+        console.error("Error saving draft:", error);
+        toast.error("Failed to save project as draft");
+      }
+    })();
+  };
+
+  // Modified handleSaveAndSendForApproval
+  const handleSaveAndSendForApproval = async () => {
+    await handleSubmit(async (data) => {
+      try {
+        console.log("Starting save and send for approval process");
+        const projectResponse = await onSubmit({
+          ...data,
+          approval_status: "Waiting on deputy",
+        });
+
+        console.log("Project response:", projectResponse);
+
+        const projectId = projectResponse?.data?.result?.id;
+        console.log("Project Id for deputy", projectId);
+        if (!projectId) {
+          console.error("Project response structure:", projectResponse);
+          throw new Error("Project ID not found in response");
+        }
+
+        console.log("Project ID obtained:", projectId);
+
+        // Make API call to backend instead of direct function call
+        const taskResponse = await axiosInstance.post(
+          "/data-management/createProjectCreationTaskForDeputy",
+          { projectId }
+        );
+
+        console.log("Task creation response:", taskResponse.data);
+
+        if (taskResponse.data.success) {
+          toast.success("Project saved and sent for approval successfully!");
+          if (onClose) onClose();
+        } else {
+          throw new Error(
+            taskResponse.data.message || "Failed to create approval task"
+          );
+        }
+      } catch (error) {
+        console.error("Error saving and sending for approval:", error);
+        toast.error(
+          "Failed to save and send project for approval: " + error.message
+        );
+      }
+    })();
+  };
+
+  const handleClearFields = () => {
+    // Reset form to default values
+    reset({
+      name: "",
+      arabic_name: "",
+      description: "",
+      project_type_id: "",
+      current_phase_id: "",
+      initiative_id: "",
+      portfolio_id: "",
+      program_id: "",
+      category: "",
+      project_manager_id: "",
+      alternative_project_manager_id: "",
+      vendor_id: "",
+      beneficiaryDepartments: [],
+      objectives: [
+        { id: 1, text: "Objective One", checked: true },
+        { id: 2, text: "Objective Two", checked: true },
+        { id: 3, text: "Objective Three", checked: true },
+        { id: 4, text: "Objective Four", checked: true },
+      ],
+      planned_budget: "",
+      approved_budget: "",
+      execution_start_date: {
+        startDate: new Date("2025-01-21"),
+        endDate: new Date("2025-01-21"),
+      },
+      maintenance_duration: {
+        startDate: new Date("2025-01-21"),
+        endDate: new Date("2025-01-21"),
+      },
+      internal_start_date: {
+        startDate: new Date("2025-01-21"),
+        endDate: new Date("2025-01-21"),
+      },
+      execution_duration: "4 weeks",
+      documents: [
+        {
+          id: 1,
+          name: "Business case",
+          required: true,
+          filename: "Business_case.doc",
+          date: "5- May -23",
+          uploaded: true,
+        },
+        {
+          id: 2,
+          name: "Request for Proposal",
+          required: true,
+          filename: "RFP_version_Final.pdf",
+          date: "5- May -23",
+          uploaded: true,
+        },
+        {
+          id: 3,
+          name: "Execution phase closure",
+          required: true,
+          filename: "",
+          date: "",
+          uploaded: false,
+        },
+        {
+          id: 4,
+          name: "Contract",
+          required: true,
+          filename: "",
+          date: "",
+          uploaded: false,
+        },
+        {
+          id: 5,
+          name: "Technical evaluation",
+          required: false,
+          filename: "",
+          date: "",
+          uploaded: false,
+        },
+        {
+          id: 6,
+          name: "Financial evaluation",
+          required: false,
+          filename: "",
+          date: "",
+          uploaded: false,
+        },
+      ],
+    });
+
+    // Clear any local state related to file uploads
+    setLocalFiles([]);
+
+    // Clear schedule table data if needed
+    setScheduleTableData([]);
+
+    // Show confirmation to user
+  };
+
   // Handle form submission
   const onSubmit = async (data) => {
     console.log("Form submitted:", data);
 
     try {
-      // Get selected department IDs
       const selectedDepartmentIds = getSelectedDepartmentIds();
-
-      // Get selected objective IDs
       const selectedObjectiveIds = objectives
         .filter((obj) => obj.checked)
         .map((obj) => obj.id);
 
-      // Prepare data for submission
       const projectData = {
         name: data.name,
         arabic_name: data.arabic_name,
@@ -465,7 +622,10 @@ const ProjectModal = ({
           ? `${data.execution_duration} days`
           : null,
         maintenance_duration: data.maintenance_duration ? `30 days` : null,
+        approval_status: data.approval_status || "Not initiated",
       };
+
+      console.log("Sending project data:", projectData); // Debug log
 
       // Step 1: Save the project
       const projectResponse = await axiosInstance.post(
@@ -478,19 +638,31 @@ const ProjectModal = ({
           userId: 1,
         },
         {
-          // timeout: 10000,
           headers: {
             "Content-Type": "application/json",
           },
         }
       );
 
+      console.log("Raw project response:", projectResponse); // Debug log
+
       if (projectResponse.data && projectResponse.data.status === "success") {
         const projectId = projectResponse.data.result.id;
 
+        if (!projectId) {
+          console.error(
+            "No project ID in successful response:",
+            projectResponse.data
+          );
+          throw new Error("Project ID missing from successful response");
+        }
+
+        console.log("Project saved with ID:", projectId); // Debug log
+
         // Step 2: Upload documents
-        await uploadDocuments(projectId, localFiles); // Use localFiles defined in ProjectModal
-        console.log(scheduleData);
+        await uploadDocuments(projectId, localFiles);
+        console.log("Documents uploaded successfully"); // Debug log
+
         // Step 3: Save the schedule plan
         const schedulePlanResponse = await axiosInstance.post(
           `/data-management/upsertSchedulePlan`,
@@ -505,18 +677,25 @@ const ProjectModal = ({
           }
         );
 
+        console.log("Schedule plan response:", schedulePlanResponse); // Debug log
+
         if (
           schedulePlanResponse.data &&
           schedulePlanResponse.data.status === "success"
         ) {
-          toast.success("Project and schedule plan saved successfully!");
-          if (onClose) onClose(); // Close the modal
+          if (projectData.approval_status === "Not initiated") {
+            toast.success("Project and schedule plan saved successfully!");
+            if (onClose) onClose();
+          }
         } else {
           throw new Error(
             schedulePlanResponse.data?.message || "Failed to save schedule plan"
           );
         }
+
+        return projectResponse; // Always return the response
       } else {
+        console.error("Project save failed:", projectResponse.data);
         throw new Error(
           projectResponse.data?.message || "Failed to add project"
         );
@@ -528,6 +707,7 @@ const ProjectModal = ({
         error.message ||
         "Failed to add project";
       toast.error(errorMessage);
+      throw error;
     }
   };
 
@@ -1326,15 +1506,26 @@ const ProjectModal = ({
             <div className="flex justify-end space-x-4 mt-6 border-t pt-4">
               <button
                 type="button"
-                className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                onClick={handleSaveDraft}
               >
-                Cancel
+                Save as draft
               </button>
+
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                className="px-4 py-2 bg-green-100 text-green-900 rounded hover:bg-green-200"
+                onClick={handleSaveAndSendForApproval}
               >
-                Save Project
+                Save and send for approval
+              </button>
+
+              <button
+                type="button"
+                className="px-4 py-2 bg-red-100 text-red-900 rounded hover:bg-red-200"
+                onClick={handleClearFields}
+              >
+                Clear fields
               </button>
             </div>
           )}
