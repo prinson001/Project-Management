@@ -381,10 +381,8 @@ const TableData = ({
                           )}
                           {item.title === "Upload Schedule Plan" && (
                             <DeliverableAccordion2
+                              project={tableData[index]}
                               parentId={tableData[index]?.related_entity_id}
-                              projectBudget={
-                                tableData[index]?.approved_project_budget
-                              }
                             />
                           )}
                         </div>

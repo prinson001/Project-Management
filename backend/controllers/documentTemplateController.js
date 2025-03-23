@@ -203,13 +203,12 @@ const getCurrentPhaseDocumentTemplates = async (req, res) => {
 // THIS IS UPLOADED PROJECT DOCUMENTS AND ABOVE TWO ARE FOR DOCUMENT TEMPLATES
 const getProjectPhaseDocuments = async (req, res) => {
   try {
-    const { projectId, projectPhase } = req.body;
+    const { projectId } = req.body;
 
-    if (!projectId || !projectPhase) {
+    if (!projectId) {
       return res.status(400).json({
         status: "failure",
-        message:
-          "Both projectId and projectPhase are required in the request body",
+        message: "Both projectId are required in the request body",
       });
     }
 
@@ -219,7 +218,6 @@ const getProjectPhaseDocuments = async (req, res) => {
       FROM project_documents pd
       JOIN document_template dt ON pd.template_id = dt.id
       WHERE pd.project_id = ${projectId}
-        AND pd.phase = ${projectPhase}
     `;
 
     res.status(200).json({

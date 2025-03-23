@@ -17,6 +17,17 @@ let getAllTasks = null;
 let taskStatus = null;
 
 let page = 1;
+
+const removeDuplicates = (array, key = "id") => {
+  const seen = new Set();
+  return array.filter((item) => {
+    const itemKey = item[key];
+    const isDuplicate = seen.has(itemKey);
+    seen.add(itemKey);
+    return !isDuplicate;
+  });
+};
+
 const DataSection = ({
   tableName,
   showTableData = true,
@@ -52,9 +63,14 @@ const DataSection = ({
 
       console.log("the data");
       console.log(result);
-      originalTableData = result.data.result;
-      setTableData((state) => result.data.result);
-      setPagination((state) => result.data.pagination);
+      const uniqueData = removeDuplicates(result.data.result);
+
+      console.log("Original data count:", result.data.result.length);
+      console.log("Unique data count:", uniqueData.length);
+
+      originalTableData = uniqueData;
+      setTableData(uniqueData);
+      setPagination(result.data.pagination);
     } catch (e) {
       console.log(e);
     }

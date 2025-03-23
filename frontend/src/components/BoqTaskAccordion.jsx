@@ -1,13 +1,15 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axiosInstance from "../axiosInstance";
-const PORT = import.meta.env.VITE_PORT;
+
 const BoqTaskAccordion = ({ parentId = null, projectBudget = 0, project }) => {
   // State management
   const [items, setItems] = useState([]);
   const [deletions, setDeletions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
   console.log("Received project", project);
+
   // Derived calculations
   const { totalExecution, totalOperation, totalProjectCost, isOverBudget } =
     useMemo(() => {
@@ -41,7 +43,6 @@ const BoqTaskAccordion = ({ parentId = null, projectBudget = 0, project }) => {
         projectId: parentId,
       });
       console.log(data);
-      console.log("data");
       setItems(
         data.result?.map((item) => ({ ...item, id: item.id.toString() })) || []
       );
@@ -52,6 +53,7 @@ const BoqTaskAccordion = ({ parentId = null, projectBudget = 0, project }) => {
       setLoading(false);
     }
   };
+
   useEffect(() => {
     console.log("the parent id is " + parentId);
     console.log("the project budget is " + projectBudget);
@@ -87,7 +89,6 @@ const BoqTaskAccordion = ({ parentId = null, projectBudget = 0, project }) => {
   // Save handler
   const handleSave = async () => {
     try {
-      // Separate new items and updates
       let newItems = items.filter((item) =>
         item.id.toString().startsWith("temp-")
       );
@@ -98,32 +99,59 @@ const BoqTaskAccordion = ({ parentId = null, projectBudget = 0, project }) => {
         (item) => !item.id.toString().startsWith("temp-")
       );
 
-      // Prepare payload
       const payload = {
         newItems: newItems.map(({ id, total, ...rest }) => rest),
         updates: updates.map(({ total, ...rest }) => rest),
         deletions,
       };
       console.log("Payload", payload);
-      // API call
+
       const { data } = await axiosInstance.post(`/pm/saveItems`, {
         projectId: parentId,
         ...payload,
       });
-      console.log("the result of item save");
-      console.log(data);
-      //Update IDs for new items from response
-      // setItems((prev) =>
-      //   prev.map((item) =>
-      //     data.newIds[item.id] ? { ...item, id: data.newIds[item.id] } : item
-      //   )
-      // );
+      console.log("Save result:", data);
+
       await fetchItems();
       setDeletions([]);
-      console.log(data);
     } catch (err) {
       console.error("Save error:", err);
       alert("Error saving data. Please try again.");
+    }
+  };
+
+  // Send for Approval handler
+  const handleSendForApproval = async () => {
+    try {
+      // First, save the current BOQ items
+      await handleSave();
+      console.log("Parent Id", parentId);
+      
+      // Then send the approval request
+      const response = await axiosInstance.post(
+        `/tasks/createSchedulePlanTaskForPM`,
+        {
+          projectId: parentId,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+  
+      // Updated success check to match backend response
+      if (response.data.status === "success") {
+        console.log("Schedule plan task created successfully:", response.data);
+        alert("BOQ saved and sent for approval successfully!");
+      } else {
+        throw new Error(
+          response.data.message || "Failed to create schedule plan task"
+        );
+      }
+    } catch (err) {
+      console.error("Error sending for approval:", err);
+      alert("Error sending BOQ for approval: " + err.message);
     }
   };
 
@@ -237,7 +265,6 @@ const BoqTaskAccordion = ({ parentId = null, projectBudget = 0, project }) => {
                     }
                     className="w-full border rounded px-2 py-1"
                     min="0"
-                    // step="1"
                   />
                 </td>
                 <td className="px-4 py-2 font-medium">
@@ -285,6 +312,12 @@ const BoqTaskAccordion = ({ parentId = null, projectBudget = 0, project }) => {
           className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
         >
           Save Changes
+        </button>
+        <button
+          onClick={handleSendForApproval}
+          className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
+        >
+          Send for Approval
         </button>
       </div>
     </div>

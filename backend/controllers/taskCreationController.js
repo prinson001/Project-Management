@@ -117,35 +117,46 @@ const createBoqTaskForPM = async (project) => {
   }
 };
 
-const createSchedulePlanTaskForPM = async (project) => {
-  //logic to create schedule plan task for pm
+const createSchedulePlanTaskForPM = async (req, res) => {
   try {
-    // Ensure project is valid
-    if (!project || project.length === 0) {
+    const { projectId } = req.body;
+    console.log("project id in schedule plan", projectId);
+    // Fetch project data
+    const projectResult = await sql`
+      SELECT * FROM project WHERE id = ${projectId};
+    `;
+
+    if (projectResult.length === 0) {
       console.log("Invalid project data.");
-      return;
+      return res.status(400).json({
+        status: "error",
+        message: "Project not found",
+      });
     }
 
-    const projectData = project[0];
+    const projectData = projectResult[0];
 
-    // Fetch the activity duration for "Upload BOQ"
+    // Fetch the activity duration
     const activityDurationResult = await sql`
-      SELECT * FROM activity_duration WHERE activity_name = 'Upload SchedulePlan';
+      SELECT * FROM activity_duration WHERE activity_name = 'Upload Schedule Plan';
     `;
 
     if (activityDurationResult.length === 0) {
-      console.log("No activity duration found for 'Upload SchedulePlan'.");
-      return;
+      console.log("No activity duration found for 'Upload Schedule Plan'.");
+      return res.status(400).json({
+        status: "error",
+        message: "Activity duration not found",
+      });
     }
 
     const activityDuration = activityDurationResult[0];
 
-    // Calculate due date (today + activity duration days)
+    // Calculate due date
     const today = new Date();
     const dueDate = new Date(today);
-    dueDate.setDate(today.getDate() + Number(activityDuration.duration)); // Add duration days
+    dueDate.setDate(today.getDate() + Number(activityDuration.duration));
 
-    // Insert a new task for the project manager
+    // Insert the task
     await sql`
       INSERT INTO tasks (title, status, due_date, assigned_to, related_entity_type, related_entity_id)
       VALUES (
@@ -163,8 +174,17 @@ const createSchedulePlanTaskForPM = async (project) => {
         projectData.project_manager_id
       }) with due date ${dueDate.toISOString().split("T")[0]}`
     );
+
+    return res.status(200).json({
+      status: "success",
+      message: "Schedule plan task created successfully",
+    });
   } catch (e) {
-    console.error("Error creating SchedulePlan  task for Project Manager:", e);
+    console.error("Error creating SchedulePlan task for Project Manager:", e);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error",
+    });
   }
 };
 

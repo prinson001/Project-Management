@@ -5,9 +5,9 @@ import Datepicker from "react-tailwindcss-datepicker";
 import UpdateProjectDocumentSection from "./UpdateProjectDocumentSection";
 import { toast } from "sonner";
 import useAuthStore from "../store/authStore";
-import axios from "axios";
 import SchedulePlanSection from "./SchedulePlanSection";
 import UpdateSchedulePlanSection from "./UpdateSchedulePlanSection";
+import axiosInstance from "../axiosInstance";
 
 const PORT = import.meta.env.VITE_PORT;
 
@@ -93,7 +93,9 @@ const UpdateProjectModal = ({
   useEffect(() => {
     const fetchProjectTypes = async () => {
       try {
-        const response = await axios.post(`/data-management/getProjectTypes`);
+        const response = await axiosInstance.post(
+          `/data-management/getProjectTypes`
+        );
         if (response.data.status === "success") {
           setProjectTypes(response.data.result);
         }
@@ -110,7 +112,9 @@ const UpdateProjectModal = ({
   useEffect(() => {
     const fetchProjectPhases = async () => {
       try {
-        const response = await axios.post(`/data-management/getProjectPhases`);
+        const response = await axiosInstance.post(
+          `/data-management/getProjectPhases`
+        );
         if (response.data.status === "success") {
           setProjectPhases(response.data.result);
         }
@@ -129,9 +133,12 @@ const UpdateProjectModal = ({
       if (!currentPhase) return;
 
       try {
-        const response = await axios.post(`/data-management/getProjectPhase`, {
-          phase_id: currentPhase,
-        });
+        const response = await axiosInstance.post(
+          `/data-management/getProjectPhase`,
+          {
+            phase_id: currentPhase,
+          }
+        );
 
         if (response.data.status === "success") {
           setPhaseInfo(response.data.result);
@@ -151,7 +158,9 @@ const UpdateProjectModal = ({
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        const response = await axios.post(`/data-management/getDepartments`);
+        const response = await axiosInstance.post(
+          `/data-management/getDepartments`
+        );
         if (response.data.status === "success") {
           const fetchedDepartments = response.data.result.map((dept) => ({
             ...dept,
@@ -175,7 +184,9 @@ const UpdateProjectModal = ({
   useEffect(() => {
     const fetchObjectives = async () => {
       try {
-        const response = await axios.post(`/data-management/getObjectives`);
+        const response = await axiosInstance.post(
+          `/data-management/getObjectives`
+        );
         if (response.data.status === "success") {
           const fetchedObjectives = response.data.result.map((obj) => ({
             ...obj,
@@ -197,7 +208,9 @@ const UpdateProjectModal = ({
   useEffect(() => {
     const fetchInitiatives = async () => {
       try {
-        const response = await axios.post(`/data-management/getInitiatives`);
+        const response = await axiosInstance.post(
+          `/data-management/getInitiatives`
+        );
         if (response.data.status === "success") {
           setInitiatives(response.data.result);
         }
@@ -214,7 +227,9 @@ const UpdateProjectModal = ({
   useEffect(() => {
     const fetchPortfolios = async () => {
       try {
-        const response = await axios.post(`/data-management/getPortfolios`);
+        const response = await axiosInstance.post(
+          `/data-management/getPortfolios`
+        );
         if (response.data.status === "success") {
           setPortfolios(response.data.result);
         }
@@ -231,7 +246,9 @@ const UpdateProjectModal = ({
   useEffect(() => {
     const fetchPrograms = async () => {
       try {
-        const response = await axios.post(`/data-management/getPrograms`);
+        const response = await axiosInstance.post(
+          `/data-management/getPrograms`
+        );
         if (response.data.status === "success") {
           setPrograms(response.data.result);
         }
@@ -248,7 +265,9 @@ const UpdateProjectModal = ({
   useEffect(() => {
     const fetchVendors = async () => {
       try {
-        const response = await axios.post(`/data-management/getVendors`);
+        const response = await axiosInstance.post(
+          `/data-management/getVendors`
+        );
         if (response.data.status === "success") {
           setVendors(response.data.result);
         }
@@ -266,7 +285,7 @@ const UpdateProjectModal = ({
     const fetchDocuments = async () => {
       if (!projectData?.id) return;
       try {
-        const response = await axios.post(
+        const response = await axiosInstance.post(
           `/data-management/getProjectDocuments`,
           { project_id: projectData.id }
         );
@@ -329,17 +348,20 @@ const UpdateProjectModal = ({
         maintenance_duration: data.maintenance_duration || null,
       };
 
-      const response = await axios.post(`/data-management/updateProject`, {
-        id: projectData.id,
-        data: updatedProjectData,
-      });
+      const response = await axiosInstance.post(
+        `/data-management/updateProject`,
+        {
+          id: projectData.id,
+          data: updatedProjectData,
+        }
+      );
 
       if (response.data.status === "success") {
         if (localFiles.length > 0) {
           await uploadDocuments(projectData.id, localFiles);
         }
         if (scheduleTableData.length > 0) {
-          await axios.post(`/data-management/upsertSchedulePlan`, {
+          await axiosInstance.post(`/data-management/upsertSchedulePlan`, {
             projectId: projectData.id,
             schedule: scheduleTableData.map((plan) => ({
               phaseId: plan.phaseId,
@@ -406,7 +428,7 @@ const UpdateProjectModal = ({
       formData.append("template_id", template_id);
       formData.append("phase", phaseInfo?.name || "Execution");
 
-      const response = await axios.post(
+      const response = await axiosInstance.post(
         `/data-management/addProjectDocument`,
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }

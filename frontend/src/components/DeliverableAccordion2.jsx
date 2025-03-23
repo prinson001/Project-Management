@@ -3,7 +3,11 @@ import { Disclosure, Transition } from "@headlessui/react";
 import axiosInstance from "../axiosInstance";
 const PORT = import.meta.env.VITE_PORT;
 
-const DeliverablesAccordion = ({ projectId = 2, projectPhase }) => {
+const DeliverablesAccordion2 = ({ project }) => {
+  let projectId = project?.related_entity_id;
+  console.log("the project id is ", projectId);
+  console.log("the project is ", project);
+  // Initialize items as empty array instead of undefined
   const [items, setItems] = useState([]);
   const [projectDocuments, setProjectDocuments] = useState([]);
   const [openIndex, setOpenIndex] = useState(-1);
@@ -14,10 +18,15 @@ const DeliverablesAccordion = ({ projectId = 2, projectPhase }) => {
   });
 
   useEffect(() => {
+    console.log("the project id is ", projectId);
+    // console.log("the project phase is ", projectPhase);
     const fetchItemsWithDeliverables = async () => {
       try {
-        const response = await axiosInstance.get(
-          `/pm/${projectId}/items-with-deliverables`
+        const response = await axiosInstance.post(
+          `/pm/items-with-deliverables`,
+          {
+            projectId,
+          }
         );
         console.log("items with deliverables");
         console.log(response);
@@ -28,13 +37,9 @@ const DeliverablesAccordion = ({ projectId = 2, projectPhase }) => {
     };
     const fetchProjectDocuments = async () => {
       try {
-        const response = await axiosInstance.get(
-          `http://localhost:4000/pm/getProjectDocuments`,
-          {
-            projectId,
-            projectPhase,
-          }
-        );
+        const response = await axiosInstance.post(`/pm/getProjectDocuments`, {
+          projectId,
+        });
         console.log("project documents");
         console.log(response);
         setItems(response.data);
@@ -255,7 +260,7 @@ const DeliverablesAccordion = ({ projectId = 2, projectPhase }) => {
         })}
       </div>
       <div className="space-y-1">
-        {items.map((item, itemIndex) => (
+        {(Array.isArray(items) ? items : []).map((item, itemIndex) => (
           <Disclosure key={item.id || itemIndex}>
             {({ open }) => (
               <div className="mb-4 border rounded-lg overflow-hidden shadow-sm">
@@ -467,4 +472,4 @@ const DeliverablesAccordion = ({ projectId = 2, projectPhase }) => {
   );
 };
 
-export default DeliverablesAccordion;
+export default DeliverablesAccordion2;

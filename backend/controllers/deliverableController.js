@@ -1,6 +1,7 @@
 const sql = require("../database/db");
 
 const getItemsWithDeliverables = async (req, res) => {
+  let { projectId } = req.body;
   try {
     const items = await sql`
             SELECT
@@ -11,7 +12,7 @@ const getItemsWithDeliverables = async (req, res) => {
               ) as deliverables
             FROM item i
             LEFT JOIN deliverable d ON d.item_id = i.id
-            WHERE i.project_id = 2 AND i.type != 'Operation'
+            WHERE i.project_id = ${projectId} AND i.type != 'Operation'
             GROUP BY i.id
           `;
 
