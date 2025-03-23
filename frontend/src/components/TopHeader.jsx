@@ -14,8 +14,10 @@ import {
 import logo from "../assets/rakias-logo.png";
 import userPicture from "../assets/userlogo.png";
 import useAuth from "../hooks/userAuth";
+import { useNavigate } from "react-router-dom";
 
 const TopHeader = () => {
+  const navigate = useNavigate();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAppsOpen, setIsAppsOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -79,6 +81,12 @@ const TopHeader = () => {
     setIsDarkMode(!isDarkMode);
   };
 
+  const handleLogout = () => {
+    localStorage.clear();
+    setIsProfileOpen(false);
+    navigate("/");
+  };
+
   return (
     <header className="antialiased">
       <nav className="bg-white border-gray-200 px-4 lg:px-6 py-2.5 dark:bg-[#1D1D1D]">
@@ -136,14 +144,14 @@ const TopHeader = () => {
                       <h3 className="font-bold text-lg text-gray-900 dark:text-white">
                         Quick services
                       </h3>
-                      <button 
+                      <button
                         onClick={closeAppsMenu}
                         className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white"
                       >
                         <X className="w-5 h-5" />
                       </button>
                     </div>
-                    
+
                     <div className="grid grid-cols-3 gap-2">
                       <div className="border rounded-md p-3 flex flex-col items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer">
                         <Users className="w-8 h-8 mb-2 text-gray-700 dark:text-gray-300" />
@@ -151,11 +159,11 @@ const TopHeader = () => {
                           Meeting Request
                         </span>
                       </div>
-                      
+
                       <div className="border rounded-md p-3 flex flex-col items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer">
                         {/* Empty service slot */}
                       </div>
-                      
+
                       <div className="border rounded-md p-3 flex flex-col items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer">
                         {/* Empty service slot */}
                       </div>
@@ -219,14 +227,6 @@ const TopHeader = () => {
                         href="#"
                         className="block py-2 px-4 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-400 dark:hover:text-white"
                       >
-                        My profile
-                      </a>
-                    </li>
-                    <li>
-                      <a
-                        href="#"
-                        className="block py-2 px-4 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-400 dark:hover:text-white"
-                      >
                         Account settings
                       </a>
                     </li>
@@ -234,29 +234,7 @@ const TopHeader = () => {
                   <ul
                     className="py-1 text-gray-500 dark:text-gray-400"
                     aria-labelledby="dropdown"
-                  >
-                    <li>
-                      <a
-                        href="#"
-                        className="flex items-center py-2 px-4 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
-                      >
-                        <Heart
-                          className="mr-2 w-5 h-5 text-gray-400"
-                          aria-hidden="true"
-                        />
-                        My likes
-                      </a>
-                    </li>
-                    <li>
-                      <a
-                        href="#"
-                        className="flex items-center py-2 px-4 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
-                      >
-                        <LayoutDashboard className="mr-2 w-5 h-5 text-gray-400" />
-                        Collections
-                      </a>
-                    </li>
-                  </ul>
+                  ></ul>
                   <ul
                     className="py-1 text-gray-500 dark:text-gray-400"
                     aria-labelledby="dropdown"
@@ -265,6 +243,10 @@ const TopHeader = () => {
                       <a
                         href="#"
                         className="block py-2 px-4 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleLogout();
+                        }}
                       >
                         <LogOut className="mr-2 w-5 h-5 text-gray-400" />
                         Sign out
