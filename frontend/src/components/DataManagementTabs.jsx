@@ -3,7 +3,7 @@ import useLanguage from "../hooks/useLanguage";
 
 const DataManagementTabs = ({ activeTab, setActiveTab }) => {
   const { t } = useLanguage();
-  
+
   const tabs = [
     { id: "initiatives", label: "initiatives", disabled: false },
     { id: "portfolio", label: "portfolio", disabled: false },

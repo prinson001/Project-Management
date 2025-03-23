@@ -15,7 +15,7 @@ import TableConfigFilter from "../components/TableConfigFilter";
 import StackTable from "../components/StackTable";
 import DynamicForm from "../components/DynamicForm";
 import DocumentFormModal from "../components/DocumentFormModal";
-import DataManagementTabs from "../components/datamanagementtabs";
+import DataManagementTabs from "../components/DataManagementTabs";
 import ProjectModal from "../components/ProjectModal";
 import DataSection from "./DataSection";
 
