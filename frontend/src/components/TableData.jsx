@@ -1,10 +1,9 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { format, differenceInCalendarDays } from "date-fns";
 import {
   Edit,
   Trash2,
   ChevronDown,
-  Stethoscope,
   ChevronsUpDown,
   ExternalLink,
 } from "lucide-react";
@@ -21,8 +20,6 @@ import TeamAccordion from "./TeamAccordion";
 import axiosInstance from "../axiosInstance";
 import Loader from "./Loader";
 import UpdateProjectModal from "./UpdateProjectModal";
-
-const PORT = import.meta.env.VITE_PORT;
 
 const TableData = ({
   getData,
@@ -45,13 +42,13 @@ const TableData = ({
   const [selectedProject, setSelectedProject] = useState(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
 
+  // Initialize column widths and visible columns
   useEffect(() => {
     const initialWidths = {};
     const visible = [];
     columnSetting.forEach((column) => {
       if (column.isVisible) {
-        const width = column.width || 150;
-        initialWidths[column.dbColumn] = width;
+        initialWidths[column.dbColumn] = column.width || 150;
         visible.push(column.dbColumn);
       }
     });
@@ -63,7 +60,51 @@ const TableData = ({
     setLoading(!(tableData && tableData.length > 0));
   }, [tableData]);
 
+  // Resize handlers
+  const handleResizeStart = (e, columnId) => {
+    e.preventDefault();
+    setResizingColumn(columnId);
+    setStartX(e.clientX);
+    setStartWidth(columnWidths[columnId] || 150);
+  };
+
+  const handleResizeMove = (e) => {
+    if (resizingColumn && startX !== null) {
+      const diff = e.clientX - startX;
+      const newWidth = Math.max(50, startWidth + diff); // Minimum width of 50px
+      setColumnWidths((prev) => ({
+        ...prev,
+        [resizingColumn]: newWidth,
+      }));
+    }
+  };
+
+  const handleResizeEnd = () => {
+    setResizingColumn(null);
+    setStartX(null);
+    setStartWidth(null);
+  };
+
+  // Add and remove global event listeners
+  useEffect(() => {
+    const handleMouseMove = (e) => handleResizeMove(e);
+    const handleMouseUp = () => handleResizeEnd();
+
+    if (resizingColumn) {
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+      document.body.classList.add("resize-active");
+    }
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.classList.remove("resize-active");
+    };
+  }, [resizingColumn, startX, startWidth, columnWidths]);
+
   const toggleAccordion = (index) => {
+    console.log("Toggle:", index);
     setOpenAccordion(openAccordion === index ? null : index);
   };
 
@@ -153,40 +194,6 @@ const TableData = ({
     }
   };
 
-  const handleResizeStart = (e, columnId) => {
-    e.preventDefault();
-    setResizingColumn(columnId);
-    setStartX(e.clientX);
-    setStartWidth(columnWidths[columnId] || 150);
-    document.addEventListener("mousemove", handleResizeMove);
-    document.addEventListener("mouseup", handleResizeEnd);
-    document.body.classList.add("resize-active");
-  };
-
-  const handleResizeMove = (e) => {
-    if (resizingColumn && startX !== null) {
-      const diff = e.clientX - startX;
-      const newWidth = Math.max(50, startWidth + diff);
-      setColumnWidths((prev) => ({ ...prev, [resizingColumn]: newWidth }));
-    }
-  };
-
-  const handleResizeEnd = () => {
-    setResizingColumn(null);
-    setStartX(null);
-    setStartWidth(null);
-    document.removeEventListener("mousemove", handleResizeMove);
-    document.removeEventListener("mouseup", handleResizeEnd);
-    document.body.classList.remove("resize-active");
-  };
-
-  useEffect(() => {
-    return () => {
-      document.removeEventListener("mousemove", handleResizeMove);
-      document.removeEventListener("mouseup", handleResizeEnd);
-    };
-  }, []);
-
   const handleUpdateProject = (updatedData) => {
     setTableData((prevData) =>
       prevData.map((item) =>
@@ -200,7 +207,7 @@ const TableData = ({
   return (
     <>
       <div className="relative overflow-x-auto rounded-lg shadow-md">
-        <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-white table-fixed">
+        <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-white">
           <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-[#090b0d] dark:text-gray-400">
             <tr>
               {columnSetting.map(
@@ -209,29 +216,27 @@ const TableData = ({
                     <th
                       key={column.columnName}
                       className="px-2 py-3 relative border-r border-gray-200 dark:border-gray-700"
-                      style={{ width: `${columnWidths[column.dbColumn]}px` }}
+                      style={{ width: columnWidths[column.dbColumn] }}
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="truncate pr-1">
-                          {column.columnName}
-                        </span>
+                      <div className="flex items-center justify-between pr-2">
+                        <span className="truncate">{column.columnName}</span>
                         <ChevronsUpDown
-                          className="mr-4 cursor-pointer"
+                          className="cursor-pointer"
                           data-name={column.dbColumn}
                           data-sort="ASC"
                           onClick={sortDataHandler}
                         />
-                        <div
-                          className={`absolute right-0 top-0 h-full w-4 cursor-col-resize hover:bg-gray-300 dark:hover:bg-gray-600 ${
-                            resizingColumn === column.dbColumn
-                              ? "bg-blue-400 opacity-50"
-                              : ""
-                          }`}
-                          onMouseDown={(e) =>
-                            handleResizeStart(e, column.dbColumn)
-                          }
-                        />
                       </div>
+                      <div
+                        className={`absolute right-0 top-0 h-full w-2 cursor-col-resize bg-transparent hover:bg-gray-300 dark:hover:bg-gray-600 ${
+                          resizingColumn === column.dbColumn
+                            ? "bg-blue-400 opacity-50"
+                            : ""
+                        }`}
+                        onMouseDown={(e) =>
+                          handleResizeStart(e, column.dbColumn)
+                        }
+                      />
                     </th>
                   )
               )}
@@ -265,9 +270,7 @@ const TableData = ({
                                 ? "bg-amber-100 border-2 border-amber-500"
                                 : ""
                             }`}
-                            style={{
-                              width: `${columnWidths[column.dbColumn]}px`,
-                            }}
+                            style={{ width: columnWidths[column.dbColumn] }}
                           >
                             {tableName === "document" &&
                             column.dbColumn === "document_url" ? (
@@ -363,18 +366,25 @@ const TableData = ({
                       <td colSpan={visibleColumns.length + 1} className="p-0">
                         <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 dark:text-white">
                           {item.title === "Approve Project Creation" && (
-                            <ProjectCreationAccordion />
+                            <ProjectCreationAccordion
+                              project={tableData[index]}
+                            />
                           )}
                           {item.title === "Upload BOQ" && (
                             <BoqTaskAccordion
-                              parentId={item.id}
-                              projectBudget={item.approved_project_budget}
+                              project={tableData[index]}
+                              parentId={tableData[index]?.related_entity_id}
+                              projectBudget={
+                                tableData[index]?.approved_project_budget
+                              }
                             />
                           )}
                           {item.title === "Upload Schedule Plan" && (
                             <DeliverableAccordion2
-                              parentId={item.id}
-                              projectBudget={item.approved_project_budget}
+                              parentId={tableData[index]?.related_entity_id}
+                              projectBudget={
+                                tableData[index]?.approved_project_budget
+                              }
                             />
                           )}
                         </div>
@@ -486,13 +496,16 @@ const TableData = ({
       )}
 
       <style jsx>{`
-        .cursor-col-resize {
-          cursor: col-resize;
-        }
-        :global(.resize-active) {
+        .resize-active {
           cursor: col-resize !important;
           user-select: none !important;
-          -webkit-user-select: none !important;
+        }
+        th,
+        td {
+          position: relative;
+        }
+        .cursor-col-resize {
+          cursor: col-resize;
         }
       `}</style>
     </>

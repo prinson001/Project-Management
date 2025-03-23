@@ -21,7 +21,7 @@ const {
   updateBudgetRanges,
 } = require("../controllers/projectTimelineController");
 
-adminRouter.post("/add", addNewUser);
+adminRouter.post("/addUser", addNewUser);
 adminRouter.get("/getUsers", getUsers);
 adminRouter.delete("/deleteUser/:id", deleteUsers);
 adminRouter.get("/getactivitydurations", getActivityDurations);

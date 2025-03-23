@@ -1,21 +1,47 @@
 const sql = require("../database/db");
 const addNewUser = async (req, res) => {
-  const { name, email, password, role } = req.body;
-  if (!name || !email || !password || !role) {
-    res.status(400);
-    throw new Error("Required field missing");
+  const { first_name, family_name, arabic_first_name, arabic_family_name, email, password } = req.body;
+
+  // Validate required fields
+  if (!first_name || !family_name || !email || !password) {
+    return res.status(400).json({
+      status: "failure",
+      message: "Required fields missing",
+      result: null,
+    });
   }
-  const users = await sql`select * from "User" where email = ${email}`;
-  if (users.length != 0) {
-    res.status(400);
-    throw new Error("Email already exists");
-  }
+
   try {
-    const result =
-      await sql`insert into "User" (email , password) values(${email} , ${password})`;
+    // Check if the email already exists
+    const existingUsers = await sql`SELECT * FROM "users" WHERE email = ${email}`;
+    if (existingUsers.length > 0) {
+      return res.status(400).json({
+        status: "failure",
+        message: "Email already exists",
+        result: null,
+      });
+    }
+
+    // Insert the new user
+    const result = await sql`
+      INSERT INTO "users" (first_name, family_name, arabic_first_name, arabic_family_name, email, password)
+      VALUES (${first_name}, ${family_name}, ${arabic_first_name}, ${arabic_family_name}, ${email}, ${password})
+      RETURNING *
+    `;
+
+    // Return success response
+    return res.status(201).json({
+      status: "success",
+      message: "User added successfully",
+      result: result[0],
+    });
   } catch (e) {
-    res.status(400);
-    throw new Error("there was an error in inserting table ", e);
+    console.error("Error adding user:", e);
+    return res.status(500).json({
+      status: "failure",
+      message: "Error adding user",
+      result: e.message,
+    });
   }
 };
 
@@ -208,6 +234,52 @@ const getRoles = async (req, res) => {
     });
   }
 };
+
+// const addUser = async (req, res) => {
+//   const { first_name, email, password, role_id } = req.body;
+
+//   // Validate required fields
+//   if (!first_name || !email || !password || !role_id) {
+//     return res.status(400).json({
+//       status: "failure",
+//       message: "Required fields missing",
+//       result: null,
+//     });
+//   }
+
+//   try {
+//     // Check if the email already exists
+//     const existingUsers = await sql`SELECT * FROM "users" WHERE email = ${email}`;
+//     if (existingUsers.length > 0) {
+//       return res.status(400).json({
+//         status: "failure",
+//         message: "Email already exists",
+//         result: null,
+//       });
+//     }
+
+//     // Insert the new user
+//     const result = await sql`
+//       INSERT INTO "users" (first_name, email, password, role_id)
+//       VALUES (${first_name}, ${email}, ${password}, ${role_id})
+//       RETURNING *
+//     `;
+
+//     // Return success response
+//     return res.status(201).json({
+//       status: "success",
+//       message: "User added successfully",
+//       result: result[0],
+//     });
+//   } catch (e) {
+//     console.error("Error adding user:", e);
+//     return res.status(500).json({
+//       status: "failure",
+//       message: "Error adding user",
+//       result: e.message,
+//     });
+//   }
+// };
 
 module.exports = {
   addNewUser,

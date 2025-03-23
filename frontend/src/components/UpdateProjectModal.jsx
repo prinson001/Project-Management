@@ -32,7 +32,7 @@ const UpdateProjectModal = ({
   const [phaseInfo, setPhaseInfo] = useState(null);
   const [projectTypes, setProjectTypes] = useState([]);
   const [projectPhases, setProjectPhases] = useState([]);
-
+  console.log("projectData", projectData);
   const {
     register,
     handleSubmit,
@@ -91,7 +91,6 @@ const UpdateProjectModal = ({
 
   // Fetch project types
   useEffect(() => {
-    console.log(projectData);
     const fetchProjectTypes = async () => {
       try {
         const response = await axios.post(
@@ -163,9 +162,10 @@ const UpdateProjectModal = ({
         if (response.data.status === "success") {
           const fetchedDepartments = response.data.result.map((dept) => ({
             ...dept,
-            checked: projectData?.beneficiary_departments?.some(
-              (d) => d.id === dept.id
-            ) || false,
+            checked:
+              projectData?.beneficiary_departments?.some(
+                (d) => d.id === dept.id
+              ) || false,
           }));
           setDepartments(fetchedDepartments);
         }
@@ -188,7 +188,8 @@ const UpdateProjectModal = ({
         if (response.data.status === "success") {
           const fetchedObjectives = response.data.result.map((obj) => ({
             ...obj,
-            checked: projectData?.objectives?.some((o) => o.id === obj.id) || false,
+            checked:
+              projectData?.objectives?.some((o) => o.id === obj.id) || false,
           }));
           setObjectives(fetchedObjectives);
         }
@@ -922,20 +923,22 @@ const UpdateProjectModal = ({
             </div>
           </div>
           {/* Conditionally render SchedulePlanSection only when projectData is fully available */}
-          {shouldShowSection("schedule") && projectData?.id && projectData?.project_budget && (
-            // <SchedulePlanSection
-            //   projectId={projectData.id}
-            //   budget={projectData.approved_project_budget} // Pass budget directly from projectData
-            //   onScheduleChange={handleScheduleChange}
-            //   projectData={projectData} // Pass projectData for execution_start_date
-            // />
-            <UpdateSchedulePlanSection
-              projectId={projectData.id}
-              budget={projectData.approved_project_budget} // Pass budget directly from projectData
-              onScheduleChange={handleScheduleChange}
-              projectData={projectData}
-            />
-          )}
+          {shouldShowSection("schedule") &&
+            projectData?.id &&
+            projectData?.project_budget && (
+              // <SchedulePlanSection
+              //   projectId={projectData.id}
+              //   budget={projectData.approved_project_budget} // Pass budget directly from projectData
+              //   onScheduleChange={handleScheduleChange}
+              //   projectData={projectData} // Pass projectData for execution_start_date
+              // />
+              <UpdateSchedulePlanSection
+                projectId={projectData.id}
+                budget={projectData.approved_project_budget} // Pass budget directly from projectData
+                onScheduleChange={handleScheduleChange}
+                projectData={projectData}
+              />
+            )}
           {currentPhase && phaseInfo && (
             <div className="mb-6 border-t pt-4">
               <UpdateProjectDocumentSection

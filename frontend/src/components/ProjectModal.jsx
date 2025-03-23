@@ -717,22 +717,31 @@ const ProjectModal = ({
 
     switch (section) {
       case "category":
-        return !["Internal", "PoC"].includes(projectType);
+        return !["Internal Project", "Proof of Concept"].includes(projectType);
       case "vendor":
         return (
-          projectType === "PoC" ||
-          projectType === "External" ||
-          projectType === "Strategic"
+          projectType === "Proof of Concept" ||
+          projectType === "External Project" ||
+          projectType === "Strategic Project"
         );
       case "budget":
-        if (projectType === "Internal") return false;
+        if (projectType === "Internal Project") return false;
         if (currentPhase === "Planning" || currentPhase === "Bidding")
           return false;
-        return projectType === "External" || projectType === "Strategic";
+        return (
+          projectType === "External Project" ||
+          projectType === "Strategic Project"
+        );
       case "schedule":
-        return projectType === "External" || projectType === "Strategic";
+        return (
+          projectType === "External Project" ||
+          projectType === "Strategic Project"
+        );
       case "internalSchedule":
-        return projectType === "Internal" || projectType === "PoC";
+        return (
+          projectType === "Internal Project" ||
+          projectType === "Proof of Concept"
+        );
       default:
         return true;
     }
@@ -1345,143 +1354,15 @@ const ProjectModal = ({
             </div>
           </div>
           {/* Schedule Plan */}
-          {shouldShowSection("schedule") && (
+          {shouldShowSection("schedule") ||
+          shouldShowSection("internalSchedule") ? (
             <SchedulePlanSection
               budget={watch("planned_budget")}
               onScheduleChange={handleScheduleChange}
+              internalScheduleData={internalScheduleData}
+              projectType={watch("projectType")}
             />
-          )}
-          {/* Internal Project Schedule Plan */}
-          {shouldShowSection("internalSchedule") && (
-            <div className="mb-6 border-t pt-4">
-              <h3 className="font-semibold mb-4">
-                Internal Project Schedule Plan
-              </h3>
-              {/* <div className="grid grid-cols-2 gap-6 mb-4"> */}
-              {/* <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Execution targeted start date{" "}
-                    <span className="text-red-500">*</span>
-                  </label>
-                  <Controller
-                    name="internalStartDate"
-                    control={control}
-                    rules={{ required: "Internal start date is required" }}
-                    render={({ field }) => (
-                      <Datepicker
-                        value={field.value}
-                        onChange={(newValue) => field.onChange(newValue)}
-                        asSingle={true}
-                        useRange={false}
-                        displayFormat="DD-MMM-YYYY"
-                        placeholder="Select date"
-                        inputClassName={`w-full p-2 border ${
-                          errors.internalStartDate
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        } rounded`}
-                      />
-                    )}
-                  />
-                  {errors.internalStartDate && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.internalStartDate.message}
-                    </p>
-                  )}
-                </div>
-                <div> */}
-              {/* <label className="block text-sm font-semibold mb-1">
-                    Execution duration <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Controller
-                      name="executionDuration"
-                      control={control}
-                      rules={{ required: "Execution duration is required" }}
-                      render={({ field }) => (
-                        <select
-                          className={`w-full p-2 border ${
-                            errors.executionDuration
-                              ? "border-red-500"
-                              : "border-gray-300"
-                          } rounded appearance-none bg-white`}
-                          {...field}
-                        >
-                          <option value="4 weeks">4 weeks</option>
-                          <option value="8 weeks">8 weeks</option>
-                          <option value="12 weeks">12 weeks</option>
-                        </select>
-                      )}
-                    />
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                      <ChevronUp size={16} />
-                    </div>
-                  </div>
-                  {errors.executionDuration && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.executionDuration.message}
-                    </p>
-                  )}
-                </div>
-              </div> */}
-              <div className="overflow-x-auto mb-4">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr>
-                      <th className="border border-gray-300 p-2 text-left">
-                        Main Phase
-                      </th>
-                      <th className="border border-gray-300 p-2 text-left">
-                        Sub Phase
-                      </th>
-                      <th className="border border-gray-300 p-2 text-center">
-                        Duration
-                      </th>
-                      <th className="border border-gray-300 p-2 text-left">
-                        Start Date
-                      </th>
-                      <th className="border border-gray-300 p-2 text-left">
-                        End Date
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {internalScheduleData.map((row, index) => (
-                      <tr
-                        key={index}
-                        className={
-                          row.mainPhase === "Planning"
-                            ? "bg-green-100"
-                            : row.mainPhase === "Execution"
-                            ? "bg-blue-100"
-                            : "bg-white"
-                        }
-                      >
-                        <td className="border border-gray-300 p-2">
-                          {row.mainPhase}
-                        </td>
-                        <td className="border border-gray-300 p-2">
-                          {row.subPhase}
-                        </td>
-                        <td className="border border-gray-300 p-2 text-center">
-                          <div className="flex items-center justify-center">
-                            <span>{row.duration}</span>
-                            <ChevronUp size={16} className="ml-1" />
-                          </div>
-                        </td>
-                        <td className="border border-gray-300 p-2">
-                          {row.startDate}
-                        </td>
-                        <td className="border border-gray-300 p-2">
-                          {row.endDate}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+          ) : null}
           {/* Documents Section - Replaced with ProjectDocumentSection component */}
           <div className="mb-6 border-t pt-4">
             {/* <ProjectDocumentSection

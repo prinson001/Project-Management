@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axiosInstance from "../axiosInstance";
 const PORT = import.meta.env.VITE_PORT;
-const BoqTaskAccordion = ({ parentId = null, projectBudget = 0 }) => {
+const BoqTaskAccordion = ({ parentId = null, projectBudget = 0, project }) => {
   // State management
   const [items, setItems] = useState([]);
   const [deletions, setDeletions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
+  console.log("Received project", project);
   // Derived calculations
   const { totalExecution, totalOperation, totalProjectCost, isOverBudget } =
     useMemo(() => {
@@ -104,7 +104,7 @@ const BoqTaskAccordion = ({ parentId = null, projectBudget = 0 }) => {
         updates: updates.map(({ total, ...rest }) => rest),
         deletions,
       };
-      console.log(payload);
+      console.log("Payload", payload);
       // API call
       const { data } = await axiosInstance.post(`/pm/saveItems`, {
         projectId: parentId,
@@ -237,7 +237,7 @@ const BoqTaskAccordion = ({ parentId = null, projectBudget = 0 }) => {
                     }
                     className="w-full border rounded px-2 py-1"
                     min="0"
-                    step="0.01"
+                    // step="1"
                   />
                 </td>
                 <td className="px-4 py-2 font-medium">

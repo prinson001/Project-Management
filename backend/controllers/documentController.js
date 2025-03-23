@@ -4,12 +4,11 @@ const supabase = require("../database/supabase"); // Import the initialized Supa
 // @Description Add a new project document reference
 // @Route site.com/data-management/addProjectDocument
 const addProjectDocument = async (req, res) => {
-  
   console.log("inside the add project document");
   const { project_id, template_id, phase } = req.body;
   const file = req.file; // This should be populated by multer
 
-  console.log("Received file:", file); 
+  console.log("Received file:", file);
   console.log("Request body:", req.body); // Debugging line
 
   // Check if the file and required fields are present
@@ -57,7 +56,13 @@ const addProjectDocument = async (req, res) => {
     console.log("Document data to be inserted:", documentData); // Log document data
 
     // Ensure all required fields are defined before insertion
-    if (!documentData.project_id || !documentData.template_id || !documentData.file_url || !documentData.phase || !documentData.document_name) {
+    if (
+      !documentData.project_id ||
+      !documentData.template_id ||
+      !documentData.file_url ||
+      !documentData.phase ||
+      !documentData.document_name
+    ) {
       return res.status(400).json({
         status: "failure",
         message: "Missing required document data.",
@@ -170,14 +175,14 @@ const deleteProjectDocument = async (req, res) => {
     }
 
     const document = documentQuery[0];
-    
+
     // Delete the file from Supabase storage if file_url exists
     if (document.file_url) {
       // Extract the path from the full URL or path
-      const filePath = document.file_url.includes('/')
-        ? document.file_url.split('/').slice(1).join('/')  // Remove bucket name if present
+      const filePath = document.file_url.includes("/")
+        ? document.file_url.split("/").slice(1).join("/") // Remove bucket name if present
         : document.file_url;
-        
+
       const { error } = await supabase.storage
         .from("project-documents")
         .remove([filePath]);

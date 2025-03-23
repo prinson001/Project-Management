@@ -425,7 +425,7 @@ const getProjectById = async (req, res) => {
 // @Description Update project approval status by deputy
 // @Route site.com/data-management/updateProjectApprovalbyDeputy
 const updateProjectApprovalbyDeputy = async (req, res) => {
-  console.log("update approval status by deputy");
+  console.log("update approval status by deputy:", req.body);
   if (!req.body.approval || !req.body.id) {
     return res.status(400).json({
       status: "failure",
@@ -441,7 +441,8 @@ const updateProjectApprovalbyDeputy = async (req, res) => {
       WHERE id = ${req.body.id}
       RETURNING *;
     `;
-    createBoqTaskForPM(result);
+    console.log("result", result);
+    await createBoqTaskForPM(result);
     res.status(200).json({
       status: "success",
       message: "Successfully updated project approval",

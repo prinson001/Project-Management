@@ -43,7 +43,7 @@ const createProjectCreationTaskForDeputy = async (req, res) => {
     await sql`
       INSERT INTO tasks (title, status, due_date, assigned_to, related_entity_type, related_entity_id)
       VALUES (
-        'Project Approval Required', 
+        'Approve Project Creation', 
         'Open', 
         ${dueDate.toISOString().split("T")[0]}, 
         ${Number(deputy.id)}, 
