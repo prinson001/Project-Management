@@ -14,7 +14,7 @@ import DeliverableAccordion2 from "../components/DeliverableAccordion2";
 import DeliverableAccordion from "../components/DeliverableAccordion";
 import UpdateDynamicForm from "./UpdateDynamicForm";
 import InitiativeAccordion from "../components/InitiativeAccordion";
-import PortfolioAccordion from "../components/PortfolioAccordion";
+import PortfolioAccordion from "./components/PortfolioAccordion";
 import ProgramAccordion from "../components/ProgramAccordion";
 import TeamAccordion from "./TeamAccordion";
 import axiosInstance from "../axiosInstance";
