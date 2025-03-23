@@ -90,10 +90,9 @@ const SchedulePlanSection = ({
       }
 
       try {
-        const response = await axios.post(
-          `http://localhost:${PORT}/data-management/getPhases`,
-          { budget }
-        );
+        const response = await axios.post(`/data-management/getPhases`, {
+          budget,
+        });
         if (response.data.status === "success") {
           setPhases(response.data.result);
           // Initialize scheduleTableData with fetched phases
@@ -219,10 +218,9 @@ const SchedulePlanSection = ({
       if (!projectId) return;
 
       try {
-        const response = await axios.get(
-          `http://localhost:${PORT}/data-management/getSchedulePlan`,
-          { params: { projectId } }
-        );
+        const response = await axios.get(`/data-management/getSchedulePlan`, {
+          params: { projectId },
+        });
         if (
           response.data.status === "success" &&
           response.data.result.length > 0

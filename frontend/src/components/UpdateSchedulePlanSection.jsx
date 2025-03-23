@@ -32,7 +32,13 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
   useEffect(() => {
     if (!projectData) return;
 
-    const { id, project_budget, execution_start_date, execution_duration, maintenance_duration } = projectData;
+    const {
+      id,
+      project_budget,
+      execution_start_date,
+      execution_duration,
+      maintenance_duration,
+    } = projectData;
 
     // Set initial form values
     if (execution_start_date) {
@@ -43,7 +49,12 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
     }
     if (maintenance_duration && execution_start_date) {
       const days = parseInt(maintenance_duration) || 0;
-      setValue("maintenanceDate", new Date(new Date(execution_start_date).getTime() + days * 24 * 60 * 60 * 1000));
+      setValue(
+        "maintenanceDate",
+        new Date(
+          new Date(execution_start_date).getTime() + days * 24 * 60 * 60 * 1000
+        )
+      );
     }
 
     // Fetch existing schedule or phases
@@ -53,19 +64,25 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
   // Fetch existing schedule plan or phases if none exists
   const fetchSchedulePlan = async (projectId, budget) => {
     try {
-      const response = await axios.post(
-        `http://localhost:${PORT}/data-management/getSchedulePlan`,
-        { projectId }
-      );
-      if (response.data.status === "success" && response.data.result.length > 0) {
+      const response = await axios.post(`/data-management/getSchedulePlan`, {
+        projectId,
+      });
+      if (
+        response.data.status === "success" &&
+        response.data.result.length > 0
+      ) {
         const fetchedSchedule = response.data.result.map((plan) => ({
           phaseId: plan.phase_id,
           mainPhase: plan.main_phase,
           subPhase: plan.phase_name,
           duration: `${plan.duration_days} days`,
           durationDays: plan.duration_days,
-          startDate: plan.start_date ? format(new Date(plan.start_date), "dd-MMM-yyyy") : null,
-          endDate: plan.end_date ? format(new Date(plan.end_date), "dd-MMM-yyyy") : null,
+          startDate: plan.start_date
+            ? format(new Date(plan.start_date), "dd-MMM-yyyy")
+            : null,
+          endDate: plan.end_date
+            ? format(new Date(plan.end_date), "dd-MMM-yyyy")
+            : null,
         }));
         setScheduleTableData(fetchedSchedule);
       } else {
@@ -80,10 +97,9 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
 
   const fetchPhases = async (budget, projectId) => {
     try {
-      const response = await axios.post(
-        `http://localhost:${PORT}/data-management/getPhases`,
-        { budget }
-      );
+      const response = await axios.post(`/data-management/getPhases`, {
+        budget,
+      });
       if (response.data.status === "success") {
         const initialSchedule = response.data.result.map((phase) => ({
           phaseId: phase.id,
@@ -117,7 +133,9 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
       (phase) => !phase.startDate || !phase.endDate
     );
     if (invalidPhases.length > 0) {
-      toast.error("All phases must have start and end dates before updating the schedule.");
+      toast.error(
+        "All phases must have start and end dates before updating the schedule."
+      );
       return;
     }
 
@@ -126,18 +144,15 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
       phaseId: phase.phaseId,
       durationDays: phase.durationDays,
       startDate: format(new Date(phase.startDate), "yyyy-MM-dd"), // Convert to YYYY-MM-DD
-      endDate: format(new Date(phase.endDate), "yyyy-MM-dd"),     // Convert to YYYY-MM-DD
+      endDate: format(new Date(phase.endDate), "yyyy-MM-dd"), // Convert to YYYY-MM-DD
     }));
     console.log("Schedule Update Payload:", schedulePayload);
 
     try {
-      const response = await axios.post(
-        `http://localhost:${PORT}/data-management/upsertSchedulePlan`,
-        {
-          projectId: projectData.id,
-          schedule: schedulePayload,
-        }
-      );
+      const response = await axios.post(`/data-management/upsertSchedulePlan`, {
+        projectId: projectData.id,
+        schedule: schedulePayload,
+      });
 
       if (response.data.status === "success") {
         toast.success("Schedule plan updated successfully");
@@ -149,7 +164,9 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
       }
     } catch (error) {
       console.error("Error updating schedule plan:", error);
-      toast.error("Failed to update schedule plan: " + (error.message || "Server error"));
+      toast.error(
+        "Failed to update schedule plan: " + (error.message || "Server error")
+      );
     }
   };
 
@@ -321,7 +338,11 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
               key={tab}
               type="button"
               className={`${tabButtonStyle(tab)} ${
-                tab === "B. Days" ? "rounded-l" : tab === "Months" ? "rounded-r" : ""
+                tab === "B. Days"
+                  ? "rounded-l"
+                  : tab === "Months"
+                  ? "rounded-r"
+                  : ""
               }`}
               onClick={() => handleTabChange(tab)}
             >
@@ -342,7 +363,9 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
             render={({ field: { onChange, value } }) => (
               <Datepicker
                 value={value ? { startDate: value, endDate: value } : null}
-                onChange={(newValue) => onChange(newValue ? newValue.startDate : null)}
+                onChange={(newValue) =>
+                  onChange(newValue ? newValue.startDate : null)
+                }
                 useRange={false}
                 asSingle={true}
                 displayFormat="DD-MMM-YYYY"
@@ -351,7 +374,9 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
             )}
           />
           {errors.executionStartDate && (
-            <p className="text-red-500 text-xs mt-1">{errors.executionStartDate.message}</p>
+            <p className="text-red-500 text-xs mt-1">
+              {errors.executionStartDate.message}
+            </p>
           )}
         </div>
         <div>
@@ -365,7 +390,9 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
             render={({ field }) => (
               <select
                 className={`w-full p-2 border ${
-                  errors.executionDuration ? "border-red-500" : "border-gray-300"
+                  errors.executionDuration
+                    ? "border-red-500"
+                    : "border-gray-300"
                 } rounded appearance-none bg-white`}
                 {...field}
               >
@@ -378,12 +405,15 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
             )}
           />
           {errors.executionDuration && (
-            <p className="text-red-500 text-xs mt-1">{errors.executionDuration.message}</p>
+            <p className="text-red-500 text-xs mt-1">
+              {errors.executionDuration.message}
+            </p>
           )}
         </div>
         <div>
           <label className="block text-sm font-semibold mb-1">
-            Maintenance & operation duration <span className="text-red-500">*</span>
+            Maintenance & operation duration{" "}
+            <span className="text-red-500">*</span>
           </label>
           <Controller
             name="maintenanceDate"
@@ -392,7 +422,9 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
             render={({ field: { onChange, value } }) => (
               <Datepicker
                 value={value ? { startDate: value, endDate: value } : null}
-                onChange={(newValue) => onChange(newValue ? newValue.startDate : null)}
+                onChange={(newValue) =>
+                  onChange(newValue ? newValue.startDate : null)
+                }
                 useRange={false}
                 asSingle={true}
                 displayFormat="DD-MMM-YYYY"
@@ -401,7 +433,9 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
             )}
           />
           {errors.maintenanceDate && (
-            <p className="text-red-500 text-xs mt-1">{errors.maintenanceDate.message}</p>
+            <p className="text-red-500 text-xs mt-1">
+              {errors.maintenanceDate.message}
+            </p>
           )}
         </div>
       </div>
@@ -409,10 +443,18 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
         <table className="w-full border-collapse">
           <thead>
             <tr>
-              <th className="border border-gray-300 p-2 text-left">Main Phase</th>
-              <th className="border border-gray-300 p-2 text-left">Sub Phase</th>
-              <th className="border border-gray-300 p-2 text-center">Duration</th>
-              <th className="border border-gray-300 p-2 text-left">Start Date</th>
+              <th className="border border-gray-300 p-2 text-left">
+                Main Phase
+              </th>
+              <th className="border border-gray-300 p-2 text-left">
+                Sub Phase
+              </th>
+              <th className="border border-gray-300 p-2 text-center">
+                Duration
+              </th>
+              <th className="border border-gray-300 p-2 text-left">
+                Start Date
+              </th>
               <th className="border border-gray-300 p-2 text-left">End Date</th>
             </tr>
           </thead>
@@ -435,13 +477,13 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
                           )
                         }
                       >
-                        {getDurationOptions(durationTypes[row.phaseId] || activeTab).map(
-                          (option, idx) => (
-                            <option key={idx} value={option.value}>
-                              {option.label}
-                            </option>
-                          )
-                        )}
+                        {getDurationOptions(
+                          durationTypes[row.phaseId] || activeTab
+                        ).map((option, idx) => (
+                          <option key={idx} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
                       </select>
                       <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                         <ChevronUp size={16} />
@@ -452,7 +494,11 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
                         className="w-full p-1 border border-gray-300 rounded appearance-none"
                         value={durationTypes[row.phaseId] || activeTab}
                         onChange={(e) =>
-                          handleDurationChange(row.phaseId, row.duration, e.target.value)
+                          handleDurationChange(
+                            row.phaseId,
+                            row.duration,
+                            e.target.value
+                          )
                         }
                       >
                         {["B. Days", "Weeks", "Months"].map((type, idx) => (
@@ -467,8 +513,12 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
                     </div>
                   </div>
                 </td>
-                <td className="border border-gray-300 p-2">{row.startDate || "N/A"}</td>
-                <td className="border border-gray-300 p-2">{row.endDate || "N/A"}</td>
+                <td className="border border-gray-300 p-2">
+                  {row.startDate || "N/A"}
+                </td>
+                <td className="border border-gray-300 p-2">
+                  {row.endDate || "N/A"}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -477,7 +527,12 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
       <button
         onClick={handleScheduleSubmit}
         className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
-        disabled={!scheduleTableData.length || errors.executionStartDate || errors.executionDuration || errors.maintenanceDate}
+        disabled={
+          !scheduleTableData.length ||
+          errors.executionStartDate ||
+          errors.executionDuration ||
+          errors.maintenanceDate
+        }
       >
         Update Schedule
       </button>

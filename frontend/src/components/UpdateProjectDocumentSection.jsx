@@ -27,34 +27,36 @@ const UpdateProjectDocumentSection = ({
 
       try {
         setLoading(true);
-        
+
         // Fetch document templates for the current phase using phase name
         const templatesResponse = await axios.post(
-          `http://localhost:${PORT}/data-management/getCurrentPhaseDocumentTemplates`,
+          `/data-management/getCurrentPhaseDocumentTemplates`,
           { phase: phaseName }
         );
         const templates = templatesResponse.data.data || [];
-        
+
         // Fetch uploaded project documents
         const projectDocsResponse = await axios.post(
-          `http://localhost:${PORT}/data-management/getProjectDocuments`,
+          `/data-management/getProjectDocuments`,
           { project_id: projectId }
         );
         const projectDocs = projectDocsResponse.data.result || [];
 
         // Merge templates with uploaded documents
-        const mergedDocuments = templates.map(template => {
-          const uploadedDoc = projectDocs.find(doc => doc.template_id === template.id);
+        const mergedDocuments = templates.map((template) => {
+          const uploadedDoc = projectDocs.find(
+            (doc) => doc.template_id === template.id
+          );
           return uploadedDoc
-            ? { 
-                ...template, 
+            ? {
+                ...template,
                 file: {
                   id: uploadedDoc.id,
                   name: uploadedDoc.document_name,
-                  url: uploadedDoc.file_url
+                  url: uploadedDoc.file_url,
                 },
                 date: new Date(uploadedDoc.uploaded_at).toLocaleDateString(),
-                document_id: uploadedDoc.id
+                document_id: uploadedDoc.id,
               }
             : template;
         });
@@ -80,13 +82,16 @@ const UpdateProjectDocumentSection = ({
 
     try {
       // Add file to localFiles for later processing during form submission
-      setLocalFiles(prev => [...prev, { 
-        index, 
-        file,
-        template_id: documents[index].id,
-        phase: projectPhaseId // Use phase ID for database storage
-      }]);
-      
+      setLocalFiles((prev) => [
+        ...prev,
+        {
+          index,
+          file,
+          template_id: documents[index].id,
+          phase: projectPhaseId, // Use phase ID for database storage
+        },
+      ]);
+
       // Update UI immediately
       const newDocs = [...documents];
       newDocs[index] = {
@@ -95,11 +100,13 @@ const UpdateProjectDocumentSection = ({
           name: file.name,
           // We don't have a URL yet as it's not uploaded to the server
         },
-        date: new Date().toLocaleDateString()
+        date: new Date().toLocaleDateString(),
       };
       setDocuments(newDocs);
-      
-      toast.success("File selected for upload. It will be uploaded when you save the project.");
+
+      toast.success(
+        "File selected for upload. It will be uploaded when you save the project."
+      );
     } catch (error) {
       console.error("Error preparing file for upload:", error);
       toast.error("Failed to prepare file for upload");
@@ -110,7 +117,7 @@ const UpdateProjectDocumentSection = ({
   const handleDownload = async (fileUrl, fileName) => {
     try {
       // For Supabase storage URLs, we can use them directly
-      window.open(fileUrl, '_blank');
+      window.open(fileUrl, "_blank");
     } catch (error) {
       console.error("Error downloading file:", error);
       toast.error("Failed to download file");
@@ -121,14 +128,14 @@ const UpdateProjectDocumentSection = ({
   const handleRemove = async (index, documentId) => {
     if (!documentId) {
       // If the document hasn't been uploaded to the server yet, just remove it from localFiles
-      setLocalFiles(prev => prev.filter(file => file.index !== index));
-      
+      setLocalFiles((prev) => prev.filter((file) => file.index !== index));
+
       // Update UI
       const newDocs = [...documents];
       newDocs[index] = {
         ...newDocs[index],
         file: null,
-        date: null
+        date: null,
       };
       setDocuments(newDocs);
       return;
@@ -136,24 +143,24 @@ const UpdateProjectDocumentSection = ({
 
     try {
       // Call API to delete the document from the server
-      await axios.post(`http://localhost:${PORT}/data-management/deleteProjectDocument`, {
+      await axios.post(`/data-management/deleteProjectDocument`, {
         project_id: projectId,
-        document_id: documentId
+        document_id: documentId,
       });
-      
+
       // Update UI
       const newDocs = [...documents];
       newDocs[index] = {
         ...newDocs[index],
         file: null,
         date: null,
-        document_id: null
+        document_id: null,
       };
       setDocuments(newDocs);
-      
+
       // Remove from localFiles if it exists there
-      setLocalFiles(prev => prev.filter(file => file.index !== index));
-      
+      setLocalFiles((prev) => prev.filter((file) => file.index !== index));
+
       toast.success("Document deleted successfully");
     } catch (error) {
       console.error("Error deleting document:", error);
@@ -168,9 +175,11 @@ const UpdateProjectDocumentSection = ({
   return (
     <div className="p-4 border rounded-lg bg-white shadow">
       <h2 className="text-lg font-semibold mb-4">Project Documentation</h2>
-      
+
       {documents.length === 0 ? (
-        <p className="text-center text-gray-500 my-4">No document templates available for this phase.</p>
+        <p className="text-center text-gray-500 my-4">
+          No document templates available for this phase.
+        </p>
       ) : (
         <table className="w-full border-collapse border text-left">
           <thead>
@@ -186,7 +195,9 @@ const UpdateProjectDocumentSection = ({
             {documents.map((doc, index) => (
               <tr key={index} className="border">
                 <td className="p-2 border">{doc.name}</td>
-                <td className="p-2 border">{doc.isrequired ? "Yes" : "Optional"}</td>
+                <td className="p-2 border">
+                  {doc.isrequired ? "Yes" : "Optional"}
+                </td>
                 <td className="p-2 border">{doc.file ? doc.file.name : "-"}</td>
                 <td className="p-2 border">{doc.date || "-"}</td>
                 <td className="p-2 border flex items-center gap-2">
@@ -196,16 +207,22 @@ const UpdateProjectDocumentSection = ({
                       className="hidden"
                       onChange={(e) => handleUpload(index, e.target.files[0])}
                     />
-                    <Upload className="text-blue-500 cursor-pointer" size={20} title="Upload document" />
+                    <Upload
+                      className="text-blue-500 cursor-pointer"
+                      size={20}
+                      title="Upload document"
+                    />
                   </label>
-                  
+
                   {doc.file && (
                     <>
                       {doc.file.url && (
-                        <Download 
-                          className="text-green-500 cursor-pointer" 
-                          size={20} 
-                          onClick={() => handleDownload(doc.file.url, doc.file.name)}
+                        <Download
+                          className="text-green-500 cursor-pointer"
+                          size={20}
+                          onClick={() =>
+                            handleDownload(doc.file.url, doc.file.name)
+                          }
                           title="Download document"
                         />
                       )}

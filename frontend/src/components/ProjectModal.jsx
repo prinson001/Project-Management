@@ -403,9 +403,7 @@ const ProjectModal = ({
   useEffect(() => {
     const fetchProjectTypes = async () => {
       try {
-        const response = await axios.post(
-          `http://localhost:${PORT}/data-management/getProjectTypes`
-        );
+        const response = await axios.post(`/data-management/getProjectTypes`);
         if (response.data.status === "success") {
           setProjectTypes(response.data.result);
         } else {
