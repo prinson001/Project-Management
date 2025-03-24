@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import axiosInstanceInstance from "../axiosInstance";
 import { AlignVerticalJustifyEnd, Users } from "lucide-react";
 import Pagination from "../components/Pagination";
 
 // IMPORTING CHILDREN COMPONENTS
 
-import TableData from "../components/TableData";
+const TableData = React.lazy(() => import("../components/TableData"));
 import TableConfig from "../components/TableConfig";
 import TableConfigFilter from "../components/TableConfigFilter";
+import Loader from "../components/Loader";
 const PORT = import.meta.env.VITE_PORT;
 
 let tablefilters = {};
@@ -233,16 +234,18 @@ const DataSection = ({
         ></TableConfigFilter>
       )}
       {showTableData && (
-        <TableData
-          tableName={tableName}
-          tableData={tableData}
-          setTableData={setTableData}
-          getData={getData}
-          showDate={showDate}
-          sortTableData={sortTableData}
-          columnSetting={columnSetting}
-          accordionComponentName={accordionComponentName}
-        ></TableData>
+        <Suspense fallback={<Loader />}>
+          <TableData
+            tableName={tableName}
+            tableData={tableData}
+            setTableData={setTableData}
+            getData={getData}
+            showDate={showDate}
+            sortTableData={sortTableData}
+            columnSetting={columnSetting}
+            accordionComponentName={accordionComponentName}
+          ></TableData>
+        </Suspense>
       )}
       {showTablePagination && (
         <Pagination pagination={pagination} getPageData={getPageData} />

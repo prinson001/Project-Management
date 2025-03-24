@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, Suspense } from "react";
 import axiosInstance from "../axiosInstance";
 import { X, Users, Plus } from "lucide-react"; // Added Plus icon
 import { Calendar, ChevronDown, ChevronUp, Download } from "lucide-react";
@@ -17,8 +17,9 @@ import DynamicForm from "../components/DynamicForm";
 import DocumentFormModal from "../components/DocumentFormModal";
 import DataManagementTabs from "../components/DataManagementTabs";
 import ProjectModal from "../components/ProjectModal";
-import DataSection from "./DataSection";
-
+import Loader from "../components/Loader";
+// import DataSection from "./DataSection";
+const DataSection = React.lazy(() => import("./DataSection"));
 const PORT = import.meta.env.VITE_PORT;
 
 let tablefilters = {};
@@ -95,7 +96,6 @@ const DataManagementPage = () => {
         if (response.data.status === "success") {
           setProjectTypes(response.data.result);
           console.log("Project Types:", response.data.result);
-          console.log("Project Types:", projectTypes);
         } else {
           toast.error("Failed to load project types");
         }
@@ -703,14 +703,14 @@ const DataManagementPage = () => {
           ></TableData>
         </div>
         <Pagination pagination={pagination} getPageData={getPageData} /> */}
-
-        <DataSection
-          key={processedCategory}
-          tableName={processedCategory}
-          getData={getData}
-          refreshTrigger={refreshTrigger}
-        />
-
+        <Suspense fallback={<Loader />}>
+          <DataSection
+            key={processedCategory}
+            tableName={processedCategory}
+            getData={getData}
+            refreshTrigger={refreshTrigger}
+          />
+        </Suspense>
         <style jsx global>{`
           .resizer {
             position: absolute;
