@@ -187,8 +187,8 @@ const TableConfigFilter = ({
 
   return (
     <>
-      <div className="items-center mb-5 mt-5 justify-between block sm:flex md:divide-x md:divide-gray-100 dark:divide-gray-700">
-        <div className="flex items-center mb-4 sm:mb-0">
+      <div className="items-center mb-0 mt-0 justify-between block sm:flex md:divide-x md:divide-gray-100 dark:divide-gray-700">
+        <div className="flex items-center mb-0 sm:mb-0">
           <form className="sm:pr-3" action="#" method="GET">
             <label htmlFor="products-search" className="sr-only">
               Search
@@ -433,10 +433,10 @@ const TableConfigFilter = ({
             );
           }
         })}
-        <div className="flex justify-between mt-8">
+        <div className="flex justify-between mt-8 px-2">
           <p
             onClick={handleReset}
-            className="text-white bg-[#e4757b] hover:bg-[#d45c58] cursor-pointer focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:focus:ring-blue-800"
+            className="text-white bg-[#e4757b] hover:bg-[#d45c58] cursor-pointer focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-1 mr-3 text-center inline-flex items-center dark:focus:ring-blue-800"
           >
             Clear
           </p>

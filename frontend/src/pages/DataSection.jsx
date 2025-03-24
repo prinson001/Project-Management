@@ -212,7 +212,7 @@ const DataSection = ({
   }
 
   return (
-    <div className="flex-1 overflow-auto relative z-10 p-5 h-full">
+    <div className="flex-1 overflow-auto relative z-10 p-0 h-full">
       {showTableConfig && (
         <TableConfig
           updateALLorMyTaskRetreival={updateALLorMyTaskRetreival}

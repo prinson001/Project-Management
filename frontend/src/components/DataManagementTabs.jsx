@@ -1,7 +1,7 @@
 import React from "react";
 import useLanguage from "../hooks/useLanguage";
 
-const DataManagementTabs = ({ activeTab, setActiveTab }) => {
+const DataManagementTabs = ({ activeTab, setActiveTab, renderAddButton }) => {
   const { t } = useLanguage();
 
   const tabs = [
@@ -18,9 +18,11 @@ const DataManagementTabs = ({ activeTab, setActiveTab }) => {
 
   // Remove the getTabContent function as we'll handle content in the parent component
   return (
-    <div className="w-full max-w-6xl mx-auto">
+    <div className="w-full max-w-8xl mx-auto">
       <div className="text-sm font-medium text-center text-gray-500 border-b border-gray-200 dark:text-gray-400 dark:border-gray-700">
-        <ul className="flex flex-wrap -mb-px">
+        <ul className="flex items-center -mb-px">
+          {" "}
+          {/* Changed flex-wrap to items-center */}
           {tabs.map((tab) => (
             <li key={tab.id} className="me-2">
               {tab.disabled ? (
@@ -46,6 +48,11 @@ const DataManagementTabs = ({ activeTab, setActiveTab }) => {
               )}
             </li>
           ))}
+          <li className="ml-auto flex-shrink-0">
+            {" "}
+            {/* Added flex-shrink-0 */}
+            {renderAddButton && renderAddButton()}
+          </li>
         </ul>
       </div>
     </div>

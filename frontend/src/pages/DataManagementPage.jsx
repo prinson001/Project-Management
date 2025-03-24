@@ -559,23 +559,27 @@ const DataManagementPage = () => {
   );
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
+    <div className="container mx-auto px-4 py-0">
+      {/* <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
           {t("dataManagement")}
         </h1>
-      </div>
+      </div> */}
 
-      <DataManagementTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+      <DataManagementTabs
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        renderAddButton={activeTab !== "documents" ? renderAddButton : null}
+      />
 
       <div className="flex-1 overflow-auto relative z-10 p-5 h-full">
         {/* Add button row */}
-        <div className="flex justify-between items-center mb-4">
-          <div></div> {/* Empty div for spacing */}
+        {/* <div className="flex justify-between items-center mb-4">
+          <div></div> 
           <div className="flex space-x-2">
             {activeTab !== "documents" && renderAddButton()}
           </div>
-        </div>
+        </div> */}
 
         {/* Dynamic Form Modal */}
         {showForm && (
