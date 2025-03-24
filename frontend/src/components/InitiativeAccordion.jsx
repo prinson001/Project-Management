@@ -132,11 +132,11 @@ function InitiativeAccordion({ data, title }) {
   }
 
   return (
-    <div className="w-full bg-white rounded-lg shadow-md">
+    <div className="w-full bg-white text-gray-600 dark:bg-gray-800 dark:text-gray-300 rounded-lg shadow-md">
       {/* Initiative Section */}
-      <div className="border-b">
+      <div className="border-b bg-white text-gray-600 dark:bg-gray-800 dark:text-gray-200">
         <div
-          className="flex items-center p-4 bg-blue-50 cursor-pointer"
+          className="flex items-center p-4 bg-white text-gray-600 dark:bg-gray-800 dark:text-gray-200 cursor-pointer"
           onClick={toggleInitiativeExpand}
         >
           {expandedInitiative ? (
@@ -145,7 +145,7 @@ function InitiativeAccordion({ data, title }) {
             <ChevronRight size={20} />
           )}
           <Layers className="ml-2 text-blue-600" size={20} />
-          <h2 className="text-lg font-semibold ml-2">
+          <h2 className="text-lg font-semibold ml-2 bg-white text-gray-600 dark:bg-gray-800 dark:text-gray-200">
             {title || "Initiative Details"}
           </h2>
         </div>
@@ -165,8 +165,8 @@ function InitiativeAccordion({ data, title }) {
       </div>
 
       {/* Portfolios Section */}
-      <div className="ml-6">
-        <h3 className="font-semibold p-2 text-gray-700">
+      <div className="ml-6 bg-white text-gray-600 dark:bg-gray-800 dark:text-gray-200 ">
+        <h3 className="font-semibold p-2 text-gray-700 dark:text-gray-300">
           Portfolios ({initiativeData.portfolios?.length || 0})
         </h3>
 
@@ -174,7 +174,7 @@ function InitiativeAccordion({ data, title }) {
           initiativeData.portfolios.map((portfolio) => (
             <div key={portfolio.id} className="mb-2 border rounded-md">
               <div
-                className="flex items-center p-3 bg-gray-50 cursor-pointer"
+                className="flex items-center p-3 bg-white text-gray-600 dark:bg-gray-800 dark:text-gray-200 cursor-pointer"
                 onClick={() => togglePortfolioExpand(portfolio.id)}
               >
                 {expandedPortfolios[portfolio.id] ? (
@@ -201,7 +201,7 @@ function InitiativeAccordion({ data, title }) {
 
                   {/* Programs under this portfolio */}
                   <div className="ml-4 mt-3">
-                    <h5 className="font-semibold text-sm text-gray-700">
+                    <h5 className="font-semibold text-sm text-gray-700 dark:text-gray-300">
                       Programs ({getRelatedPrograms(portfolio.id).length})
                     </h5>
 
@@ -212,7 +212,7 @@ function InitiativeAccordion({ data, title }) {
                           className="mt-2 border rounded-md"
                         >
                           <div
-                            className="flex items-center p-2 bg-gray-50 cursor-pointer"
+                            className="flex items-center p-2 bg-white text-gray-600 dark:bg-gray-800 dark:text-gray-200 cursor-pointer"
                             onClick={() => toggleProgramExpand(program.id)}
                           >
                             {expandedPrograms[program.id] ? (
@@ -242,7 +242,7 @@ function InitiativeAccordion({ data, title }) {
 
                               {/* Projects under this program */}
                               <div className="ml-4 mt-2">
-                                <h6 className="font-semibold text-xs text-gray-700">
+                                <h6 className="font-semibold text-xs text-gray-700 dark:text-gray-300">
                                   Projects (
                                   {getRelatedProjects(program.id).length})
                                 </h6>
@@ -278,7 +278,7 @@ function InitiativeAccordion({ data, title }) {
                                     )
                                   )
                                 ) : (
-                                  <div className="text-xs text-gray-500 p-1">
+                                  <div className="text-xs text-gray-500 dark:text-gray-200 p-1">
                                     No projects found
                                   </div>
                                 )}

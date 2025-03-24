@@ -41,100 +41,50 @@ function TeamAccordion({ datas }) {
   }
 
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: "16px",
-        height: "300px",
-        padding: "16px",
-        backgroundColor: "#f5f5f5",
-      }}
-    >
+    <div className="flex gap-4 p-4 h-[300px] bg-gray-100 dark:bg-gray-800">
       {/* Portfolios Column */}
-      <div
-        style={{
-          flex: 1,
-          backgroundColor: "white",
-          borderRadius: "8px",
-          padding: "16px",
-          overflowY: "auto",
-          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-        }}
-      >
-        <h3>Portfolios ({data.portfolios.length})</h3>
+      <div className="flex-1 bg-white dark:bg-gray-700 rounded-lg p-4 overflow-y-auto shadow-sm">
+        <h3 className="text-gray-800 dark:text-gray-200">Portfolios ({data.portfolios.length})</h3>
         {data.portfolios.map((portfolio) => (
           <div
             key={portfolio.id}
-            style={{
-              padding: "8px",
-              margin: "8px 0",
-              border: "1px solid #eee",
-              borderRadius: "4px",
-            }}
+            className="p-2 my-2 border border-gray-200 dark:border-gray-600 rounded-md"
           >
-            <strong>{portfolio.name}</strong>
-            <p>{portfolio.description}</p>
+            <strong className="text-gray-800 dark:text-gray-200">{portfolio.name}</strong>
+            <p className="text-gray-600 dark:text-gray-300">{portfolio.description}</p>
           </div>
         ))}
-        {data.portfolios.length === 0 && <p>No portfolios found</p>}
+        {data.portfolios.length === 0 && <p className="text-gray-600 dark:text-gray-400">No portfolios found</p>}
       </div>
 
       {/* Programs Column */}
-      <div
-        style={{
-          flex: 1,
-          backgroundColor: "white",
-          borderRadius: "8px",
-          padding: "16px",
-          overflowY: "auto",
-          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-        }}
-      >
-        <h3>Programs ({data.programs.length})</h3>
+      <div className="flex-1 bg-white dark:bg-gray-700 rounded-lg p-4 overflow-y-auto shadow-sm">
+        <h3 className="text-gray-800 dark:text-gray-200">Programs ({data.programs.length})</h3>
         {data.programs.map((program) => (
           <div
             key={program.id}
-            style={{
-              padding: "8px",
-              margin: "8px 0",
-              border: "1px solid #eee",
-              borderRadius: "4px",
-            }}
+            className="p-2 my-2 border border-gray-200 dark:border-gray-600 rounded-md"
           >
-            <strong>{program.name}</strong>
-            <p>{program.description}</p>
+            <strong className="text-gray-800 dark:text-gray-200">{program.name}</strong>
+            <p className="text-gray-600 dark:text-gray-300">{program.description}</p>
           </div>
         ))}
-        {data.programs.length === 0 && <p>No programs found</p>}
+        {data.programs.length === 0 && <p className="text-gray-600 dark:text-gray-400">No programs found</p>}
       </div>
 
       {/* Projects Column */}
-      <div
-        style={{
-          flex: 1,
-          backgroundColor: "white",
-          borderRadius: "8px",
-          padding: "16px",
-          overflowY: "auto",
-          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-        }}
-      >
-        <h3>Projects ({data.projects.length})</h3>
+      <div className="flex-1 bg-white dark:bg-gray-700 rounded-lg p-4 overflow-y-auto shadow-sm">
+        <h3 className="text-gray-800 dark:text-gray-200">Projects ({data.projects.length})</h3>
         {data.projects.map((project) => (
           <div
             key={project.id}
-            style={{
-              padding: "8px",
-              margin: "8px 0",
-              border: "1px solid #eee",
-              borderRadius: "4px",
-            }}
+            className="p-2 my-2 border border-gray-200 dark:border-gray-600 rounded-md"
           >
-            <strong>{project.name}</strong>
-            <p>{project.description}</p>
+            <strong className="text-gray-800 dark:text-gray-200">{project.name}</strong>
+            <p className="text-gray-600 dark:text-gray-300">{project.description}</p>
           </div>
         ))}
-        {data.projects.length === 0 && <p>No projects found</p>}
+        {data.projects.length === 0 && <p className="text-gray-600 dark:text-gray-400">No projects found</p>}
       </div>
     </div>
   );

@@ -120,23 +120,22 @@ function UserAccordion({
   };
 
   return (
-    // <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-    <div className="bg-white shadow-lg rounded-lg p-6 w-full dark:bg-black border-gray-800 dark:text-white">
+    <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 w-full border-gray-200 dark:border-gray-700">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
         <div>
-          <label htmlFor="englishName">First Name In English</label>
+          <label htmlFor="englishName" className="text-gray-700 dark:text-gray-300">First Name In English</label>
           <input
             name="englishName"
             type="text"
             data-dbname="first_name"
             value={userData.first_name || ""}
-            onChange={handleInputChange} // ✅ Changed to onChange
+            onChange={handleInputChange}
             placeholder="Field 1"
-            className="p-2 border rounded w-full"
+            className="p-2 border rounded w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
           />
         </div>
         <div>
-          <label htmlFor="arabicFirstName">الاسم الأول للمستخدم بالعربي</label>
+          <label htmlFor="arabicFirstName" className="text-gray-700 dark:text-gray-300">الاسم الأول للمستخدم بالعربي</label>
           <input
             name="arabicFirstName"
             data-dbname="arabic_first_name"
@@ -144,7 +143,7 @@ function UserAccordion({
             onChange={handleInputChange}
             type="text"
             placeholder="Field 1"
-            className="p-2 border rounded w-full"
+            className="p-2 border rounded w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
           />
         </div>
         <div>
@@ -185,12 +184,12 @@ function UserAccordion({
         </div>
 
         <div>
-          <label htmlFor="role">Role</label>
+          <label htmlFor="role" className="text-gray-700 dark:text-gray-300">Role</label>
           <select
             name="role"
             value={userData.role_id || ""}
             onChange={handleRoleChange}
-            className="p-2 border rounded w-full"
+            className="p-2 border rounded w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
           >
             {roles.map((role) => (
               <option
@@ -201,11 +200,12 @@ function UserAccordion({
                   role.user_count >= 1 &&
                   !(userData.role_id === role.id)
                 }
+                className="bg-white dark:bg-gray-700"
               >
                 {role.name} ({role.user_count} users)
               </option>
             ))}
-            <option value="">Select a role</option>
+            <option value="" className="bg-white dark:bg-gray-700">Select a role</option>
           </select>
         </div>
         <div>
@@ -238,14 +238,13 @@ function UserAccordion({
 
       <div className="mt-6 flex justify-center">
         <button
-          className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600"
+          className="bg-blue-500 dark:bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-600 dark:hover:bg-blue-700"
           onClick={handleSave}
         >
           Save
         </button>
       </div>
     </div>
-    // </div>
   );
 }
 

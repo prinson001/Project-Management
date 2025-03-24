@@ -28,6 +28,8 @@ let page = 1;
 
 const DataManagementPage = () => {
   const { t } = useLanguage();
+  const { users, setUsers, projectTypes, setProjectTypes, setProjectPhases } =
+    useAuthStore();
   const [activeTab, setActiveTab] = useState("initiatives");
   const processedCategory = useMemo(
     () => (activeTab === "team" ? "users" : activeTab.replace(/s$/, "")),
@@ -45,7 +47,7 @@ const DataManagementPage = () => {
   const [portfolios, setPortfolios] = useState([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   // Get users from auth store
-  const { users, setUsers } = useAuthStore();
+
   let originalTableData = [];
   // Fetch users when component mounts
   useEffect(() => {
@@ -63,6 +65,48 @@ const DataManagementPage = () => {
 
     fetchUsers();
   }, [setUsers]);
+
+  useEffect(() => {
+    const fetchProjectPhases = async () => {
+      try {
+        const response = await axiosInstance.post(
+          `/data-management/getProjectPhases`
+        );
+        if (response.data.status === "success") {
+          setProjectPhases(response.data.result);
+        } else {
+          toast.error("Failed to load project phases");
+        }
+      } catch (error) {
+        console.error("Error fetching project phases:", error);
+        toast.error("Failed to load project phases");
+      }
+    };
+
+    fetchProjectPhases();
+  }, []);
+
+  useEffect(() => {
+    const fetchProjectTypes = async () => {
+      try {
+        const response = await axiosInstance.post(
+          `/data-management/getProjectTypes`
+        );
+        if (response.data.status === "success") {
+          setProjectTypes(response.data.result);
+          console.log("Project Types:", response.data.result);
+          console.log("Project Types:", projectTypes);
+        } else {
+          toast.error("Failed to load project types");
+        }
+      } catch (error) {
+        console.error("Error fetching project types:", error);
+        toast.error("Failed to load project types");
+      }
+    };
+
+    fetchProjectTypes();
+  }, []);
 
   // Fetch initiatives when component mounts
   useEffect(() => {

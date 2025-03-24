@@ -4,6 +4,8 @@ const useAuthStore = create((set) => ({
   token: localStorage.getItem("token") || null,
   role: localStorage.getItem("role") || null,
   users: [],
+  projectTypes: [], // Initialized as empty array
+  projectPhases: [],
   setToken: (token) => {
     set({ token });
     localStorage.setItem("token", token);
@@ -19,6 +21,12 @@ const useAuthStore = create((set) => ({
   },
   setUsers: (users) => {
     set({ users });
+  },
+  setProjectTypes: (projectTypes) => {
+    set({ projectTypes }); // Correctly stores the array of objects
+  },
+  setProjectPhases: (projectPhases) => {
+    set({ projectPhases });
   }
 }));
 

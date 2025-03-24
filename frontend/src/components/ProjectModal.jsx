@@ -17,7 +17,7 @@ const ProjectModal = ({
 }) => {
   const [activeSection, setActiveSection] = useState("all");
   const [viewMode, setViewMode] = useState("weeks");
-  const { users } = useAuthStore();
+  const { users, projectTypes, projectPhases } = useAuthStore();
   // Initialize react-hook-form
   const [scheduleTableData, setScheduleTableData] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -28,8 +28,8 @@ const ProjectModal = ({
   const [objectives, setObjectives] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [localFiles, setLocalFiles] = useState([]);
-  const [projectPhases, setProjectPhases] = useState([]);
-  const [projectTypes, setProjectTypes] = useState([]);
+  // const [projectPhases, setProjectPhases] = useState([]);
+  // const [projectTypes, setProjectTypes] = useState([]);
   const [phaseDurations, setPhaseDurations] = useState([]);
   const [durationOptions, setDurationOptions] = useState([]);
 
@@ -231,6 +231,7 @@ const ProjectModal = ({
 
   // fetch departments
   useEffect(() => {
+    console.log("Project Types:", projectTypes);
     const fetchDepartments = async () => {
       try {
         const response = await axiosInstance.post(
@@ -377,46 +378,45 @@ const ProjectModal = ({
 
     fetchObjectives();
   }, [setValue]);
+  // // Fetch project phases
+  // useEffect(() => {
+  //   const fetchProjectPhases = async () => {
+  //     try {
+  //       const response = await axiosInstance.post(
+  //         `/data-management/getProjectPhases`
+  //       );
+  //       if (response.data.status === "success") {
+  //         setProjectPhases(response.data.result);
+  //       } else {
+  //         toast.error("Failed to load project phases");
+  //       }
+  //     } catch (error) {
+  //       console.error("Error fetching project phases:", error);
+  //       toast.error("Failed to load project phases");
+  //     }
+  //   };
 
-  // Fetch project phases
-  useEffect(() => {
-    const fetchProjectPhases = async () => {
-      try {
-        const response = await axiosInstance.post(
-          `/data-management/getProjectPhases`
-        );
-        if (response.data.status === "success") {
-          setProjectPhases(response.data.result);
-        } else {
-          toast.error("Failed to load project phases");
-        }
-      } catch (error) {
-        console.error("Error fetching project phases:", error);
-        toast.error("Failed to load project phases");
-      }
-    };
+  //   fetchProjectPhases();
+  // }, []);
 
-    fetchProjectPhases();
-  }, []);
+  // // Fetch project types
+  // useEffect(() => {
+  //   const fetchProjectTypes = async () => {
+  //     try {
+  //       const response = await axiosInstance.post(`/data-management/getProjectTypes`);
+  //       if (response.data.status === "success") {
+  //         setProjectTypes(response.data.result);
+  //       } else {
+  //         toast.error("Failed to load project types");
+  //       }
+  //     } catch (error) {
+  //       console.error("Error fetching project types:", error);
+  //       toast.error("Failed to load project types");
+  //     }
+  //   };
 
-  // Fetch project types
-  useEffect(() => {
-    const fetchProjectTypes = async () => {
-      try {
-        const response = await axios.post(`/data-management/getProjectTypes`);
-        if (response.data.status === "success") {
-          setProjectTypes(response.data.result);
-        } else {
-          toast.error("Failed to load project types");
-        }
-      } catch (error) {
-        console.error("Error fetching project types:", error);
-        toast.error("Failed to load project types");
-      }
-    };
-
-    fetchProjectTypes();
-  }, []);
+  //   fetchProjectTypes();
+  // }, []);
 
   const handleScheduleChange = (data) => {
     setScheduleTableData(data);
