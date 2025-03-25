@@ -30,7 +30,6 @@ const upsertSchedulePlan = async (req, res) => {
           result: null,
         });
       }
-      // Validate date format
       const startDate = new Date(plan.startDate);
       const endDate = new Date(plan.endDate);
       if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
@@ -42,43 +41,57 @@ const upsertSchedulePlan = async (req, res) => {
       }
     }
 
-    await sql.begin(async (sql) => {
-      // Delete existing schedule plan for the project
-      await sql`
-        DELETE FROM schedule_plan_new
-        WHERE project_id = ${projectId};
-      `;
-
-      const insertQueries = schedule.map((plan) => {
-        const startDate = new Date(plan.startDate).toISOString().split("T")[0];
-        const endDate = new Date(plan.endDate).toISOString().split("T")[0];
-
-        return sql`
-          INSERT INTO schedule_plan_new (
-            project_id,
-            phase_id,
-            duration_days,
-            start_date,
-            end_date
-          )
-          VALUES (
-            ${projectId},
-            ${plan.phaseId},
-            ${plan.durationDays},
-            ${startDate},
-            ${endDate}
-          )
-          RETURNING *;
+    const result = await sql.begin(async (sql) => {
+      try {
+        // Delete existing schedule plan for the project
+        await sql`
+          DELETE FROM schedule_plan_new
+          WHERE project_id = ${projectId};
         `;
-      });
 
-      const results = await Promise.all(insertQueries);
+        const insertQueries = schedule.map((plan) => {
+          const startDate = new Date(plan.startDate)
+            .toISOString()
+            .split("T")[0];
+          const endDate = new Date(plan.endDate).toISOString().split("T")[0];
 
-      return res.status(201).json({
-        status: "success",
-        message: "Schedule plan upserted successfully",
-        result: results,
-      });
+          return sql`
+            INSERT INTO schedule_plan_new (
+              project_id,
+              phase_id,
+              duration_days,
+              start_date,
+              end_date
+            )
+            VALUES (
+              ${projectId},
+              ${plan.phaseId},
+              ${plan.durationDays},
+              ${startDate},
+              ${endDate}
+            )
+            RETURNING *;
+          `;
+        });
+
+        // Execute inserts sequentially to avoid prepared statement conflicts
+        const results = [];
+        for (const query of insertQueries) {
+          const result = await query;
+          results.push(result);
+        }
+
+        return results;
+      } catch (error) {
+        // Ensure the transaction is rolled back if any query fails
+        throw error;
+      }
+    });
+
+    return res.status(201).json({
+      status: "success",
+      message: "Schedule plan upserted successfully",
+      result: result,
     });
   } catch (error) {
     console.error("Error upserting schedule plan:", error);
@@ -101,24 +114,24 @@ const upsertSchedulePlan = async (req, res) => {
 
 // @Description Get all phases with default durations based on budget
 // @Route site.com/data-management/getPhases
-const getPhases = async (req, res) => {
-  const { budget } = req.body; // Changed to query params to match frontend usage
+const getSchedulePhases = async (req, res) => {
+  const { budget } = req.body;
   console.log("Budget", budget);
   console.log(typeof budget);
   if (!budget || isNaN(budget)) {
     return res.status(400).json({
       status: "failure",
-      message: "Budget is required and must be a number" + budget,
+      message: "Budget is required and must be a number",
       result: null,
     });
   }
 
   try {
-    // Find the appropriate budget range
     const budgetRange = await sql`
       SELECT id
       FROM budget_range
-      WHERE ${budget} > min_budget AND ${budget} <= max_budget
+      WHERE (${budget} > min_budget AND ${budget} <= max_budget)
+         OR (${budget} > min_budget AND max_budget IS NULL)
       LIMIT 1;
     `;
 
@@ -132,13 +145,12 @@ const getPhases = async (req, res) => {
 
     const rangeId = budgetRange[0].id;
 
-    // Fetch phases with their default durations based on the budget range
     const result = await sql`
       SELECT 
         p.id,
         p.phase_name,
         p.main_phase,
-        pd.duration_weeks
+        pd.duration_days
       FROM phase p
       LEFT JOIN phase_duration pd ON p.id = pd.phase_id AND pd.range_id = ${rangeId}
       ORDER BY p.id;
@@ -206,6 +218,6 @@ const getSchedulePlan = async (req, res) => {
 
 module.exports = {
   upsertSchedulePlan,
-  getPhases,
+  getSchedulePhases,
   getSchedulePlan,
 };

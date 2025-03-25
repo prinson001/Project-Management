@@ -49,11 +49,12 @@ const {
   getProjectPhases,
   getProjectPhase,
   getProjectTypes,
+  addBeneficiaryDepartments,
 } = require("../controllers/projectController");
 const {
   getSchedulePlan,
   upsertSchedulePlan,
-  getPhases,
+  getSchedulePhases,
 } = require("../controllers/schedulePlanController");
 
 const {
@@ -151,10 +152,12 @@ router.post("/getProjectPhase", getProjectPhase);
 router.post("/getProjectTypes", getProjectTypes);
 
 router.post("/deleteProjectDocument", deleteProjectDocument);
-router.post("/getPhases", getPhases);
+router.post("/getSchedulePhases", getSchedulePhases);
 router.post("/getPhaseDurations", getPhaseDurations);
 
 router.post("/getSchedulePlan", getSchedulePlan);
+
+router.post("/addBeneficiaryDepartments", addBeneficiaryDepartments);
 
 router.post(
   "/createProjectCreationTaskForDeputy",

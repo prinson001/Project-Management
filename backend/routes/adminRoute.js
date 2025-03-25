@@ -15,11 +15,11 @@ const {
 } = require("../controllers/activityDurationController");
 
 const {
-  getPhaseDurations,
   getBudgetRanges,
   updatePhaseDurations,
   updateBudgetRanges,
 } = require("../controllers/projectTimelineController");
+const { getPhaseDurations } = require("../database/dbConfig");
 
 adminRouter.post("/addUser", addNewUser);
 adminRouter.get("/getUsers", getUsers);

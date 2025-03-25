@@ -172,7 +172,7 @@ const createDocumentTemplate = async (req, res) => {
 const getCurrentPhaseDocumentTemplates = async (req, res) => {
   try {
     const { phase } = req.body;
-
+    console.log("phase", phase);
     if (!phase) {
       return res.status(400).json({
         status: "failure",
@@ -184,7 +184,7 @@ const getCurrentPhaseDocumentTemplates = async (req, res) => {
     const documents = await sql`
       SELECT * FROM document_template WHERE phase @> ${[phase]}
     `;
-
+    console.log("documents", documents);
     res.status(200).json({
       status: "success",
       message: "Documents retrieved successfully",

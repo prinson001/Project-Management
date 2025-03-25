@@ -5,6 +5,7 @@ import { Controller, useForm } from "react-hook-form";
 import axios from "axios";
 import { addDays, format } from "date-fns";
 import { toast } from "sonner";
+import axiosInstance from "../axiosInstance";
 
 const PORT = import.meta.env.VITE_PORT;
 
@@ -20,10 +21,10 @@ const SchedulePlanSection = ({
   budget,
   onScheduleChange,
   internalScheduleData = [],
-  projectType, // This is now an ID
+  projectType,
 }) => {
   const projectTypeValue = projectTypeMapping[projectType];
-  const isInternalSchedule = ["1", "4"].includes(projectType); // Check against IDs
+  const isInternalSchedule = ["1", "4"].includes(projectType);
 
   const [activeTab, setActiveTab] = useState("B. Days");
   const [phases, setPhases] = useState([]);
@@ -39,7 +40,7 @@ const SchedulePlanSection = ({
   } = useForm({
     defaultValues: {
       executionStartDate: null,
-      executionDuration: "4 weeks",
+      executionDuration: "28 days", // Default to 4 weeks in days
       maintenanceDate: null,
     },
   });
@@ -57,13 +58,12 @@ const SchedulePlanSection = ({
       }));
       setInternalSchedule(initialInternalSchedule);
     } else if (isInternalSchedule) {
-      // Default data if none provided
       setInternalSchedule([
         {
           id: 1,
           mainPhase: "Planning",
           subPhase: "Prepare scope",
-          duration: "4 weeks",
+          duration: "28 days", // 4 weeks in days
           durationDays: 28,
           startDate: null,
           endDate: null,
@@ -72,7 +72,7 @@ const SchedulePlanSection = ({
           id: 2,
           mainPhase: "Execution",
           subPhase: "Execute phase",
-          duration: "4 weeks",
+          duration: "28 days", // 4 weeks in days
           durationDays: 28,
           startDate: null,
           endDate: null,
@@ -85,26 +85,33 @@ const SchedulePlanSection = ({
   useEffect(() => {
     const fetchPhases = async () => {
       if (!budget) {
-        // toast.error("Budget is required to fetch phase durations");
         return;
       }
 
       try {
-        const response = await axios.post(`/data-management/getPhases`, {
-          budget,
-        });
+        const response = await axiosInstance.post(
+          `/data-management/getSchedulePhases`,
+          { budget }
+        );
         if (response.data.status === "success") {
           setPhases(response.data.result);
-          // Initialize scheduleTableData with fetched phases
-          const initialSchedule = response.data.result.map((phase) => ({
-            phaseId: phase.id,
-            mainPhase: phase.main_phase,
-            subPhase: phase.phase_name,
-            duration: `${phase.duration_weeks || 1} weeks`, // Default to 1 week if not set
-            durationDays: (phase.duration_weeks || 1) * 7, // Convert weeks to days
-            startDate: null,
-            endDate: null,
-          }));
+          const initialSchedule = response.data.result.map((phase) => {
+            if (!phase.duration_days) {
+              console.warn(
+                `No duration found for phase ${phase.phase_name} in budget range. Defaulting to 7 days.`
+              );
+            }
+            const durationDays = phase.duration_days || 7; // Default to 7 days if not set
+            return {
+              phaseId: phase.id,
+              mainPhase: phase.main_phase,
+              subPhase: phase.phase_name,
+              duration: convertDuration(durationDays, activeTab), // Display in the current tab's unit
+              durationDays: durationDays,
+              startDate: null,
+              endDate: null,
+            };
+          });
           setScheduleTableData(initialSchedule);
         } else {
           throw new Error("Failed to fetch phases");
@@ -112,43 +119,42 @@ const SchedulePlanSection = ({
       } catch (error) {
         console.error("Error fetching phases:", error);
         toast.error("Failed to load phases");
-        // Fallback to static data with main_phase
         setPhases([
           {
             id: 1,
             main_phase: "Planning",
             phase_name: "Prepare RFP",
-            duration_weeks: 1,
+            duration_days: 7,
           },
           {
             id: 2,
             main_phase: "Planning",
             phase_name: "RFP Releasing Procedures",
-            duration_weeks: 1,
+            duration_days: 7,
           },
           {
             id: 3,
             main_phase: "Bidding",
             phase_name: "Bidding Duration",
-            duration_weeks: 1,
+            duration_days: 7,
           },
           {
             id: 4,
             main_phase: "Bidding",
             phase_name: "Technical and financial evaluation",
-            duration_weeks: 1,
+            duration_days: 7,
           },
           {
             id: 5,
             main_phase: "Bidding",
             phase_name: "Contract preparation",
-            duration_weeks: 1,
+            duration_days: 7,
           },
           {
             id: 6,
             main_phase: "Before execution",
             phase_name: "Waiting period before execution starts",
-            duration_weeks: 1,
+            duration_days: 7,
           },
         ]);
         setScheduleTableData([
@@ -156,7 +162,7 @@ const SchedulePlanSection = ({
             phaseId: 1,
             mainPhase: "Planning",
             subPhase: "Prepare RFP",
-            duration: "1 week",
+            duration: "7 days",
             durationDays: 7,
             startDate: null,
             endDate: null,
@@ -165,7 +171,7 @@ const SchedulePlanSection = ({
             phaseId: 2,
             mainPhase: "Planning",
             subPhase: "RFP Releasing Procedures",
-            duration: "1 week",
+            duration: "7 days",
             durationDays: 7,
             startDate: null,
             endDate: null,
@@ -174,7 +180,7 @@ const SchedulePlanSection = ({
             phaseId: 3,
             mainPhase: "Bidding",
             subPhase: "Bidding Duration",
-            duration: "1 week",
+            duration: "7 days",
             durationDays: 7,
             startDate: null,
             endDate: null,
@@ -183,7 +189,7 @@ const SchedulePlanSection = ({
             phaseId: 4,
             mainPhase: "Bidding",
             subPhase: "Technical and financial evaluation",
-            duration: "1 week",
+            duration: "7 days",
             durationDays: 7,
             startDate: null,
             endDate: null,
@@ -192,7 +198,7 @@ const SchedulePlanSection = ({
             phaseId: 5,
             mainPhase: "Bidding",
             subPhase: "Contract preparation",
-            duration: "1 week",
+            duration: "7 days",
             durationDays: 7,
             startDate: null,
             endDate: null,
@@ -201,7 +207,7 @@ const SchedulePlanSection = ({
             phaseId: 6,
             mainPhase: "Before execution",
             subPhase: "Waiting period before execution starts",
-            duration: "1 week",
+            duration: "7 days",
             durationDays: 7,
             startDate: null,
             endDate: null,
@@ -210,7 +216,7 @@ const SchedulePlanSection = ({
       }
     };
     fetchPhases();
-  }, [budget]);
+  }, [budget, activeTab]); // Include activeTab to update display format
 
   // Fetch existing schedule plan for the project
   useEffect(() => {
@@ -218,9 +224,12 @@ const SchedulePlanSection = ({
       if (!projectId) return;
 
       try {
-        const response = await axios.get(`/data-management/getSchedulePlan`, {
-          params: { projectId },
-        });
+        const response = await axiosInstance.post(
+          `/data-management/getSchedulePlan`,
+          {
+            params: { projectId },
+          }
+        );
         if (
           response.data.status === "success" &&
           response.data.result.length > 0
@@ -229,7 +238,7 @@ const SchedulePlanSection = ({
             phaseId: plan.phase_id,
             mainPhase: plan.main_phase,
             subPhase: plan.phase_name,
-            duration: `${plan.duration_days} days`,
+            duration: convertDuration(plan.duration_days, activeTab),
             durationDays: plan.duration_days,
             startDate: plan.start_date
               ? format(new Date(plan.start_date), "dd-MMM-yyyy")
@@ -240,7 +249,6 @@ const SchedulePlanSection = ({
           }));
           setScheduleTableData(fetchedSchedule);
 
-          // Set the execution start date based on the last phase's end date
           const lastPhase = fetchedSchedule[fetchedSchedule.length - 1];
           if (lastPhase.endDate) {
             setValue("executionStartDate", new Date(lastPhase.endDate));
@@ -253,7 +261,50 @@ const SchedulePlanSection = ({
     };
 
     fetchSchedulePlan();
-  }, [projectId, setValue]);
+  }, [projectId, setValue, activeTab]); // Include activeTab to update display format
+
+  // Calculate dates based on execution start date
+  useEffect(() => {
+    if (!executionStartDate) {
+      setScheduleTableData((prev) =>
+        prev.map((phase) => ({
+          ...phase,
+          startDate: null,
+          endDate: null,
+        }))
+      );
+      return;
+    }
+
+    const updatedSchedule = [...scheduleTableData];
+    let currentEndDate = new Date(executionStartDate);
+
+    for (let i = updatedSchedule.length - 1; i >= 0; i--) {
+      const phase = updatedSchedule[i];
+      const startDate = addDuration(currentEndDate, phase.durationDays);
+
+      updatedSchedule[i] = {
+        ...phase,
+        endDate: format(currentEndDate, "dd-MMM-yyyy"),
+        startDate: startDate ? format(startDate, "dd-MMM-yyyy") : "N/A",
+      };
+
+      if (startDate) {
+        currentEndDate = new Date(startDate);
+      } else {
+        for (let j = i - 1; j >= 0; j--) {
+          updatedSchedule[j] = {
+            ...updatedSchedule[j],
+            startDate: "N/A",
+            endDate: "N/A",
+          };
+        }
+        break;
+      }
+    }
+
+    setScheduleTableData(updatedSchedule);
+  }, [executionStartDate]);
 
   // Notify parent component of schedule changes
   useEffect(() => {
@@ -271,24 +322,22 @@ const SchedulePlanSection = ({
     isInternalSchedule,
   ]);
 
-  // Convert duration to days for calculation
   const convertToDays = (durationStr) => {
     const daysMatch = durationStr.match(/(\d+)\s*days?/i);
     if (daysMatch) return parseInt(daysMatch[1], 10);
     const weeksMatch = durationStr.match(/(\d+)\s*weeks?/i);
     if (weeksMatch) return parseInt(weeksMatch[1], 10) * 7;
     const monthsMatch = durationStr.match(/(\d+)\s*months?/i);
-    if (monthsMatch) return parseInt(monthsMatch[1], 10) * 30; // Approximation
-    return 0; // Default to 0 if format is invalid
+    if (monthsMatch) return parseInt(monthsMatch[1], 10) * 30;
+    return 0;
   };
 
-  // Add duration in days
   const addDuration = (date, durationDays) => {
     if (!date || durationDays <= 0) return null;
     return addDays(date, -durationDays);
   };
 
-  // Calculate internal schedule dates based on execution start date
+  // Handle internal schedule date calculations
   useEffect(() => {
     if (
       !executionStartDate ||
@@ -298,7 +347,6 @@ const SchedulePlanSection = ({
       return;
     }
 
-    // Find the execution phase (should end on execution start date)
     const executionPhaseIndex = internalSchedule.findIndex(
       (phase) => phase.mainPhase === "Execution"
     );
@@ -307,7 +355,6 @@ const SchedulePlanSection = ({
     const updatedSchedule = [...internalSchedule];
     const executionPhase = updatedSchedule[executionPhaseIndex];
 
-    // Set execution phase dates
     const executionEndDate = new Date(executionStartDate);
     const phaseStartDate = addDuration(
       executionEndDate,
@@ -320,7 +367,6 @@ const SchedulePlanSection = ({
       startDate: phaseStartDate ? format(phaseStartDate, "dd-MMM-yyyy") : null,
     };
 
-    // Set planning phase dates (if exists)
     const planningPhaseIndex = internalSchedule.findIndex(
       (phase) => phase.mainPhase === "Planning"
     );
@@ -346,21 +392,22 @@ const SchedulePlanSection = ({
     setInternalSchedule(updatedSchedule);
   }, [executionStartDate, isInternalSchedule, internalSchedule]);
 
-  // Handle internal phase duration change
   const handleInternalDurationChange = (id, newDuration) => {
     const durationDays = convertToDays(newDuration);
 
     const updatedSchedule = internalSchedule.map((phase) =>
       phase.id === id
-        ? { ...phase, duration: newDuration, durationDays }
+        ? {
+            ...phase,
+            duration: convertDuration(durationDays, activeTab),
+            durationDays,
+          }
         : phase
     );
 
     setInternalSchedule(updatedSchedule);
 
-    // Recalculate dates if execution start date exists
     if (executionStartDate) {
-      // Find the execution phase
       const executionPhaseIndex = updatedSchedule.findIndex(
         (phase) => phase.mainPhase === "Execution"
       );
@@ -369,7 +416,6 @@ const SchedulePlanSection = ({
       const tempSchedule = [...updatedSchedule];
       const executionPhase = tempSchedule[executionPhaseIndex];
 
-      // Set execution phase dates
       const executionEndDate = new Date(executionStartDate);
       const phaseStartDate = addDuration(
         executionEndDate,
@@ -384,7 +430,6 @@ const SchedulePlanSection = ({
           : null,
       };
 
-      // Set planning phase dates
       const planningPhaseIndex = tempSchedule.findIndex(
         (phase) => phase.mainPhase === "Planning"
       );
@@ -411,12 +456,15 @@ const SchedulePlanSection = ({
     }
   };
 
-  // Handle duration change for a specific phase
   const handleDurationChange = (phaseId, newDuration, newType) => {
     const durationDays = convertToDays(newDuration);
     const updatedSchedule = scheduleTableData.map((phase) =>
       phase.phaseId === phaseId
-        ? { ...phase, duration: newDuration, durationDays }
+        ? {
+            ...phase,
+            duration: convertDuration(durationDays, newType || activeTab),
+            durationDays,
+          }
         : phase
     );
 
@@ -425,69 +473,89 @@ const SchedulePlanSection = ({
       [phaseId]: newType,
     }));
 
-    // Recalculate dates if execution start date exists
     if (executionStartDate) {
-      const tempSchedule = [];
-      [...updatedSchedule].reverse().forEach((phase, index) => {
-        if (index === 0) {
-          const endDate = new Date(executionStartDate);
-          const startDate = addDuration(endDate, phase.durationDays);
-          tempSchedule.push({
-            ...phase,
-            endDate: format(endDate, "dd-MMM-yyyy"),
-            startDate: startDate ? format(startDate, "dd-MMM-yyyy") : null,
-          });
+      let currentEndDate = new Date(executionStartDate);
+      const tempSchedule = [...updatedSchedule];
+
+      for (let i = tempSchedule.length - 1; i >= 0; i--) {
+        const phase = tempSchedule[i];
+        const startDate = addDuration(currentEndDate, phase.durationDays);
+
+        tempSchedule[i] = {
+          ...phase,
+          endDate: format(currentEndDate, "dd-MMM-yyyy"),
+          startDate: startDate ? format(startDate, "dd-MMM-yyyy") : "N/A",
+        };
+
+        if (startDate) {
+          currentEndDate = new Date(startDate);
         } else {
-          const prevPhase = tempSchedule[index - 1];
-          const endDate = new Date(prevPhase.startDate);
-          const startDate = addDuration(endDate, phase.durationDays);
-          tempSchedule.push({
-            ...phase,
-            endDate: format(endDate, "dd-MMM-yyyy"),
-            startDate: startDate ? format(startDate, "dd-MMM-yyyy") : null,
-          });
+          for (let j = i - 1; j >= 0; j--) {
+            tempSchedule[j] = {
+              ...tempSchedule[j],
+              startDate: "N/A",
+              endDate: "N/A",
+            };
+          }
+          break;
         }
-      });
-      setScheduleTableData(tempSchedule.reverse());
+      }
+      setScheduleTableData(tempSchedule);
     } else {
       setScheduleTableData(updatedSchedule);
     }
   };
 
-  // Convert duration to the selected unit for display
   const convertDuration = (durationDays, targetUnit) => {
     if (durationDays <= 0) return "0 days";
     if (targetUnit === "B. Days") {
       return `${durationDays} day${durationDays !== 1 ? "s" : ""}`;
     } else if (targetUnit === "Weeks") {
       const weeks = Math.floor(durationDays / 7);
-      return `${weeks} week${weeks !== 1 ? "s" : ""}`;
+      const remainingDays = durationDays % 7;
+      if (remainingDays === 0) {
+        return `${weeks} week${weeks !== 1 ? "s" : ""}`;
+      }
+      return `${weeks} week${weeks !== 1 ? "s" : ""} ${remainingDays} day${
+        remainingDays !== 1 ? "s" : ""
+      }`;
     } else if (targetUnit === "Months") {
       const months = Math.floor(durationDays / 30);
-      return `${months} month${months !== 1 ? "s" : ""}`;
+      const remainingDays = durationDays % 30;
+      if (remainingDays === 0) {
+        return `${months} month${months !== 1 ? "s" : ""}`;
+      }
+      return `${months} month${months !== 1 ? "s" : ""} ${remainingDays} day${
+        remainingDays !== 1 ? "s" : ""
+      }`;
     }
-    return `${durationDays} days`; // Default to days
+    return `${durationDays} days`;
   };
 
-  // Generate duration options for dropdown based on selected unit tab
   const getDurationOptions = (type) => {
     if (type === "B. Days") {
-      return Array.from({ length: 30 }, (_, i) => ({
+      return Array.from({ length: 90 }, (_, i) => ({
         value: `${i + 1} day${i + 1 > 1 ? "s" : ""}`,
         label: `${i + 1} day${i + 1 > 1 ? "s" : ""}`,
       }));
     } else if (type === "Weeks") {
-      return Array.from({ length: 12 }, (_, i) => ({
-        value: `${i + 1} week${i + 1 > 1 ? "s" : ""}`,
-        label: `${i + 1} week${i + 1 > 1 ? "s" : ""}`,
-      }));
+      return Array.from({ length: 12 }, (_, i) => {
+        const days = (i + 1) * 7;
+        return {
+          value: `${days} days`,
+          label: `${i + 1} week${i + 1 > 1 ? "s" : ""}`,
+        };
+      });
     } else if (type === "Months") {
-      return Array.from({ length: 12 }, (_, i) => ({
-        value: `${i + 1} month${i + 1 > 1 ? "s" : ""}`,
-        label: `${i + 1} month${i + 1 > 1 ? "s" : ""}`,
-      }));
+      return Array.from({ length: 12 }, (_, i) => {
+        const days = (i + 1) * 30;
+        return {
+          value: `${days} days`,
+          label: `${i + 1} month${i + 1 > 1 ? "s" : ""}`,
+        };
+      });
     }
-    return Array.from({ length: 30 }, (_, i) => ({
+    return Array.from({ length: 90 }, (_, i) => ({
       value: `${i + 1} day${i + 1 > 1 ? "s" : ""}`,
       label: `${i + 1} day${i + 1 > 1 ? "s" : ""}`,
     }));
@@ -511,7 +579,6 @@ const SchedulePlanSection = ({
       activeTab === tab ? "bg-blue-100 text-blue-800 font-medium" : ""
     }`;
 
-  // Handle tab change and convert durations for display
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     const updatedSchedule = scheduleTableData.map((phase) => ({
@@ -519,6 +586,12 @@ const SchedulePlanSection = ({
       duration: convertDuration(phase.durationDays, tab),
     }));
     setScheduleTableData(updatedSchedule);
+
+    const updatedInternalSchedule = internalSchedule.map((phase) => ({
+      ...phase,
+      duration: convertDuration(phase.durationDays, tab),
+    }));
+    setInternalSchedule(updatedInternalSchedule);
   };
 
   return (

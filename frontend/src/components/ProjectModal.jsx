@@ -17,7 +17,8 @@ const ProjectModal = ({
 }) => {
   const [activeSection, setActiveSection] = useState("all");
   const [viewMode, setViewMode] = useState("weeks");
-  const { users, projectTypes, projectPhases } = useAuthStore();
+  const { users, projectTypes, projectPhases, setDocuments, documents } =
+    useAuthStore();
   // Initialize react-hook-form
   const [scheduleTableData, setScheduleTableData] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -26,12 +27,7 @@ const ProjectModal = ({
   const [programs, setPrograms] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [objectives, setObjectives] = useState([]);
-  const [documents, setDocuments] = useState([]);
   const [localFiles, setLocalFiles] = useState([]);
-  // const [projectPhases, setProjectPhases] = useState([]);
-  // const [projectTypes, setProjectTypes] = useState([]);
-  const [phaseDurations, setPhaseDurations] = useState([]);
-  const [durationOptions, setDurationOptions] = useState([]);
 
   const {
     register,
@@ -222,7 +218,7 @@ const ProjectModal = ({
         }
       } catch (error) {
         console.error("Error fetching phase durations:", error);
-        toast.error("Failed to load duration options");
+        // toast.error("Failed to load duration options");
       }
     };
 
@@ -418,6 +414,40 @@ const ProjectModal = ({
   //   fetchProjectTypes();
   // }, []);
 
+  useEffect(() => {
+    const currentPhase = watch("currentPhase");
+    if (currentPhase) {
+      // Find the phase object in projectPhases store
+      const selectedPhase = projectPhases.find(
+        (phase) => phase.id === parseInt(currentPhase, 10)
+      );
+      if (selectedPhase) {
+        // Trigger document templates fetch with phase name
+        getCurrentPhaseDocumentTemplates(selectedPhase.name);
+      }
+    }
+  }, [watch("currentPhase"), projectPhases]);
+
+  const getCurrentPhaseDocumentTemplates = async (phase) => {
+    try {
+      const result = await axiosInstance.post(
+        `/data-management/getCurrentPhaseDocumentTemplates`,
+        { phase }
+      );
+      console.log("result", result);
+      setDocuments(result.data.data);
+      console.log("Fetched document templates:", result.data.data);
+
+      // Update both state and form value
+      // Return the documents for debugging
+      return result.data.data;
+    } catch (error) {
+      console.error("Error fetching document templates:", error);
+      toast.error("Failed to load document templates");
+      return [];
+    }
+  };
+
   const handleScheduleChange = (data) => {
     setScheduleTableData(data);
   };
@@ -465,15 +495,15 @@ const ProjectModal = ({
           "/data-management/createProjectCreationTaskForDeputy",
           { projectId }
         );
-
+        console.log("Task response:", taskResponse);
         console.log("Task creation response:", taskResponse.data);
 
-        if (taskResponse.data.success) {
+        if (taskResponse.data && taskResponse.data.status === "success") {
           toast.success("Project saved and sent for approval successfully!");
           if (onClose) onClose();
         } else {
           throw new Error(
-            taskResponse.data.message || "Failed to create approval task"
+            taskResponse.data?.message || "Failed to create approval task"
           );
         }
       } catch (error) {
@@ -589,6 +619,11 @@ const ProjectModal = ({
 
     try {
       const selectedDepartmentIds = getSelectedDepartmentIds();
+      // Validate beneficiary departments
+      if (selectedDepartmentIds.length === 0) {
+        toast.error("At least one beneficiary department must be selected");
+        return; // Stop the submission
+      }
       const selectedObjectiveIds = objectives
         .filter((obj) => obj.checked)
         .map((obj) => obj.id);
@@ -657,10 +692,34 @@ const ProjectModal = ({
 
         console.log("Project saved with ID:", projectId); // Debug log
 
+        // Step 2: Save beneficiary departments
+        const beneficiaryResponse = await axiosInstance.post(
+          `/data-management/addBeneficiaryDepartments`,
+          {
+            projectId,
+            departmentIds: selectedDepartmentIds,
+          }
+        );
+
+        if (beneficiaryResponse.data.status !== "success") {
+          throw new Error(
+            beneficiaryResponse.data.message ||
+              "Failed to save beneficiary departments"
+          );
+        }
+
         // Step 2: Upload documents
         await uploadDocuments(projectId, localFiles);
         console.log("Documents uploaded successfully"); // Debug log
-
+        console.log(
+          "Schedule Plan ",
+          scheduleTableData.map((phase) => ({
+            phaseId: phase.phaseId,
+            durationDays: phase.durationDays,
+            startDate: phase.startDate,
+            endDate: phase.endDate,
+          }))
+        );
         // Step 3: Save the schedule plan
         const schedulePlanResponse = await axiosInstance.post(
           `/data-management/upsertSchedulePlan`,
@@ -921,7 +980,9 @@ const ProjectModal = ({
                       } rounded appearance-none bg-white`}
                       {...field}
                     >
-                      <option value="">Select Project Type</option>
+                      <option value="" disabled>
+                        Select Project Type
+                      </option>
                       {projectTypes.map((type) => (
                         <option key={type.id} value={type.id}>
                           {type.name}
@@ -958,7 +1019,9 @@ const ProjectModal = ({
                       } rounded appearance-none bg-white`}
                       {...field}
                     >
-                      <option value="">Select Current Phase</option>
+                      <option value="" disabled>
+                        Select Current Phase
+                      </option>
                       {projectPhases.map((phase) => (
                         <option key={phase.id} value={phase.id}>
                           {phase.name}
@@ -1372,12 +1435,13 @@ const ProjectModal = ({
             /> */}
 
             <ProjectDocumentSection
-              projectPhase={watch(currentPhase)} // Pass the current phase
+              projectPhase={watch("currentPhase")}
               formMethods={{ setValue, watch }}
-              documents={documents}
-              setDocuments={setDocuments}
               localFiles={localFiles}
               setLocalFiles={setLocalFiles}
+              getCurrentPhaseDocumentTemplates={
+                getCurrentPhaseDocumentTemplates
+              }
             />
           </div>
           {/* Form Footer */}

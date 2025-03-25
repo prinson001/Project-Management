@@ -57,7 +57,7 @@ const createProjectCreationTaskForDeputy = async (req, res) => {
         dueDate.toISOString().split("T")[0]
       }`
     );
-    return res.status(400).json({
+    return res.status(200).json({
       status: "success",
       message: "Approve Project Sent Successfully",
       result: null,

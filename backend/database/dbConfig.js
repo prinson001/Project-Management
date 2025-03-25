@@ -335,28 +335,28 @@ const setDefaultPhases = async (req, res) => {
 const getPhaseDurations = async (req, res) => {
   try {
     const result = await sql`
-    SELECT 
-      p.id AS phase_id,
-      p.phase_name,
-      p.phase_order,
-      COALESCE(
-        JSON_OBJECT_AGG(
-          br.id,
-          JSON_BUILD_OBJECT(
-            'name', COALESCE(br.label, 'Default Range'),
-            'min', COALESCE(br.min_budget, 0),
-            'max', COALESCE(br.max_budget, NULL),
-            'duration_weeks', COALESCE(pd.duration_weeks, 0)
-          )
-        ) FILTER (WHERE br.id IS NOT NULL),
-        '{}'::json
-      ) AS budget_durations
-    FROM phase p
-    LEFT JOIN phase_duration pd ON p.id = pd.phase_id
-    LEFT JOIN budget_range br ON pd.range_id = br.id
-    GROUP BY p.id, p.phase_name, p.phase_order
-    ORDER BY p.phase_order;
-  `;
+      SELECT 
+        p.id AS phase_id,
+        p.phase_name,
+        p.phase_order,
+        COALESCE(
+          JSON_OBJECT_AGG(
+            br.id,
+            JSON_BUILD_OBJECT(
+              'name', COALESCE(br.label, 'Default Range'),
+              'min', COALESCE(br.min_budget, 0),
+              'max', br.max_budget, -- Simplified, no need for COALESCE with NULL
+              'duration_days', COALESCE(pd.duration_days, 0) -- Updated to duration_days
+            )
+          ) FILTER (WHERE br.id IS NOT NULL),
+          '{}'::json
+        ) AS budget_durations
+      FROM phase p
+      LEFT JOIN phase_duration pd ON p.id = pd.phase_id
+      LEFT JOIN budget_range br ON pd.range_id = br.id
+      GROUP BY p.id, p.phase_name, p.phase_order
+      ORDER BY p.phase_order;
+    `;
 
     res.status(200).json({
       status: "success",
@@ -364,9 +364,11 @@ const getPhaseDurations = async (req, res) => {
       data: result,
     });
   } catch (e) {
+    console.error("Error in getPhaseDurations:", e); // Add detailed logging
     res.status(500).json({
       status: "failure",
-      message: `Failed to fetch phase durations: ${e.message}`,
+      message: "Failed to fetch phase durations",
+      error: e.message, // Include the error message in the response
     });
   }
 };
@@ -375,7 +377,7 @@ const getBudgetRanges = async (req, res) => {
     const result = await sql`
       SELECT 
         id,
-        label as name,
+        label AS name,
         min_budget AS min,
         max_budget AS max
       FROM budget_range
@@ -388,9 +390,11 @@ const getBudgetRanges = async (req, res) => {
       data: result,
     });
   } catch (e) {
+    console.error("Error in getBudgetRanges:", e); // Add detailed logging
     res.status(500).json({
       status: "failure",
-      message: `Failed to fetch budget ranges: ${e.message}`,
+      message: "Failed to fetch budget ranges",
+      error: e.message,
     });
   }
 };

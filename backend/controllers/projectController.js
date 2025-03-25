@@ -574,11 +574,12 @@ const getPhases = async (req, res) => {
   try {
     // Find the appropriate budget range
     const budgetRange = await sql`
-      SELECT id
-      FROM budget_range
-      WHERE ${budget} > min_budget AND ${budget} <= max_budget
-      LIMIT 1;
-    `;
+    SELECT id
+    FROM budget_range
+    WHERE (${budget} > min_budget AND ${budget} <= max_budget)
+       OR (${budget} > min_budget AND max_budget IS NULL)
+    LIMIT 1;
+  `;
 
     if (!budgetRange || budgetRange.length === 0) {
       return res.status(404).json({
@@ -809,6 +810,100 @@ const getObjectives = async (req, res) => {
   }
 };
 
+const addBeneficiaryDepartments = async (req, res) => {
+  const { projectId, departmentIds } = req.body;
+
+  // Validate the request
+  if (!projectId || !departmentIds || !Array.isArray(departmentIds)) {
+    return res.status(400).json({
+      status: "failure",
+      message: "Invalid request: projectId and departmentIds are required",
+      result: null,
+    });
+  }
+
+  try {
+    await sql.begin(async (sql) => {
+      // Step 1: Delete existing beneficiary departments for this project
+      await sql`
+        DELETE FROM beneficiary_departments
+        WHERE project_id = ${projectId};
+      `;
+
+      // Step 2: Validate department IDs
+      const validDepartments = await sql`
+        SELECT id FROM departments WHERE id = ANY(${departmentIds});
+      `;
+      const validDepartmentIds = validDepartments.map((row) => row.id);
+      const invalidIds = departmentIds.filter(
+        (id) => !validDepartmentIds.includes(id)
+      );
+
+      if (invalidIds.length > 0) {
+        throw new Error(`Invalid department IDs: ${invalidIds.join(", ")}`);
+      }
+
+      // Step 3: Insert new beneficiary departments
+      for (const departmentId of departmentIds) {
+        await sql`
+          INSERT INTO beneficiary_departments (project_id, department_id, created_at)
+          VALUES (${projectId}, ${departmentId}, NOW())
+          ON CONFLICT (project_id, department_id) DO NOTHING;
+        `;
+      }
+    });
+
+    return res.status(200).json({
+      status: "success",
+      message: "Beneficiary departments updated successfully",
+      result: null,
+    });
+  } catch (error) {
+    console.error("Error updating beneficiary departments:", error);
+    return res.status(500).json({
+      status: "failure",
+      message: "Error updating beneficiary departments",
+      result: error.message || error,
+    });
+  }
+};
+
+module.exports = { addBeneficiaryDepartments, getBeneficiaryDepartments };
+
+const getBeneficiaryDepartments = async (req, res) => {
+  const { projectId } = req.body;
+
+  // Validate the request
+  if (!projectId) {
+    return res.status(400).json({
+      status: "failure",
+      message: "Invalid request: projectId is required",
+      result: null,
+    });
+  }
+
+  try {
+    const result = await sql`
+      SELECT department_id
+      FROM beneficiary_departments
+      WHERE project_id = ${projectId};
+    `;
+
+    return res.status(200).json({
+      status: "success",
+      message: "Beneficiary departments retrieved successfully",
+      result: result.map((row) => row.department_id), // Return an array of department IDs
+    });
+  } catch (error) {
+    console.error("Error retrieving beneficiary departments:", error);
+    return res.status(500).json({
+      status: "failure",
+      message: "Error retrieving beneficiary departments",
+      result: error.message || error,
+    });
+  }
+};
+
 module.exports = {
   addProject,
   updateProject,
@@ -823,4 +918,6 @@ module.exports = {
   getProjectTypes,
   getDepartments,
   getObjectives,
+  addBeneficiaryDepartments,
+  getBeneficiaryDepartments,
 };

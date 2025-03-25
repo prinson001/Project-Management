@@ -1,43 +1,43 @@
 const sql = require("../database/db");
 
-const getPhaseDurations = async (req, res) => {
-  try {
-    const result = await sql`
-      SELECT 
-        p.id AS phase_id,
-        p.phase_name,
-        p.phase_order,
-        COALESCE(
-          JSON_OBJECT_AGG(
-            br.id,
-            JSON_BUILD_OBJECT(
-              'name', COALESCE(br.label, 'Default Range'),
-              'min', COALESCE(br.min_budget, 0),
-              'max', COALESCE(br.max_budget, NULL),
-              'duration_weeks', COALESCE(pd.duration_weeks, 0)
-            )
-          ) FILTER (WHERE br.id IS NOT NULL),
-          '{}'::json
-        ) AS budget_durations
-      FROM phase p
-      LEFT JOIN phase_duration pd ON p.id = pd.phase_id
-      LEFT JOIN budget_range br ON pd.range_id = br.id
-      GROUP BY p.id, p.phase_name, p.phase_order
-      ORDER BY p.phase_order;
-    `;
+// const getPhaseDurations = async (req, res) => {
+//   try {
+//     const result = await sql`
+//       SELECT
+//         p.id AS phase_id,
+//         p.phase_name,
+//         p.phase_order,
+//         COALESCE(
+//           JSON_OBJECT_AGG(
+//             br.id,
+//             JSON_BUILD_OBJECT(
+//               'name', COALESCE(br.label, 'Default Range'),
+//               'min', COALESCE(br.min_budget, 0),
+//               'max', COALESCE(br.max_budget, NULL),
+//               'duration_weeks', COALESCE(pd.duration_weeks, 0)
+//             )
+//           ) FILTER (WHERE br.id IS NOT NULL),
+//           '{}'::json
+//         ) AS budget_durations
+//       FROM phase p
+//       LEFT JOIN phase_duration pd ON p.id = pd.phase_id
+//       LEFT JOIN budget_range br ON pd.range_id = br.id
+//       GROUP BY p.id, p.phase_name, p.phase_order
+//       ORDER BY p.phase_order;
+//     `;
 
-    res.status(200).json({
-      status: "success",
-      message: "Phase durations retrieved successfully",
-      data: result,
-    });
-  } catch (e) {
-    res.status(500).json({
-      status: "failure",
-      message: `Failed to fetch phase durations: ${e.message}`,
-    });
-  }
-};
+//     res.status(200).json({
+//       status: "success",
+//       message: "Phase durations retrieved successfully",
+//       data: result,
+//     });
+//   } catch (e) {
+//     res.status(500).json({
+//       status: "failure",
+//       message: `Failed to fetch phase durations: ${e.message}`,
+//     });
+//   }
+// };
 const getBudgetRanges = async (req, res) => {
   try {
     const result = await sql`
@@ -248,6 +248,6 @@ const updateBudgetRanges = async (req, res) => {
 module.exports = {
   updatePhaseDurations,
   getBudgetRanges,
-  getPhaseDurations,
+  // getPhaseDurations,
   updateBudgetRanges,
 };

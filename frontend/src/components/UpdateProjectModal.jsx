@@ -20,18 +20,16 @@ const UpdateProjectModal = ({
 }) => {
   const [activeSection, setActiveSection] = useState("all");
   const [scheduleTableData, setScheduleTableData] = useState([]);
-  const { users } = useAuthStore();
+  const { users, projectTypes, projectPhases, setDocuments, documents } =
+    useAuthStore();
   const [departments, setDepartments] = useState([]);
   const [initiatives, setInitiatives] = useState([]);
   const [portfolios, setPortfolios] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [objectives, setObjectives] = useState([]);
-  const [documents, setDocuments] = useState([]);
   const [localFiles, setLocalFiles] = useState([]);
   const [phaseInfo, setPhaseInfo] = useState(null);
-  const [projectTypes, setProjectTypes] = useState([]);
-  const [projectPhases, setProjectPhases] = useState([]);
   console.log("projectData", projectData);
   const {
     register,
@@ -88,44 +86,6 @@ const UpdateProjectModal = ({
 
   const projectType = watch("project_type_id");
   const currentPhase = watch("current_phase_id");
-
-  // Fetch project types
-  useEffect(() => {
-    const fetchProjectTypes = async () => {
-      try {
-        const response = await axiosInstance.post(
-          `/data-management/getProjectTypes`
-        );
-        if (response.data.status === "success") {
-          setProjectTypes(response.data.result);
-        }
-      } catch (error) {
-        console.error("Error fetching project types:", error);
-        toast.error("Failed to load project types");
-      }
-    };
-
-    fetchProjectTypes();
-  }, []);
-
-  // Fetch project phases
-  useEffect(() => {
-    const fetchProjectPhases = async () => {
-      try {
-        const response = await axiosInstance.post(
-          `/data-management/getProjectPhases`
-        );
-        if (response.data.status === "success") {
-          setProjectPhases(response.data.result);
-        }
-      } catch (error) {
-        console.error("Error fetching project phases:", error);
-        toast.error("Failed to load project phases");
-      }
-    };
-
-    fetchProjectPhases();
-  }, []);
 
   // Fetch phase information when currentPhase changes
   useEffect(() => {
@@ -280,6 +240,38 @@ const UpdateProjectModal = ({
     fetchVendors();
   }, []);
 
+  //fetch beneficiary departments
+  useEffect(() => {
+    const fetchBeneficiaryDepartments = async () => {
+      if (!projectId) return;
+
+      try {
+        const response = await axiosInstance.post(
+          `/data-management/getBeneficiaryDepartments`,
+          { projectId }
+        );
+
+        if (response.data && response.data.status === "success") {
+          const selectedDepartmentIds = response.data.result || [];
+          // Update the departments state to pre-select the ones in selectedDepartmentIds
+          setDepartments((prevDepartments) =>
+            prevDepartments.map((dept) => ({
+              ...dept,
+              checked: selectedDepartmentIds.includes(dept.id),
+            }))
+          );
+        } else {
+          toast.error("Failed to load beneficiary departments");
+        }
+      } catch (error) {
+        console.error("Error fetching beneficiary departments:", error);
+        toast.error("Failed to load beneficiary departments");
+      }
+    };
+
+    fetchBeneficiaryDepartments();
+  }, [projectId]);
+
   // Fetch documents
   useEffect(() => {
     const fetchDocuments = async () => {
@@ -300,6 +292,26 @@ const UpdateProjectModal = ({
     fetchDocuments();
   }, [projectData?.id]);
 
+  const getCurrentPhaseDocumentTemplates = async (phase) => {
+    try {
+      const result = await axiosInstance.post(
+        `/data-management/getCurrentPhaseDocumentTemplates`,
+        { phase }
+      );
+      console.log("result", result);
+      setDocuments(result.data.data);
+      console.log("Fetched document templates:", result.data.data);
+
+      // Update both state and form value
+      // Return the documents for debugging
+      return result.data.data;
+    } catch (error) {
+      console.error("Error fetching document templates:", error);
+      toast.error("Failed to load document templates");
+      return [];
+    }
+  };
+
   const handleScheduleChange = (data) => {
     setScheduleTableData(data);
   };
@@ -309,6 +321,11 @@ const UpdateProjectModal = ({
       const selectedDepartmentIds = departments
         .filter((dept) => dept.checked)
         .map((dept) => dept.id);
+      // Validate beneficiary departments
+      if (selectedDepartmentIds.length === 0) {
+        toast.error("At least one beneficiary department must be selected");
+        return;
+      }
       const selectedObjectiveIds = objectives
         .filter((obj) => obj.checked)
         .map((obj) => obj.id);
@@ -355,7 +372,23 @@ const UpdateProjectModal = ({
           data: updatedProjectData,
         }
       );
+      if (response.data && response.data.status === "success") {
+        // Step 2: Update beneficiary departments
+        const beneficiaryResponse = await axiosInstance.post(
+          `/data-management/addBeneficiaryDepartments`,
+          {
+            projectId,
+            departmentIds: selectedDepartmentIds,
+          }
+        );
 
+        if (beneficiaryResponse.data.status !== "success") {
+          throw new Error(
+            beneficiaryResponse.data.message ||
+              "Failed to update beneficiary departments"
+          );
+        }
+      }
       if (response.data.status === "success") {
         if (localFiles.length > 0) {
           await uploadDocuments(projectData.id, localFiles);
@@ -950,6 +983,9 @@ const UpdateProjectModal = ({
                 formMethods={{ setValue, watch }}
                 localFiles={localFiles}
                 setLocalFiles={setLocalFiles}
+                getCurrentPhaseDocumentTemplates={
+                  getCurrentPhaseDocumentTemplates
+                }
               />
             </div>
           )}
