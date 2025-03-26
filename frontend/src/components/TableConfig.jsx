@@ -72,7 +72,7 @@ const TableConfig = ({
                 >
                   <Users size={20} style={{ color: "#000000" }} />
                 </div>
-                Closed Tasks
+                Delayed Tasks
               </span>
               <p className="mt-1 text-3xl font-semibold dark:text-white">
                 2,345
