@@ -868,8 +868,6 @@ const addBeneficiaryDepartments = async (req, res) => {
   }
 };
 
-module.exports = { addBeneficiaryDepartments, getBeneficiaryDepartments };
-
 const getBeneficiaryDepartments = async (req, res) => {
   const { projectId } = req.body;
 
