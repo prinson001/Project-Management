@@ -20,8 +20,8 @@ function InitiativeAccordion({ data, title }) {
   const [error, setError] = useState(null);
 
   const getRelatedRecords = async () => {
-    if (!data || !data.id) {
-      setError("No initiative data provided");
+    if (!data?.id) {
+      setError("No initiative ID provided");
       setIsLoading(false);
       return;
     }
@@ -32,32 +32,28 @@ function InitiativeAccordion({ data, title }) {
     try {
       const result = await axiosInstance.post(
         "/data-management/getInitiativeWithRelatedData",
-        {
-          initiativeId: data.id,
-        }
+        { initiativeId: data.id }
       );
 
-      const fetchedData = result.data.result;
+      const fetchedData = result.data?.result;
       setInitiativeData(fetchedData);
 
       // Initialize portfolio expand states
-      if (fetchedData?.portfolios?.length > 0) {
-        const portfolioStates = {};
-        fetchedData.portfolios.forEach((portfolio) => {
-          portfolioStates[portfolio.id] = false;
-        });
-        setExpandedPortfolios(portfolioStates);
+      const portfolioStates = {};
+      fetchedData?.portfolios?.forEach((portfolio) => {
+        portfolioStates[portfolio.id] = false;
+      });
+      setExpandedPortfolios(portfolioStates);
 
-        // Initialize program expand states
-        const programStates = {};
-        fetchedData.programs.forEach((program) => {
-          programStates[program.id] = false;
-        });
-        setExpandedPrograms(programStates);
-      }
+      // Initialize program expand states
+      const programStates = {};
+      fetchedData?.programs?.forEach((program) => {
+        programStates[program.id] = false;
+      });
+      setExpandedPrograms(programStates);
     } catch (e) {
-      console.error("Error fetching related data:", e);
-      setError("Failed to load related records. Please try again.");
+      console.error("API Error:", e);
+      setError(e.message || "Failed to load initiative structure");
     } finally {
       setIsLoading(false);
     }
@@ -65,27 +61,25 @@ function InitiativeAccordion({ data, title }) {
 
   useEffect(() => {
     getRelatedRecords();
-  }, [data?.id]); // Only re-fetch when the initiative ID changes
+  }, [data?.id]);
 
-  const toggleInitiativeExpand = () => {
-    setExpandedInitiative(!expandedInitiative);
+  const toggleSection = (section, id = null) => {
+    if (section === "initiative") {
+      setExpandedInitiative(!expandedInitiative);
+    } else if (section === "portfolios") {
+      setExpandedPortfolios((prev) => ({
+        ...prev,
+        [id]: !prev[id],
+      }));
+    } else if (section === "programs") {
+      setExpandedPrograms((prev) => ({
+        ...prev,
+        [id]: !prev[id],
+      }));
+    }
   };
 
-  const togglePortfolioExpand = (portfolioId) => {
-    setExpandedPortfolios({
-      ...expandedPortfolios,
-      [portfolioId]: !expandedPortfolios[portfolioId],
-    });
-  };
-
-  const toggleProgramExpand = (programId) => {
-    setExpandedPrograms({
-      ...expandedPrograms,
-      [programId]: !expandedPrograms[programId],
-    });
-  };
-
-  const getRelatedPrograms = (portfolioId) => {
+  const getProgramsForPortfolio = (portfolioId) => {
     return (
       initiativeData?.programs?.filter(
         (program) => program.portfolio_id === portfolioId
@@ -93,7 +87,7 @@ function InitiativeAccordion({ data, title }) {
     );
   };
 
-  const getRelatedProjects = (programId) => {
+  const getProjectsForProgram = (programId) => {
     return (
       initiativeData?.projects?.filter(
         (project) => project.program_id === programId
@@ -101,17 +95,15 @@ function InitiativeAccordion({ data, title }) {
     );
   };
 
-  // Loading state
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-12">
         <Loader className="animate-spin mr-2" size={24} />
-        <span>Loading initiative hierarchy...</span>
+        <span>Loading initiative data...</span>
       </div>
     );
   }
 
-  // Error state
   if (error) {
     return (
       <div className="text-center py-4 text-red-500">
@@ -126,27 +118,30 @@ function InitiativeAccordion({ data, title }) {
     );
   }
 
-  // No data state
   if (!initiativeData) {
-    return <div className="text-center py-4">No initiative data available</div>;
+    return (
+      <div className="text-center py-4">
+        No initiative data available. Try refreshing the page.
+      </div>
+    );
   }
 
   return (
-    <div className="w-full bg-white text-gray-600 dark:bg-gray-800 dark:text-gray-300 rounded-lg shadow-md">
+    <div className="w-full bg-white dark:bg-gray-800 rounded-lg shadow-md">
       {/* Initiative Section */}
-      <div className="border-b bg-white text-gray-600 dark:bg-gray-800 dark:text-gray-200">
+      <div className="border-b dark:border-gray-700">
         <div
-          className="flex items-center p-4 bg-white text-gray-600 dark:bg-gray-800 dark:text-gray-200 cursor-pointer"
-          onClick={toggleInitiativeExpand}
+          className="flex items-center p-4 bg-blue-50 dark:bg-blue-900/30 cursor-pointer"
+          onClick={() => toggleSection("initiative")}
         >
           {expandedInitiative ? (
-            <ChevronDown size={20} />
+            <ChevronDown size={20} className="dark:text-gray-200" />
           ) : (
-            <ChevronRight size={20} />
+            <ChevronRight size={20} className="dark:text-gray-200" />
           )}
-          <Layers className="ml-2 text-blue-600" size={20} />
-          <h2 className="text-lg font-semibold ml-2 bg-white text-gray-600 dark:bg-gray-800 dark:text-gray-200">
-            {title || "Initiative Details"}
+          <Layers className="ml-2 text-blue-600 dark:text-blue-400" size={20} />
+          <h2 className="text-lg font-semibold ml-2 dark:text-gray-200">
+            {title}
           </h2>
         </div>
 
@@ -165,140 +160,122 @@ function InitiativeAccordion({ data, title }) {
       </div>
 
       {/* Portfolios Section */}
-      <div className="ml-6 bg-white text-gray-600 dark:bg-gray-800 dark:text-gray-200 ">
-        <h3 className="font-semibold p-2 text-gray-700 dark:text-gray-300">
-          Portfolios ({initiativeData.portfolios?.length || 0})
-        </h3>
-
+      <div className="p-4">
         {initiativeData.portfolios?.length > 0 ? (
           initiativeData.portfolios.map((portfolio) => (
-            <div key={portfolio.id} className="mb-2 border rounded-md">
+            <div key={portfolio.id} className="mb-4">
               <div
-                className="flex items-center p-3 bg-white text-gray-600 dark:bg-gray-800 dark:text-gray-200 cursor-pointer"
-                onClick={() => togglePortfolioExpand(portfolio.id)}
+                className="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-md cursor-pointer"
+                onClick={() => toggleSection("portfolios", portfolio.id)}
               >
                 {expandedPortfolios[portfolio.id] ? (
-                  <ChevronDown size={18} />
+                  <ChevronDown size={18} className="dark:text-gray-200" />
                 ) : (
-                  <ChevronRight size={18} />
+                  <ChevronRight size={18} className="dark:text-gray-200" />
                 )}
-                <FolderOpen className="ml-2 text-amber-600" size={18} />
-                <h4 className="font-medium ml-2">
-                  {portfolio.name || `Portfolio ${portfolio.id}`}
-                </h4>
+                <FolderOpen
+                  className="ml-2 text-amber-600 dark:text-amber-400"
+                  size={18}
+                />
+                <div className="ml-2">
+                  <h3 className="font-medium dark:text-gray-200">
+                    {portfolio.name || `Portfolio ${portfolio.id}`}
+                  </h3>
+                  {portfolio.arabic_name && (
+                    <p className="text-sm mt-1" dir="rtl">
+                      {portfolio.arabic_name}
+                    </p>
+                  )}
+                </div>
+                <span className="ml-2 text-sm text-gray-500">
+                  ({getProgramsForPortfolio(portfolio.id).length} programs)
+                </span>
               </div>
 
               {expandedPortfolios[portfolio.id] && (
-                <div className="p-3">
-                  <UpdateDynamicForm
-                    isEmbedded={true}
-                    title=""
-                    tableName="portfolio"
-                    data={portfolio}
-                    viewData={true}
-                    className="w-full"
-                  />
-
-                  {/* Programs under this portfolio */}
-                  <div className="ml-4 mt-3">
-                    <h5 className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-                      Programs ({getRelatedPrograms(portfolio.id).length})
-                    </h5>
-
-                    {getRelatedPrograms(portfolio.id).length > 0 ? (
-                      getRelatedPrograms(portfolio.id).map((program) => (
+                <div className="ml-6 mt-2">
+                  {getProgramsForPortfolio(portfolio.id).length > 0 ? (
+                    getProgramsForPortfolio(portfolio.id).map((program) => (
+                      <div key={program.id} className="mb-2">
                         <div
-                          key={program.id}
-                          className="mt-2 border rounded-md"
+                          className="flex items-center p-3 bg-gray-100 dark:bg-gray-800 rounded-md cursor-pointer"
+                          onClick={() => toggleSection("programs", program.id)}
                         >
-                          <div
-                            className="flex items-center p-2 bg-white text-gray-600 dark:bg-gray-800 dark:text-gray-200 cursor-pointer"
-                            onClick={() => toggleProgramExpand(program.id)}
-                          >
-                            {expandedPrograms[program.id] ? (
-                              <ChevronDown size={16} />
-                            ) : (
-                              <ChevronRight size={16} />
-                            )}
-                            <Archive
-                              className="ml-2 text-purple-600"
+                          {expandedPrograms[program.id] ? (
+                            <ChevronDown
                               size={16}
+                              className="dark:text-gray-200"
                             />
-                            <h6 className="font-medium ml-2 text-sm">
-                              {program.name || `Program ${program.id}`}
-                            </h6>
-                          </div>
-
-                          {expandedPrograms[program.id] && (
-                            <div className="p-2">
-                              <UpdateDynamicForm
-                                isEmbedded={true}
-                                title=""
-                                tableName="program" // Changed from "program" to match backend table name
-                                data={program}
-                                viewData={true}
-                                className="w-full"
-                              />
-
-                              {/* Projects under this program */}
-                              <div className="ml-4 mt-2">
-                                <h6 className="font-semibold text-xs text-gray-700 dark:text-gray-300">
-                                  Projects (
-                                  {getRelatedProjects(program.id).length})
-                                </h6>
-
-                                {getRelatedProjects(program.id).length > 0 ? (
-                                  getRelatedProjects(program.id).map(
-                                    (project) => (
-                                      <div
-                                        key={project.id}
-                                        className="mt-1 border rounded-md p-2"
-                                      >
-                                        <div className="flex items-center">
-                                          <FileText
-                                            className="text-green-600"
-                                            size={14}
-                                          />
-                                          <span className="ml-2 text-sm">
-                                            {project.name ||
-                                              `Project ${project.id}`}
-                                          </span>
-                                        </div>
-                                        <div className="mt-1">
-                                          <UpdateDynamicForm
-                                            isEmbedded={true}
-                                            title=""
-                                            tableName="project"
-                                            data={project}
-                                            viewData={true}
-                                            className="w-full"
-                                          />
-                                        </div>
-                                      </div>
-                                    )
-                                  )
-                                ) : (
-                                  <div className="text-xs text-gray-500 dark:text-gray-200 p-1">
-                                    No projects found
-                                  </div>
-                                )}
-                              </div>
-                            </div>
+                          ) : (
+                            <ChevronRight
+                              size={16}
+                              className="dark:text-gray-200"
+                            />
                           )}
+                          <Archive
+                            className="ml-2 text-purple-600 dark:text-purple-400"
+                            size={16}
+                          />
+                          <div className="ml-2">
+                            <h4 className="text-sm font-medium dark:text-gray-200">
+                              {program.name || `Program ${program.id}`}
+                            </h4>
+                            {program.arabic_name && (
+                              <p className="text-xs mt-1" dir="rtl">
+                                {program.arabic_name}
+                              </p>
+                            )}
+                          </div>
+                          <span className="ml-2 text-xs text-gray-500">
+                            ({getProjectsForProgram(program.id).length}{" "}
+                            projects)
+                          </span>
                         </div>
-                      ))
-                    ) : (
-                      <div className="text-sm text-gray-500 p-1">
-                        No programs found
+
+                        {expandedPrograms[program.id] && (
+                          <div className="ml-6 mt-2">
+                            {getProjectsForProgram(program.id).length > 0 ? (
+                              getProjectsForProgram(program.id).map(
+                                (project) => (
+                                  <div
+                                    key={project.id}
+                                    className="flex items-center p-2 text-sm text-gray-600 dark:text-gray-300"
+                                  >
+                                    <FileText
+                                      className="mr-2 text-green-600 dark:text-green-400"
+                                      size={14}
+                                    />
+                                    {project.name || `Project ${project.id}`}
+                                    {project.arabic_name && (
+                                      <span className="ml-2 text-xs" dir="rtl">
+                                        {project.arabic_name}
+                                      </span>
+                                    )}
+                                  </div>
+                                )
+                              )
+                            ) : (
+                              <div className="text-xs text-gray-500 dark:text-gray-400 p-1">
+                                No projects found
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    ))
+                  ) : (
+                    <div className="text-sm text-gray-500 dark:text-gray-400 p-2">
+                      No programs found in this portfolio
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           ))
         ) : (
-          <div className="text-sm text-gray-500 p-2">No portfolios found</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400 p-2">
+            No portfolios found
+          </div>
         )}
       </div>
     </div>
