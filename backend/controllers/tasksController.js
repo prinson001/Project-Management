@@ -161,7 +161,7 @@ const filterTasks = async (req, res) => {
                COUNT(CASE WHEN status = 'Delayed' THEN 1 END) AS closedTasksCount
         FROM tasks
         LEFT JOIN project ON tasks.related_entity_id = project.id
-        LEFT JOIN users tasks.assigned_to = users.id
+        LEFT JOIN users ON tasks.assigned_to = users.id
         ${
           whereConditions.length > 0
             ? `WHERE ${whereConditions.join(" AND ")}`
