@@ -9,7 +9,7 @@ const UpdateDynamicForm = ({
   data,
   tableName,
 }) => {
-  console.log("update dynamic form opened... in",tableName);
+  console.log("update dynamic form opened... in", tableName);
   const getFormFields = () => ({
     initiative: [
       {
@@ -50,15 +50,15 @@ const UpdateDynamicForm = ({
     portfolio: [
       {
         dbName: "name",
-        name: "initiativeEnglishName",
-        label: "Initiative English Name",
+        name: "Portfolio EnglishName",
+        label: "Portfolio English Name",
         type: "text",
         required: true,
         columnSpan: 1,
       },
       {
         dbName: "arabic_name",
-        name: "initiativeArabicName",
+        name: "PortfolioArabicName",
         label: "اسم المبادرة بالعربي",
         type: "text",
         required: true,
@@ -86,15 +86,15 @@ const UpdateDynamicForm = ({
     program: [
       {
         dbName: "name",
-        name: "initiativeEnglishName",
-        label: "Initiative English Name",
+        name: "ProgramEnglishName",
+        label: "Program English Name",
         type: "text",
         required: true,
         columnSpan: 1,
       },
       {
         dbName: "arabic_name",
-        name: "initiativeArabicName",
+        name: "ProgramArabicName",
         label: "اسم المبادرة بالعربي",
         type: "text",
         required: true,
@@ -122,15 +122,15 @@ const UpdateDynamicForm = ({
     project: [
       {
         dbName: "name",
-        name: "initiativeEnglishName",
-        label: "Initiative English Name",
+        name: "ProjectEnglishName",
+        label: "Project English Name",
         type: "text",
         required: true,
         columnSpan: 1,
       },
       {
         dbName: "arabic_name",
-        name: "initiativeArabicName",
+        name: "ProjectArabicName",
         label: "اسم المبادرة بالعربي",
         type: "text",
         required: true,
@@ -158,7 +158,7 @@ const UpdateDynamicForm = ({
     department: [
       {
         dbName: "name",
-        name:"departmentEnglishName",
+        name: "departmentEnglishName",
         label: "Department English Name",
         type: "text",
         required: true,
@@ -166,7 +166,43 @@ const UpdateDynamicForm = ({
       },
       {
         dbName: "arabic_name",
-        name:"departmentArabicName",
+        name: "departmentArabicName",
+        label: "اسم الإدارة بالعربي",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
+    ],
+    objective: [
+      {
+        dbName: "name",
+        name: "ObjectiveEnglishName",
+        label: "Objective English Name",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
+      {
+        dbName: "arabic_name",
+        name: "ObjectiveArabicName",
+        label: "اسم الإدارة بالعربي",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
+    ],
+    vendor: [
+      {
+        dbName: "name",
+        name: "ObjectiveEnglishName",
+        label: "Objective English Name",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
+      {
+        dbName: "arabic_name",
+        name: "ObjectiveArabicName",
         label: "اسم الإدارة بالعربي",
         type: "text",
         required: true,
@@ -268,7 +304,6 @@ const UpdateDynamicForm = ({
   );
   console.log(getFormFields()[tableName]);
   const viewContent = (
-   
     <div className="grid grid-cols-2 gap-4 p-4 bg-white dark:bg-gray-800 shadow-md rounded-md w-full">
       {getFormFields()[tableName].map(
         ({ dbName, label, className, columnSpan }, index) => (
@@ -306,7 +341,9 @@ const UpdateDynamicForm = ({
       {isModalOpen && (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-50 dark:bg-opacity-70 flex justify-center items-center">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg w-full max-w-2xl">
-            <h2 className="text-lg font-bold mb-4 dark:text-white">{title || "Update Form"}</h2>
+            <h2 className="text-lg font-bold mb-4 dark:text-white">
+              {title || "Update Form"}
+            </h2>
             {formContent}
             <button
               onClick={closeModal}
