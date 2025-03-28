@@ -6,11 +6,13 @@ const getData = async (req, res) => {
   let { tableName, userId, page = 1, limit = 4 } = req.body;
   console.log("Table Name", tableName);
   console.log("userId", userId);
-
+  if (tableName == "user") {
+    tableName = "users";
+  }
   if (tableName == "document") {
     tableName = "document_template";
   }
-  if (!tableName || !userId) {
+  if (!tableName) {
     return res.status(400).json({
       status: "failure",
       message: "Required field missing: tableName, userId",
@@ -376,6 +378,70 @@ const getUsers = async (req, res) => {
   }
 };
 
+const getRoles = async (req, res) => {
+  try {
+    const result = await sql`
+      SELECT id, name, arabic_name 
+      FROM role 
+      ORDER BY name
+    `;
+
+    res.status(200).json({
+      status: "success",
+      message: "Roles retrieved successfully",
+      result,
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({
+      status: "failure",
+      message: "Error retrieving roles",
+      error: e.message,
+    });
+  }
+};
+
+const addUser = async (req, res) => {
+  try {
+    const {
+      first_name,
+      arabic_first_name,
+      family_name,
+      arabic_family_name,
+      email,
+      password,
+      department,
+      role,
+    } = req.body.data;
+    console.log(req.body);
+    // Insert user into the database
+    const result = await sql`
+      INSERT INTO users (
+        first_name, arabic_first_name, family_name, arabic_family_name, 
+        email, password, department_id, role_id
+      ) 
+      VALUES (
+        ${first_name}, ${arabic_first_name}, ${family_name}, ${arabic_family_name}, 
+        ${email}, ${password}, ${department}, ${role}
+      ) 
+      RETURNING id, first_name, family_name, email, department_id, role_id
+    `;
+
+    res.status(201).json({
+      status: "success",
+      message: "User added successfully",
+      user: result[0],
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({
+      status: "failure",
+      message: "Error adding user",
+      error: e.message,
+    });
+  }
+};
+
 const upsertTableSetting = async (req, res) => {
   const { user_id, table_name, setting } = req.body;
 
@@ -433,5 +499,7 @@ module.exports = {
   getSetting,
   getFilteredData,
   getUsers,
+  getRoles,
+  addUser,
   upsertTableSetting,
 };

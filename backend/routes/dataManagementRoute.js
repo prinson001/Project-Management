@@ -12,6 +12,8 @@ const {
   getFilteredData,
   getUsers,
   upsertTableSetting,
+  getRoles,
+  addUser,
 } = require("../controllers/dataManagementController");
 const {
   addInitiative,
@@ -71,7 +73,11 @@ const {
   getPhaseDurations,
   getPhaseDurationsByBudget,
 } = require("../database/dbConfig");
-const { addVendor, getVendors } = require("../controllers/vendorController");
+const {
+  addVendor,
+  updateVendor,
+  getVendors,
+} = require("../controllers/vendorController");
 const {
   addObjective,
   getObjectives,
@@ -148,6 +154,7 @@ router.post("/getDepartments", getDepartments);
 router.post("/getDepartmentProjects", getRelatedProjects);
 
 router.post("/addvendor", addVendor);
+router.post("/updatevendor", updateVendor);
 router.post("/getVendors", getVendors);
 
 router.post("/addobjective", addObjective);
@@ -169,6 +176,9 @@ router.post("/addBeneficiaryDepartments", addBeneficiaryDepartments);
 router.post("/getBeneficiaryDepartments", getBeneficiaryDepartments);
 
 router.post("/getInternalSchedulePlan", getInternalSchedulePlan);
+
+router.post("/getRoles", getRoles);
+router.post("/addUser", addUser);
 
 router.post(
   "/createProjectCreationTaskForDeputy",

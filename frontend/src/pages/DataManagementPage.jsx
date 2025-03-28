@@ -29,14 +29,23 @@ let page = 1;
 
 const DataManagementPage = () => {
   const { t } = useLanguage();
-  const { users, setUsers, projectTypes, setProjectTypes, setProjectPhases } =
-    useAuthStore();
+  const {
+    users,
+    roles,
+    departments,
+    setUsers,
+    projectTypes,
+    setProjectTypes,
+    setProjectPhases,
+    setDepartments,
+    setRoles,
+  } = useAuthStore();
   const [activeTab, setActiveTab] = useState("initiatives");
   const processedCategory = useMemo(
     () => (activeTab === "team" ? "users" : activeTab.replace(/s$/, "")),
     [activeTab]
   );
-
+  console.log("Processed", processedCategory);
   const [columnSetting, setColumnSetting] = useState([]);
   const [tableData, setTableData] = useState([]);
   const [showDate, setShowDate] = useState(false);
@@ -144,6 +153,38 @@ const DataManagementPage = () => {
     };
 
     fetchPortfolios();
+  }, []);
+
+  //Fetch departments
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const response = await axiosInstance.post(
+          `/data-management/getDepartments`
+        );
+        if (response.data.status === "success") {
+          setDepartments(response.data.result);
+        }
+      } catch (error) {
+        console.error("Error fetching departments:", error);
+      }
+    };
+    fetchDepartments();
+  }, []);
+
+  //Fetch roles
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        const response = await axiosInstance.post(`/data-management/getRoles`);
+        if (response.data.status === "success") {
+          setRoles(response.data.result);
+        }
+      } catch (error) {
+        console.error("Error fetching roles:", error);
+      }
+    };
+    fetchRoles();
   }, []);
 
   // Form field definitions for different tabs
@@ -332,30 +373,30 @@ const DataManagementPage = () => {
     ],
     vendor: [
       {
-        name: "vendorEnglish",
+        name: "name",
         label: "Vendor English Name",
         type: "text",
         required: true,
         columnSpan: 1,
       },
       {
-        name: "vendorArabic",
+        name: "arabic_name",
         label: "اسم المورد بالعربي",
         type: "text",
         required: true,
         columnSpan: 1,
       },
     ],
-    member: [
+    user: [
       {
-        name: "firstNameEnglish",
+        name: "first_name",
         label: "First Name in English",
         type: "text",
         required: true,
         columnSpan: 1,
       },
       {
-        name: "firstNameArabic",
+        name: "arabic_first_name",
         label: "الاسم الأول للمستخدم بالعربي",
         type: "text",
         required: true,
@@ -363,14 +404,14 @@ const DataManagementPage = () => {
         className: "text-right",
       },
       {
-        name: "familyNameEnglish",
+        name: "family_name",
         label: "Family Name in English",
         type: "text",
         required: true,
         columnSpan: 1,
       },
       {
-        name: "familyNameArabic",
+        name: "arabic_family_name",
         label: "اسم العائلة للمستخدم بالعربي",
         type: "text",
         required: true,
@@ -405,7 +446,13 @@ const DataManagementPage = () => {
         type: "select",
         required: true,
         columnSpan: 1,
-        options: ["HR", "Engineering", "Marketing"],
+        options:
+          departments && departments.length > 0
+            ? departments.map((dept) => ({
+                value: dept.id.toString(),
+                label: dept.name,
+              }))
+            : [],
       },
       {
         name: "role",
@@ -413,7 +460,13 @@ const DataManagementPage = () => {
         type: "select",
         required: true,
         columnSpan: 1,
-        options: ["Admin", "Program Manager", "User"],
+        options:
+          roles && roles.length > 0
+            ? roles.map((role) => ({
+                value: role.id.toString(),
+                label: role.name,
+              }))
+            : [],
       },
     ],
   });
@@ -442,8 +495,8 @@ const DataManagementPage = () => {
   // Function to get singular form of tab name
   const getSingularTabName = () => {
     // Special cases for tabs with irregular singular forms
-    if (activeTab === "members") {
-      return "users";
+    if (activeTab === "users") {
+      return "user";
     } else if (activeTab === "portfolios") {
       return "portfolio";
     } else if (activeTab === "activities") {
@@ -451,13 +504,13 @@ const DataManagementPage = () => {
     } else if (activeTab === "companies") {
       return "company";
     } else if (activeTab === "team") {
-      return "userss";
+      return "user";
     } else if (activeTab === "programs") {
       return "program";
     } else if (activeTab === "documents") {
       return "document";
     }
-
+    console.log(activeTab.endsWith("s") ? activeTab.slice(0, -1) : activeTab);
     // Regular case - remove 's' from the end
     return activeTab.endsWith("s") ? activeTab.slice(0, -1) : activeTab;
   };
@@ -487,6 +540,8 @@ const DataManagementPage = () => {
         endpoint = "addportfolio";
       } else if (activeTab === "initiatives") {
         endpoint = "addInitiative";
+      } else if (activeTab === "team") {
+        endpoint = "addUser";
       } else {
         endpoint = `add${getSingularTabName()}`;
       }
@@ -531,11 +586,13 @@ const DataManagementPage = () => {
   }
   async function getData() {
     try {
+      console.log(getFormFields()[getSingularTabName()]);
       const result = await axiosInstance.post(`/data-management/data`, {
         tableName: getSingularTabName(), // Remove 's' from the end to get singular form
         userId: 1,
       });
       console.log("the data");
+      console.log("singular name", getSingularTabName());
       console.log(result);
       originalTableData = result.data.result;
       setTableData((state) => result.data.result);
