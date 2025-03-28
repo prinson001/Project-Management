@@ -193,4 +193,49 @@ const filterTasks = async (req, res) => {
   }
 };
 
-module.exports = { getTasks, filterTasks };
+const updateTaskStatusToDone = async (req, res) => {
+  const { taskId } = req.body;
+
+  if (!taskId) {
+    return res.status(400).json({
+      status: "failure",
+      message: "taskId is required",
+      result: null,
+    });
+  }
+
+  try {
+    // Update the status of the specified task to "Done"
+    const updateQuery = `
+      UPDATE tasks 
+      SET status = 'Done'
+      WHERE id = $1
+      RETURNING *;
+    `;
+
+    const result = await sql.unsafe(updateQuery, [taskId]);
+
+    if (result.length === 0) {
+      return res.status(404).json({
+        status: "failure",
+        message: "Task not found",
+        result: null,
+      });
+    }
+
+    res.json({
+      status: "success",
+      message: "Task status updated to Done",
+      result: result[0],
+    });
+  } catch (error) {
+    console.error("Error updating task status:", error);
+    res.status(500).json({
+      status: "failure",
+      message: "Error updating task status",
+      result: error.message,
+    });
+  }
+};
+
+module.exports = { getTasks, filterTasks, updateTaskStatusToDone };

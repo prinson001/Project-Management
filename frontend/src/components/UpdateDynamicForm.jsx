@@ -59,15 +59,17 @@ const UpdateDynamicForm = ({
     ],
     portfolio: [
       {
-        name: "name",
+        dbName: "name",
+        name: "Portfolio EnglishName",
         label: "Portfolio English Name",
         type: "text",
         required: true,
         columnSpan: 1,
       },
       {
-        name: "arabic_name",
-        label: "اسم المحفظة بالعربي",
+        dbName: "arabic_name",
+        name: "PortfolioArabicName",
+        label: "اسم المبادرة بالعربي",
         type: "text",
         required: true,
         columnSpan: 1,
@@ -112,8 +114,9 @@ const UpdateDynamicForm = ({
         columnSpan: 1,
       },
       {
-        name: "arabic_name",
-        label: "اسم الهدف بالعربي",
+        dbName: "arabic_name",
+        name: "ProgramArabicName",
+        label: "اسم المبادرة بالعربي",
         type: "text",
         required: true,
         columnSpan: 1,
@@ -142,8 +145,9 @@ const UpdateDynamicForm = ({
         columnSpan: 1,
       },
       {
-        name: "arabic_name",
-        label: "اسم البرنامج بالعربي",
+        dbName: "arabic_name",
+        name: "ProjectArabicName",
+        label: "اسم المبادرة بالعربي",
         type: "text",
         required: true,
         columnSpan: 1,
@@ -159,20 +163,6 @@ const UpdateDynamicForm = ({
             ? finalUsers.map((user) => ({
                 value: user.id.toString(),
                 label: `${user.first_name} ${user.family_name || ""}`,
-              }))
-            : [],
-      },
-      {
-        name: "portfolio_id",
-        label: "Portfolio",
-        type: "select",
-        required: true,
-        columnSpan: 1,
-        options:
-          finalPortfolios && finalPortfolios.length > 0
-            ? finalPortfolios.map((portfolio) => ({
-                value: portfolio.id.toString(),
-                label: portfolio.name,
               }))
             : [],
       },
@@ -193,14 +183,52 @@ const UpdateDynamicForm = ({
     ],
     department: [
       {
-        name: "name",
+        dbName: "name",
+        name: "departmentEnglishName",
         label: "Department English Name",
         type: "text",
         required: true,
         columnSpan: 1,
       },
       {
-        name: "arabic_name",
+        dbName: "arabic_name",
+        name: "departmentArabicName",
+        label: "اسم الإدارة بالعربي",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
+    ],
+    objective: [
+      {
+        dbName: "name",
+        name: "ObjectiveEnglishName",
+        label: "Objective English Name",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
+      {
+        dbName: "arabic_name",
+        name: "ObjectiveArabicName",
+        label: "اسم الإدارة بالعربي",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
+    ],
+    vendor: [
+      {
+        dbName: "name",
+        name: "ObjectiveEnglishName",
+        label: "Objective English Name",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
+      {
+        dbName: "arabic_name",
+        name: "ObjectiveArabicName",
         label: "اسم الإدارة بالعربي",
         type: "text",
         required: true,

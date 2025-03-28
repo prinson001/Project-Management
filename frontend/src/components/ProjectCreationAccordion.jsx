@@ -4,41 +4,62 @@ import DynamicForm from "./DynamicForm";
 import ProjectModal from "./ProjectModal";
 import UpdateProjectModal from "./UpdateProjectModal";
 import { toast } from "sonner";
+import { constructNow } from "date-fns";
 
 function ProjectCreationAccordion({ project }) {
   const [projectData, setProjectData] = useState(null);
-
+  const fetchProjectApprovalStatus = async () => {
+    try {
+      const result = await axiosInstance.post(
+        "/deputy/getProjectApprovalStatus",
+        {
+          projectId: project.related_entity_id,
+        }
+      );
+      console.log(result.data.approval_status);
+      project = { ...project, approval_status: result.data.approval_status };
+      if (project) {
+        const modifiedProjectData = {
+          id: project.related_entity_id, // Use related_entity_id as id
+          name: project.project_name, // Map project_name to name
+          arabic_name: project.arabic_first_name, // Map arabic_first_name to arabic_name
+          description: project.description,
+          project_type_id: project?.project_type_id,
+          current_phase_id: project?.current_phase_id,
+          category: project?.category,
+          project_manager_id: project?.assigned_to, // Assuming assigned_to is the project manager
+          alternative_project_manager_id:
+            project?.alternative_project_manager_id,
+          execution_start_date: project?.execution_start_date,
+          execution_duration: project?.execution_duration,
+          maintenance_duration: project?.maintenance_duration,
+          project_budget: project?.project_budget,
+          approved_project_budget: project?.approved_project_budget,
+          approval_status: result.data.approval_status,
+          created_date: project?.created_date,
+          updated_at: project?.updated_at,
+          program_id: project?.program_id,
+          initiative_id: project?.initiative_id,
+          portfolio_id: project?.portfolio_id,
+          vendor_id: project?.vendor_id,
+        };
+        setProjectData(modifiedProjectData);
+        console.log("modifiedProjectData", modifiedProjectData);
+      }
+    } catch (e) {
+      console.log("there was an errror fetching project approval status");
+    }
+  };
   useEffect(() => {
-    if (project) {
-      const modifiedProjectData = {
-        id: project.related_entity_id, // Use related_entity_id as id
-        name: project.project_name, // Map project_name to name
-        arabic_name: project.arabic_first_name, // Map arabic_first_name to arabic_name
-        description: project.description,
-        project_type_id: project?.project_type_id,
-        current_phase_id: project?.current_phase_id,
-        category: project?.category,
-        project_manager_id: project?.assigned_to, // Assuming assigned_to is the project manager
-        alternative_project_manager_id: project?.alternative_project_manager_id,
-        execution_start_date: project?.execution_start_date,
-        execution_duration: project?.execution_duration,
-        maintenance_duration: project?.maintenance_duration,
-        project_budget: project?.project_budget,
-        approved_project_budget: project?.approved_project_budget,
-        approval_status: project?.approval_status,
-        created_date: project?.created_date,
-        updated_at: project?.updated_at,
-        program_id: project?.program_id,
-        initiative_id: project?.initiative_id,
-        portfolio_id: project?.portfolio_id,
-        vendor_id: project?.vendor_id,
-      };
-      setProjectData(modifiedProjectData);
-      console.log("modifiedProjectData", modifiedProjectData);
+    console.log("the project details");
+    console.log(structuredClone(project));
+    if (project.status === "Done") {
+      fetchProjectApprovalStatus();
     }
   }, [project]);
 
   const updateApprovalStatus = async ({ status, projectData }) => {
+    console.log("the project status passed is " + status);
     console.log("updating approval status:", projectData);
     if (!projectData?.id) {
       console.error("Project ID is missing");
@@ -55,7 +76,15 @@ function ProjectCreationAccordion({ project }) {
       );
 
       if (response.data.status === "success") {
+        const response = await axiosInstance.post(
+          `/deputy/updateTaskStatusToDone`,
+          {
+            taskId: project.id,
+          }
+        );
+
         console.log(`Project status updated to: ${status}`);
+
         toast.success("Project status updated successfully");
       } else {
         console.error(response.data.message);
@@ -72,6 +101,7 @@ function ProjectCreationAccordion({ project }) {
   };
 
   const handleRejectBtnClick = () => {
+    console.log("reject button was clicked");
     updateApprovalStatus({ status: "Rejected", projectData });
   };
 
@@ -85,20 +115,38 @@ function ProjectCreationAccordion({ project }) {
           projectData={projectData}
         />
       )}
-      <div className="py-10 flex justify-center gap-6">
-        <button
-          onClick={handleRejectBtnClick}
-          className="bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded-sm shadow-md transition duration-200"
-        >
-          Reject
-        </button>
-        <button
-          onClick={handleApproveBtnClick}
-          className="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2 rounded-sm shadow-md transition duration-200"
-        >
-          Approve
-        </button>
-      </div>
+      {project.status != "Done" && (
+        <div className="py-10 flex justify-center gap-6">
+          <button
+            onClick={handleRejectBtnClick}
+            className="bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded-sm shadow-md transition duration-200"
+          >
+            Reject
+          </button>
+          <button
+            onClick={handleApproveBtnClick}
+            className="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2 rounded-sm shadow-md transition duration-200"
+          >
+            Approve
+          </button>
+        </div>
+      )}
+      {project.status == "Done" && (
+        <div className="flex align-center justify-center p-4">
+          <p>
+            Project was{" "}
+            <span
+              className={
+                projectData.approval_status == "Rejected"
+                  ? "text-red-500"
+                  : "text-green-500"
+              }
+            >
+              {projectData?.approval_status}
+            </span>
+          </p>
+        </div>
+      )}
     </>
   );
 }
