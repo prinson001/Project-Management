@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
+import useAuthStore from "../store/authStore"; // Assuming this provides users, portfolios, etc.
 
 const UpdateDynamicForm = ({
   title,
@@ -8,21 +9,26 @@ const UpdateDynamicForm = ({
   viewData = false,
   data,
   tableName,
+  users = [], // Optional prop for dynamic options
+  portfolios = [], // Optional prop for dynamic options
 }) => {
   console.log("update dynamic form opened... in", tableName);
+
+  const { users: storeUsers, portfolios: storePortfolios } = useAuthStore(); // Fallback to store if props not provided
+  const finalUsers = users.length > 0 ? users : storeUsers;
+  const finalPortfolios = portfolios.length > 0 ? portfolios : storePortfolios;
+
   const getFormFields = () => ({
     initiative: [
       {
-        dbName: "name",
-        name: "initiativeEnglishName",
+        name: "name",
         label: "Initiative English Name",
         type: "text",
         required: true,
         columnSpan: 1,
       },
       {
-        dbName: "arabic_name",
-        name: "initiativeArabicName",
+        name: "arabic_name",
         label: "اسم المبادرة بالعربي",
         type: "text",
         required: true,
@@ -30,16 +36,14 @@ const UpdateDynamicForm = ({
         className: "text-right",
       },
       {
-        dbName: "description",
-        name: "descriptionEnglish",
+        name: "description",
         label: "Description in English",
         type: "textarea",
         required: true,
         columnSpan: 2,
       },
       {
-        dbName: "arabic_description",
-        name: "descriptionArabic",
+        name: "arabic_description",
         label: "الوصف بالعربي",
         type: "textarea",
         required: true,
@@ -66,16 +70,28 @@ const UpdateDynamicForm = ({
         className: "text-right",
       },
       {
-        dbName: "description",
-        name: "descriptionEnglish",
+        name: "portfolio_manager",
+        label: "Portfolio Manager",
+        type: "select",
+        required: true,
+        columnSpan: 1,
+        options:
+          finalUsers && finalUsers.length > 0
+            ? finalUsers.map((user) => ({
+                value: user.id.toString(),
+                label: `${user.first_name} ${user.family_name || ""}`,
+              }))
+            : [],
+      },
+      {
+        name: "description",
         label: "Description in English",
         type: "textarea",
         required: true,
         columnSpan: 2,
       },
       {
-        dbName: "arabic_description",
-        name: "descriptionArabic",
+        name: "arabic_description",
         label: "الوصف بالعربي",
         type: "textarea",
         required: true,
@@ -83,7 +99,7 @@ const UpdateDynamicForm = ({
         className: "text-right",
       },
     ],
-    program: [
+    objective: [
       {
         dbName: "name",
         name: "ProgramEnglishName",
@@ -99,27 +115,23 @@ const UpdateDynamicForm = ({
         type: "text",
         required: true,
         columnSpan: 1,
-        className: "text-right",
       },
       {
-        dbName: "description",
-        name: "descriptionEnglish",
+        name: "description",
         label: "Description in English",
         type: "textarea",
         required: true,
         columnSpan: 2,
       },
       {
-        dbName: "arabic_description",
-        name: "descriptionArabic",
+        name: "arabic_description",
         label: "الوصف بالعربي",
         type: "textarea",
         required: true,
         columnSpan: 2,
-        className: "text-right",
       },
     ],
-    project: [
+    program: [
       {
         dbName: "name",
         name: "ProjectEnglishName",
@@ -135,24 +147,48 @@ const UpdateDynamicForm = ({
         type: "text",
         required: true,
         columnSpan: 1,
-        className: "text-right",
       },
       {
-        dbName: "description",
-        name: "descriptionEnglish",
+        name: "program_manager", // Assuming this is the DB field name
+        label: "Program Manager",
+        type: "select",
+        required: true,
+        columnSpan: 1,
+        options:
+          finalUsers && finalUsers.length > 0
+            ? finalUsers.map((user) => ({
+                value: user.id.toString(),
+                label: `${user.first_name} ${user.family_name || ""}`,
+              }))
+            : [],
+      },
+      {
+        name: "portfolio_id",
+        label: "Portfolio",
+        type: "select",
+        required: true,
+        columnSpan: 1,
+        options:
+          finalPortfolios && finalPortfolios.length > 0
+            ? finalPortfolios.map((portfolio) => ({
+                value: portfolio.id.toString(),
+                label: portfolio.name,
+              }))
+            : [],
+      },
+      {
+        name: "description",
         label: "Description in English",
         type: "textarea",
         required: true,
         columnSpan: 2,
       },
       {
-        dbName: "arabic_description",
-        name: "descriptionArabic",
+        name: "arabic_description",
         label: "الوصف بالعربي",
         type: "textarea",
         required: true,
         columnSpan: 2,
-        className: "text-right",
       },
     ],
     department: [
@@ -209,6 +245,125 @@ const UpdateDynamicForm = ({
         columnSpan: 1,
       },
     ],
+    vendor: [
+      {
+        name: "name", // Adjusted to match typical DB field
+        label: "Vendor English Name",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
+      {
+        name: "arabic_name",
+        label: "اسم المورد بالعربي",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
+    ],
+    member: [
+      {
+        name: "first_name", // Adjusted to match typical DB field
+        label: "First Name in English",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
+      {
+        name: "arabic_first_name",
+        label: "الاسم الأول للمستخدم بالعربي",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+        className: "text-right",
+      },
+      {
+        name: "family_name",
+        label: "Family Name in English",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
+      {
+        name: "arabic_family_name",
+        label: "اسم العائلة للمستخدم بالعربي",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+        className: "text-right",
+      },
+      {
+        name: "email",
+        label: "Email Address",
+        type: "email",
+        required: true,
+        columnSpan: 1,
+      },
+      {
+        name: "password",
+        label: "Password",
+        type: "password",
+        required: true,
+        columnSpan: 1,
+      },
+      {
+        name: "rewrite_password", // Assuming this is for confirmation, not stored
+        label: "Re-write Password",
+        type: "password",
+        required: true,
+        columnSpan: 1,
+        className: "col-start-2",
+      },
+      {
+        name: "department",
+        label: "User Department",
+        type: "select",
+        required: true,
+        columnSpan: 1,
+        options: ["HR", "Engineering", "Marketing"], // Static for now; could be dynamic
+      },
+      {
+        name: "role",
+        label: "User Role",
+        type: "select",
+        required: true,
+        columnSpan: 1,
+        options: ["Admin", "Program Manager", "User"],
+      },
+    ],
+    project: [
+      // Added project to align with original
+      {
+        name: "name",
+        label: "Project English Name",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
+      {
+        name: "arabic_name",
+        label: "اسم المشروع بالعربي",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+        className: "text-right",
+      },
+      {
+        name: "description",
+        label: "Description in English",
+        type: "textarea",
+        required: true,
+        columnSpan: 2,
+      },
+      {
+        name: "arabic_description",
+        label: "الوصف بالعربي",
+        type: "textarea",
+        required: true,
+        columnSpan: 2,
+        className: "text-right",
+      },
+    ],
   });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -229,7 +384,16 @@ const UpdateDynamicForm = ({
   const closeModal = () => setIsModalOpen(false);
 
   const handleFormSubmit = (formData) => {
-    onSubmit(formData);
+    // Remove rewrite_password from submission if it’s just for validation
+    const { rewrite_password, ...submitData } = formData;
+    if (
+      tableName === "member" &&
+      formData.password !== formData.rewrite_password
+    ) {
+      console.error("Passwords do not match");
+      return; // Add proper error handling if needed
+    }
+    onSubmit(submitData);
   };
 
   const formContent = (
@@ -237,18 +401,9 @@ const UpdateDynamicForm = ({
       onSubmit={handleSubmit(handleFormSubmit)}
       className="grid grid-cols-2 gap-4 p-4 bg-white dark:bg-gray-800 shadow-md rounded-md w-full"
     >
-      {getFormFields()[tableName].map(
+      {getFormFields()[tableName]?.map(
         (
-          {
-            name,
-            label,
-            type,
-            required,
-            className,
-            options,
-            columnSpan,
-            dbName,
-          },
+          { name, label, type, required, className, options, columnSpan },
           index
         ) => (
           <div
@@ -262,7 +417,7 @@ const UpdateDynamicForm = ({
             </label>
             {type === "select" ? (
               <select
-                {...register(dbName, { required })}
+                {...register(name, { required })}
                 className="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
               >
                 <option value="">Select</option>
@@ -274,18 +429,18 @@ const UpdateDynamicForm = ({
               </select>
             ) : type === "textarea" ? (
               <textarea
-                {...register(dbName, { required })}
+                {...register(name, { required })}
                 className="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 rows={4}
               />
             ) : (
               <input
                 type={type}
-                {...register(dbName, { required })}
+                {...register(name, { required })}
                 className="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
               />
             )}
-            {errors[dbName] && (
+            {errors[name] && (
               <span className="text-red-500 text-sm">{label} is required</span>
             )}
           </div>
@@ -302,11 +457,11 @@ const UpdateDynamicForm = ({
       </div>
     </form>
   );
-  console.log(getFormFields()[tableName]);
+
   const viewContent = (
     <div className="grid grid-cols-2 gap-4 p-4 bg-white dark:bg-gray-800 shadow-md rounded-md w-full">
-      {getFormFields()[tableName].map(
-        ({ dbName, label, className, columnSpan }, index) => (
+      {getFormFields()[tableName]?.map(
+        ({ name, label, className, columnSpan }, index) => (
           <div
             key={index}
             className={`${columnSpan === 2 ? "col-span-2" : ""} ${
@@ -317,7 +472,7 @@ const UpdateDynamicForm = ({
               {label}
             </label>
             <div className="mt-1 p-2 bg-gray-50 dark:bg-gray-700 rounded-md text-gray-900 dark:text-white w-full">
-              {data?.[dbName] || "N/A"}
+              {data?.[name] || "N/A"}
             </div>
           </div>
         )
