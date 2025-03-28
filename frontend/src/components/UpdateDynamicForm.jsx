@@ -163,20 +163,6 @@ const UpdateDynamicForm = ({
             : [],
       },
       {
-        name: "portfolio_id",
-        label: "Portfolio",
-        type: "select",
-        required: true,
-        columnSpan: 1,
-        options:
-          finalPortfolios && finalPortfolios.length > 0
-            ? finalPortfolios.map((portfolio) => ({
-                value: portfolio.id.toString(),
-                label: portfolio.name,
-              }))
-            : [],
-      },
-      {
         name: "description",
         label: "Description in English",
         type: "textarea",
