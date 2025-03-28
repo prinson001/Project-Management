@@ -235,25 +235,42 @@ function InitiativeAccordion({ data, title }) {
                         {expandedPrograms[program.id] && (
                           <div className="ml-6 mt-2">
                             {getProjectsForProgram(program.id).length > 0 ? (
-                              getProjectsForProgram(program.id).map(
-                                (project) => (
-                                  <div
-                                    key={project.id}
-                                    className="flex items-center p-2 text-sm text-gray-600 dark:text-gray-300"
-                                  >
-                                    <FileText
-                                      className="mr-2 text-green-600 dark:text-green-400"
-                                      size={14}
-                                    />
-                                    {project.name || `Project ${project.id}`}
-                                    {project.arabic_name && (
-                                      <span className="ml-2 text-xs" dir="rtl">
-                                        {project.arabic_name}
-                                      </span>
-                                    )}
-                                  </div>
-                                )
-                              )
+                              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                {getProjectsForProgram(program.id).map(
+                                  (project) => (
+                                    <div
+                                      key={project.id}
+                                      className="p-4 border rounded-lg mb-4 bg-white dark:bg-gray-700 shadow-sm hover:shadow-md transition-shadow"
+                                    >
+                                      <div className="flex items-start justify-between">
+                                        <div>
+                                          <div className="flex items-center mb-2">
+                                            <FileText
+                                              className="mr-2 text-green-600 dark:text-green-400"
+                                              size={16}
+                                            />
+                                            <h3 className="font-medium dark:text-gray-200">
+                                              {project.name ||
+                                                "Project Name N/A"}
+                                            </h3>
+                                            <span className="ml-2 text-xs text-gray-400 dark:text-gray-300">
+                                              (ID: {project.id})
+                                            </span>
+                                          </div>
+                                          {project.arabic_name && (
+                                            <div
+                                              className="text-sm text-gray-600 dark:text-gray-300"
+                                              dir="rtl"
+                                            >
+                                              {project.arabic_name}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )
+                                )}
+                              </div>
                             ) : (
                               <div className="text-xs text-gray-500 dark:text-gray-400 p-1">
                                 No projects found

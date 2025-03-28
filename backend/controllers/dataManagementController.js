@@ -49,8 +49,9 @@ const getData = async (req, res) => {
       result = await sql`
       SELECT ${sql(tableName)}.*, project.name AS belongs_to
       FROM ${sql(tableName)}
-      LEFT JOIN users ON ${sql(tableName)}.project_id = project.id
-      LIMIT ${limit} OFFSET ${offset}`;
+      LEFT JOIN project ON ${sql(tableName)}.project_id = project.id
+      LIMIT ${limit} OFFSET ${offset}
+    `;
     } else {
       result = await sql`
       SELECT * FROM ${sql(tableName)}

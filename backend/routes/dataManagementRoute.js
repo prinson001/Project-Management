@@ -63,7 +63,7 @@ const {
 
 const {
   addDepartment,
-
+  getRelatedProjects,
   getDepartments,
 } = require("../controllers/departmentController");
 
@@ -75,6 +75,7 @@ const { addVendor, getVendors } = require("../controllers/vendorController");
 const {
   addObjective,
   getObjectives,
+  getRelatedProjectsforObjective,
 } = require("../controllers/objectiveController");
 
 const {
@@ -144,12 +145,14 @@ router.post("/getUserRelatedEntities", getUserRelatedEntities);
 
 router.post("/adddepartment", addDepartment);
 router.post("/getDepartments", getDepartments);
+router.post("/getDepartmentProjects", getRelatedProjects);
 
 router.post("/addvendor", addVendor);
 router.post("/getVendors", getVendors);
 
 router.post("/addobjective", addObjective);
 router.post("/getObjectives", getObjectives);
+router.post("/getRelatedProjectsforObjective", getRelatedProjectsforObjective);
 router.post("/getProjectDocuments", getProjectDocuments);
 //router.post("/addProjectDocument",addProjectDocument);
 router.post("/getProjectPhases", getProjectPhases);

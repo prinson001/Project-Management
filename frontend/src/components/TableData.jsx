@@ -17,6 +17,8 @@ import InitiativeAccordion from "../components/InitiativeAccordion";
 import PortfolioAccordion from "../components/PortfolioAccordion";
 import ProgramAccordion from "../components/ProgramAccordion";
 import TeamAccordion from "./TeamAccordion";
+import DepartmentAccordion from "./DepartmentAccordion";
+import ObjectiveAccordion from "./ObjectiveAccordion";
 import axiosInstance from "../axiosInstance";
 import Loader from "./Loader";
 import UpdateProjectModal from "./UpdateProjectModal";
@@ -426,6 +428,20 @@ const TableData = ({
                     <tr>
                       <td colSpan={visibleColumns.length + 1} className="p-0">
                         <TeamAccordion datas={item} />
+                      </td>
+                    </tr>
+                  )}
+                  {tableName === "department" && openAccordion === index && (
+                    <tr>
+                      <td colSpan={visibleColumns.length + 1} className="p-0">
+                        <DepartmentAccordion departmentId={item.id} />
+                      </td>
+                    </tr>
+                  )}
+                  {tableName === "objective" && openAccordion === index && (
+                    <tr>
+                      <td colSpan={visibleColumns.length + 1} className="p-0">
+                        <ObjectiveAccordion objectiveId={item.id} />
                       </td>
                     </tr>
                   )}
