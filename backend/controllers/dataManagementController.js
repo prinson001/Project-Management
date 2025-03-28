@@ -6,10 +6,11 @@ const getData = async (req, res) => {
   let { tableName, userId, page = 1, limit = 4 } = req.body;
   console.log("Table Name", tableName);
   console.log("userId", userId);
-  if (tableName == "user") {
+
+  if (tableName === "user") {
     tableName = "users";
   }
-  if (tableName == "document") {
+  if (tableName === "document") {
     tableName = "document_template";
   }
   if (!tableName) {
@@ -33,32 +34,41 @@ const getData = async (req, res) => {
     // Calculate offset for pagination
     const offset = (page - 1) * limit;
     let result = null;
-    // Get paginated data
-    if (tableName === "portfolio") {
+
+    if (tableName === "users") {
       result = await sql`
-      SELECT ${sql(tableName)}.*, users.first_name AS portfolio_manager_name
-      FROM ${sql(tableName)}
-      LEFT JOIN users ON ${sql(tableName)}.portfolio_manager = users.id
+      SELECT users.*
+      FROM users
+      JOIN role ON users.role_id = role.id
+      WHERE LOWER(role.name) NOT IN ('deputy', 'admin')
       LIMIT ${limit} OFFSET ${offset}
+`;
+    } else if (tableName === "portfolio") {
+      result = await sql`
+        SELECT ${sql(tableName)}.*, users.first_name AS portfolio_manager_name
+        FROM ${sql(tableName)}
+        LEFT JOIN users ON ${sql(tableName)}.portfolio_manager = users.id
+        LIMIT ${limit} OFFSET ${offset}
       `;
     } else if (tableName === "program") {
       result = await sql`
-      SELECT ${sql(tableName)}.*, users.first_name AS program_manager_name
-      FROM ${sql(tableName)}
-      LEFT JOIN users ON ${sql(tableName)}.program_manager = users.id
-      LIMIT ${limit} OFFSET ${offset}`;
+        SELECT ${sql(tableName)}.*, users.first_name AS program_manager_name
+        FROM ${sql(tableName)}
+        LEFT JOIN users ON ${sql(tableName)}.program_manager = users.id
+        LIMIT ${limit} OFFSET ${offset}
+      `;
     } else if (tableName === "objective") {
       result = await sql`
-      SELECT ${sql(tableName)}.*, project.name AS belongs_to
-      FROM ${sql(tableName)}
-      LEFT JOIN project ON ${sql(tableName)}.project_id = project.id
-      LIMIT ${limit} OFFSET ${offset}
-    `;
+        SELECT ${sql(tableName)}.*, project.name AS belongs_to
+        FROM ${sql(tableName)}
+        LEFT JOIN project ON ${sql(tableName)}.project_id = project.id
+        LIMIT ${limit} OFFSET ${offset}
+      `;
     } else {
       result = await sql`
-      SELECT * FROM ${sql(tableName)}
-      LIMIT ${limit} OFFSET ${offset}
-    `;
+        SELECT * FROM ${sql(tableName)}
+        LIMIT ${limit} OFFSET ${offset}
+      `;
     }
 
     // Get total count for pagination
