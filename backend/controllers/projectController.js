@@ -478,7 +478,7 @@ const updateProjectApprovalbyDeputy = async (req, res) => {
       result: null,
     });
   }
-  const status = req.body.approval ? "Approved" : "Rejected";
+  const status = req.body.approval;
   try {
     const result = await sql`
       UPDATE project
@@ -947,6 +947,50 @@ const getBeneficiaryDepartments = async (req, res) => {
   }
 };
 
+const getProjectApprovalStatus = async (req, res) => {
+  const { projectId } = req.body;
+
+  if (!projectId) {
+    return res.status(400).json({
+      status: "failure",
+      message: "projectId is required",
+      result: null,
+    });
+  }
+
+  try {
+    // Query to fetch the approval_status of the given project
+    const query = `
+      SELECT approval_status 
+      FROM project 
+      WHERE id = $1;
+    `;
+
+    const result = await sql.unsafe(query, [projectId]);
+
+    if (result.length === 0) {
+      return res.status(404).json({
+        status: "failure",
+        message: "Project not found",
+        result: null,
+      });
+    }
+
+    res.json({
+      status: "success",
+      message: "Project approval status retrieved successfully",
+      approval_status: result[0].approval_status,
+    });
+  } catch (error) {
+    console.error("Error fetching project approval status:", error);
+    res.status(500).json({
+      status: "failure",
+      message: "Error fetching project approval status",
+      result: error.message,
+    });
+  }
+};
+
 module.exports = {
   addProject,
   updateProject,
@@ -963,4 +1007,5 @@ module.exports = {
   getObjectives,
   addBeneficiaryDepartments,
   getBeneficiaryDepartments,
+  getProjectApprovalStatus,
 };

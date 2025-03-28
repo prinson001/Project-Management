@@ -127,6 +127,7 @@ const DataSection = ({
         const result = await axiosInstanceInstance.post(`/tasks/filtertasks`, {
           userId: 5,
           limit: 7,
+          page,
           filters: filters,
           project_name,
           getAllTasks,
