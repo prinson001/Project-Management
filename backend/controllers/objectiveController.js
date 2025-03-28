@@ -164,4 +164,40 @@ const getObjectives = async (req, res) => {
   }
 };
 
-module.exports = { addObjective, getObjectives };
+const getRelatedProjectsforObjective = async (req, res) => {
+  try {
+    const { objectiveId } = req.body;
+    if (!objectiveId) {
+      return res.status(400).json({
+        status: "failure",
+        message: "Department ID is required",
+      });
+    }
+
+    const projects = await sql`
+      SELECT p.id, p.name, p.arabic_name 
+      FROM project_objective pd
+      JOIN project p ON pd.project_id = p.id
+      WHERE pd.objective_id = ${objectiveId};
+    `;
+
+    return res.status(200).json({
+      status: "success",
+      message: "Related projects fetched successfully",
+      result: projects,
+    });
+  } catch (error) {
+    console.error("Error fetching related projects:", error);
+    return res.status(500).json({
+      status: "failure",
+      message: "Error fetching related projects",
+      result: error.message || error,
+    });
+  }
+};
+
+module.exports = {
+  addObjective,
+  getObjectives,
+  getRelatedProjectsforObjective,
+};

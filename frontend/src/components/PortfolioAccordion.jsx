@@ -101,16 +101,32 @@ function PortfolioAccordion({ data, title }) {
     return projects.map((project) => (
       <div
         key={project.id}
-        className="flex items-center text-sm text-gray-600 dark:text-gray-400 mb-1 ml-4"
+        className="p-4 border rounded-lg mb-4 bg-white dark:bg-gray-700 shadow-sm hover:shadow-md transition-shadow"
       >
-        <FileText
-          className="mr-2 text-green-600 dark:text-green-400"
-          size={16}
-        />
-        {project.name || `Project ${project.id}`}
-        <span className="text-xs ml-2 text-gray-400">
-          (Program ID: {project.program_id})
-        </span>
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="flex items-center mb-2">
+              <FileText
+                className="mr-2 text-green-600 dark:text-green-400"
+                size={16}
+              />
+              <h3 className="font-medium dark:text-gray-200">
+                {project.name || "Project Name N/A"}
+              </h3>
+              <span className="ml-2 text-xs text-gray-400 dark:text-gray-300">
+                (ID: {project.id})
+              </span>
+            </div>
+            {project.arabic_name && (
+              <div
+                className="text-sm text-gray-600 dark:text-gray-300"
+                dir="rtl"
+              >
+                {project.arabic_name}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     ));
   };
@@ -151,7 +167,9 @@ function PortfolioAccordion({ data, title }) {
             <h5 className="font-semibold text-sm text-gray-700 dark:text-gray-300 mb-2">
               Projects
             </h5>
-            {renderProjects(program.projects)}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {renderProjects(program.projects)}
+            </div>
           </div>
         )}
       </div>
@@ -188,6 +206,35 @@ function PortfolioAccordion({ data, title }) {
       </div>
     );
   }
+
+  const renderProjectBox = (project) => (
+    <div
+      key={project.id}
+      className="p-4 border rounded-lg mb-4 bg-white dark:bg-gray-700 shadow-sm hover:shadow-md transition-shadow"
+    >
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="flex items-center mb-2">
+            <FileText
+              className="mr-2 text-green-600 dark:text-green-400"
+              size={16}
+            />
+            <h3 className="font-medium dark:text-gray-200">
+              {project.name || "Project Name N/A"}
+            </h3>
+            <span className="ml-2 text-xs text-gray-400 dark:text-gray-300">
+              (ID: {project.id})
+            </span>
+          </div>
+          {project.arabic_name && (
+            <div className="text-sm text-gray-600 dark:text-gray-300" dir="rtl">
+              {project.arabic_name}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="w-full bg-white dark:bg-gray-800 rounded-lg shadow-md">

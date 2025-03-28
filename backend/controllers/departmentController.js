@@ -4,11 +4,11 @@ const sql = require("../database/db");
 //  @Route site.com/data-management/addDepartment
 const addDepartment = async (req, res) => {
   // Check if data exists in the request body
-  console.log('Department Body',req.body);
-  
+  console.log("Department Body", req.body);
+
   // Handle both formats: direct properties or nested under data
   let departmentData = {};
-  
+
   if (req.body.data && typeof req.body.data === "object") {
     // Format: { data: { name: "...", arabic_name: "..." } }
     departmentData = req.body.data;
@@ -16,7 +16,7 @@ const addDepartment = async (req, res) => {
     // Format: { departmentEnglish: "...", departmentArabic: "..." }
     departmentData = {
       name: req.body.departmentEnglish,
-      arabic_name: req.body.departmentArabic
+      arabic_name: req.body.departmentArabic,
     };
   } else {
     return res.status(400).json({
@@ -92,21 +92,53 @@ const addDepartment = async (req, res) => {
 };
 
 const getDepartments = async (req, res) => {
-    try {
-      const departments = await sql`SELECT * FROM department;`;
-      return res.status(200).json({
-        status: "success",
-        message: "Departments fetched successfully",
-        result: departments,
-      });
-    } catch (error) {
-      console.error("Error fetching departments:", error);
-      return res.status(500).json({
+  try {
+    const departments = await sql`SELECT * FROM department;`;
+    return res.status(200).json({
+      status: "success",
+      message: "Departments fetched successfully",
+      result: departments,
+    });
+  } catch (error) {
+    console.error("Error fetching departments:", error);
+    return res.status(500).json({
+      status: "failure",
+      message: "Error fetching departments",
+      result: error.message || error,
+    });
+  }
+};
+
+const getRelatedProjects = async (req, res) => {
+  try {
+    const { departmentId } = req.body;
+    if (!departmentId) {
+      return res.status(400).json({
         status: "failure",
-        message: "Error fetching departments",
-        result: error.message || error,
+        message: "Department ID is required",
       });
     }
-  };
 
-module.exports = { addDepartment, getDepartments };
+    const projects = await sql`
+      SELECT p.id, p.name, p.arabic_name 
+      FROM project_department pd
+      JOIN project p ON pd.project_id = p.id
+      WHERE pd.department_id = ${departmentId};
+    `;
+
+    return res.status(200).json({
+      status: "success",
+      message: "Related projects fetched successfully",
+      result: projects,
+    });
+  } catch (error) {
+    console.error("Error fetching related projects:", error);
+    return res.status(500).json({
+      status: "failure",
+      message: "Error fetching related projects",
+      result: error.message || error,
+    });
+  }
+};
+
+module.exports = { addDepartment, getDepartments, getRelatedProjects };
