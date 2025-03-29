@@ -1,3 +1,4 @@
+// DataManagementPage.jsx
 import React, { useState, useEffect, useMemo, Suspense } from "react";
 import axiosInstance from "../axiosInstance";
 import { X, Users, Plus } from "lucide-react"; // Added Plus icon
@@ -568,6 +569,13 @@ const DataManagementPage = () => {
       );
     }
   };
+  // Handle document form submission
+  const handleDocumentFormSubmit = async () => {
+    // Refresh data after document submission
+    await getData();
+    setRefreshTrigger((prev) => prev + 1);
+    setShowDocumentForm(false);
+  };
   async function getSetting() {
     console.log("Singular table name", getSingularTabName());
     try {
@@ -676,13 +684,13 @@ const DataManagementPage = () => {
       <DataManagementTabs
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        renderAddButton={activeTab !== "documents" ? renderAddButton : null}
+        renderAddButton={renderAddButton}
       />
 
       <div className="flex-1 overflow-auto relative z-10 p-5 h-full">
         {/* Add button row */}
         {/* <div className="flex justify-between items-center mb-4">
-          <div></div> 
+          <div></div>
           <div className="flex space-x-2">
             {activeTab !== "documents" && renderAddButton()}
           </div>
@@ -727,7 +735,10 @@ const DataManagementPage = () => {
         )}
         {/* Document Form Modal */}
         {showDocumentForm && (
-          <DocumentFormModal onClose={() => setShowDocumentForm(false)} />
+          <DocumentFormModal
+            onClose={() => setShowDocumentForm(false)}
+            onSubmit={handleDocumentFormSubmit}
+          />
         )}
 
         {/* Project Modal */}

@@ -25,6 +25,7 @@ import axiosInstance from "../axiosInstance";
 import Loader from "./Loader";
 import UpdateProjectModal from "./UpdateProjectModal";
 import DocumentTemplateAccordion from "./DocumentTemplateAccordion";
+import EditDocumentFormModal from "./EditDocumentFormModal"; // Import the new modal
 
 const TableData = ({
   getData,
@@ -46,6 +47,8 @@ const TableData = ({
   const [loading, setLoading] = useState(true);
   const [selectedProject, setSelectedProject] = useState(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState(null);
+  const [isEditDocumentModalOpen, setIsEditDocumentModalOpen] = useState(false);
 
   // Initialize column widths and visible columns
   useEffect(() => {
@@ -155,6 +158,9 @@ const TableData = ({
     } else if (tableName === "project") {
       setSelectedProject(tableData[index]);
       setIsUpdateModalOpen(true);
+    } else if (tableName === "document") {
+      setSelectedDocument(tableData[index]);
+      setIsEditDocumentModalOpen(true);
     } else {
       setShowForm(showForm === index ? null : index);
     }
@@ -207,6 +213,16 @@ const TableData = ({
     );
     setIsUpdateModalOpen(false);
     setSelectedProject(null);
+  };
+
+  const handleUpdateDocument = (updatedData) => {
+    setTableData((prevData) =>
+      prevData.map((item) =>
+        item.id === updatedData.id ? { ...item, ...updatedData } : item
+      )
+    );
+    setIsEditDocumentModalOpen(false);
+    setSelectedDocument(null);
   };
 
   return (
@@ -337,7 +353,15 @@ const TableData = ({
                             <ExternalLink className="w-6 h-5" />
                           </a>
                         )}
-                        {tableName !== "tasks" && (
+                        {tableName === "document" && (
+                          <button
+                            onClick={() => toggleForm(index)}
+                            className="text-blue-500 hover:text-blue-700"
+                          >
+                            <Edit className="w-5 h-5" />
+                          </button>
+                        )}
+                        {tableName !== "tasks" && tableName !== "document" && (
                           <button
                             onClick={() => toggleForm(index)}
                             className="text-blue-500 hover:text-blue-700"
@@ -493,41 +517,43 @@ const TableData = ({
         </div>
       )}
 
-      {showForm !== null && tableName !== "project" && (
-        <div className="fixed inset-0 flex justify-center items-center bg-black/45 backdrop-blur-sm z-50">
-          <div className="max-w-3xl bg-white p-6 rounded-lg shadow-lg w-full mx-4 dark:bg-gray-800 dark:text-white">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Edit {tableName}</h2>
-              <button
-                onClick={() => toggleForm(-1)}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+      {showForm !== null &&
+        tableName !== "project" &&
+        tableName !== "document" && (
+          <div className="fixed inset-0 flex justify-center items-center bg-black/45 backdrop-blur-sm z-50">
+            <div className="max-w-3xl bg-white p-6 rounded-lg shadow-lg w-full mx-4 dark:bg-gray-800 dark:text-white">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">Edit {tableName}</h2>
+                <button
+                  onClick={() => toggleForm(-1)}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+              <UpdateDynamicForm
+                tableName={tableName}
+                title={`Edit ${tableName}`}
+                onSubmit={handleFormData}
+                isEmbedded={true}
+                data={tableData[showForm]}
+              />
             </div>
-            <UpdateDynamicForm
-              tableName={tableName}
-              title={`Edit ${tableName}`}
-              onSubmit={handleFormData}
-              isEmbedded={true}
-              data={tableData[showForm]}
-            />
           </div>
-        </div>
-      )}
+        )}
 
       {isUpdateModalOpen && (
         <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 z-50">
@@ -535,6 +561,17 @@ const TableData = ({
             onClose={() => setIsUpdateModalOpen(false)}
             projectData={selectedProject}
             onUpdate={handleUpdateProject}
+          />
+        </div>
+      )}
+
+      {/* Edit Document Modal */}
+      {isEditDocumentModalOpen && (
+        <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 z-50">
+          <EditDocumentFormModal
+            onClose={() => setIsEditDocumentModalOpen(false)}
+            documentData={selectedDocument}
+            onSubmit={handleUpdateDocument}
           />
         </div>
       )}

@@ -118,6 +118,12 @@ const getFilteredData = async (req, res) => {
       result: null,
     });
   }
+  if (tableName === "user") {
+    tableName = "users";
+  }
+  if (tableName === "document") {
+    tableName = "document_template";
+  }
 
   try {
     // Validate table name to prevent SQL injection

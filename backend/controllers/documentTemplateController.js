@@ -3,14 +3,7 @@ const sql = require("../database/db");
 
 const createDocumentTemplate = async (req, res) => {
   try {
-    console.log(req.file);
-    if (!req.file) {
-      return res.status(400).json({
-        status: "failure",
-        message: "No document file uploaded",
-      });
-    }
-
+    // Parse the JSON data from the request body
     let templateData;
     try {
       templateData = JSON.parse(req.body.data);
@@ -29,126 +22,68 @@ const createDocumentTemplate = async (req, res) => {
       });
     }
 
-    // Insert template data into database
+    // Extract file URL from the payload (optional field)
+    const fileUrl = templateData.file_url || null;
+    const fileName = fileUrl ? templateData.name + "_template" : null; // Optional: Generate a sanitized name if needed
+    const storagePath = fileUrl ? `document-templates/${fileName}` : null;
+
+    // Insert template data into database, including file URL if provided
     const insertQuery = `
-        INSERT INTO document_template (
-          name, arabic_name, description, iscapex, isopex, is_internal, is_external, phase
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        RETURNING id, name;
-      `;
+      INSERT INTO document_template (
+        name, arabic_name, description, is_capex, is_opex, is_internal, is_external, phase, document_name, document_path, document_url
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      RETURNING id, name;
+    `;
 
     const insertParams = [
       templateData.name,
       templateData.arabic_name,
       templateData.description || null,
-      templateData.iscapex || false,
-      templateData.isopex || false,
+      templateData.is_capex || false,
+      templateData.is_opex || false,
       templateData.is_internal || false,
       templateData.is_external || false,
       templateData.phase || [],
+      fileName, // Optional: You can adjust this based on your needs
+      storagePath, // Optional: Adjust this if you want to store a path
+      fileUrl, // Store the provided file URL directly
     ];
 
     const dbResult = await sql`
-    INSERT INTO document_template (
-      name, arabic_name, description, is_capex, is_opex, is_internal, is_external, phase
-    ) VALUES (${templateData.name}, ${templateData.arabic_name}, ${
+      INSERT INTO document_template (
+        name, arabic_name, description, is_capex, is_opex, is_internal, is_external, phase, document_name, document_path, document_url
+      ) VALUES (${templateData.name}, ${templateData.arabic_name}, ${
       templateData.description || null
     }, 
-      ${templateData.iscapex || false}, ${templateData.isopex || false}, 
-      ${templateData.is_internal || false}, ${
+        ${templateData.is_capex || false}, ${templateData.is_opex || false}, 
+        ${templateData.is_internal || false}, ${
       templateData.is_external || false
     }, 
-      ${templateData.phase || []})
-    RETURNING id, name;
-  `;
+        ${templateData.phase || []}, ${fileName}, ${storagePath}, ${fileUrl})
+      RETURNING id, name;
+    `;
 
     if (!dbResult || dbResult.length === 0) {
       throw new Error("Database insertion failed");
     }
+
     const newTemplate = dbResult[0];
-
-    // Sanitize filename
-    const sanitizedName = newTemplate.name
-      .toLowerCase()
-      .replace(/\s+/g, "_")
-      .replace(/[^a-z0-9_-]/g, "");
-
-    // Generate unique filename
-    const fileExtension = req.file.originalname.split(".").pop();
-    const fileName = `${newTemplate.id}_${sanitizedName}.${fileExtension}`;
-    const storagePath = `document-templates/${fileName}`;
-
-    console.log("file extension", fileExtension);
-    console.log("storage path", storagePath);
-
-    // Upload file to Supabase Storage
-    const { error: uploadError } = await supabase.storage
-      .from("templates")
-      .upload(storagePath, req.file.buffer, {
-        contentType: req.file.mimetype,
-        cacheControl: "3600",
-        upsert: false,
-      });
-
-    if (uploadError) {
-      console.error("File upload failed:", uploadError);
-      await sql.query("DELETE FROM document_template WHERE id = $1", [
-        newTemplate.id,
-      ]);
-      return res.status(500).json({
-        status: "failure",
-        message: "File upload failed",
-        error: uploadError.message,
-      });
-    }
-
-    // Get public URL of the uploaded file
-    const { data, error } = supabase.storage
-      .from("templates")
-      .getPublicUrl(storagePath);
-
-    if (error) {
-      console.error("Error getting public URL:", error);
-    }
-
-    const publicUrl = data?.publicUrl || null; // Ensure we handle undefined values
-    console.log(publicUrl);
-    // Update database with file information
-    const updateQuery = `
-        UPDATE document_template
-        SET
-          document_name = $1,
-          document_path = $2,
-          document_url = $3
-        WHERE id = $4
-        RETURNING *;
-      `;
-
-    const updateParams = [
-      req.file.originalname,
-      storagePath,
-      publicUrl,
-      newTemplate.id,
-    ];
-
-    const updatedTemplate = await sql`
-    UPDATE document_template
-    SET
-      document_name = ${req.file.originalname},
-      document_path = ${storagePath},
-      document_url = ${publicUrl}
-    WHERE id = ${newTemplate.id}
-    RETURNING *;
-  `;
-
-    if (!updatedTemplate || updatedTemplate.length === 0) {
-      throw new Error("Database update failed");
-    }
 
     res.status(201).json({
       status: "success",
       message: "Document template created successfully",
-      data: updatedTemplate[0],
+      data: {
+        id: newTemplate.id,
+        name: newTemplate.name,
+        arabic_name: templateData.arabic_name,
+        description: templateData.description,
+        is_capex: templateData.is_capex,
+        is_opex: templateData.is_opex,
+        is_internal: templateData.is_internal,
+        is_external: templateData.is_external,
+        phase: templateData.phase,
+        document_url: fileUrl,
+      },
     });
   } catch (error) {
     console.error("Error creating document template:", error);
@@ -169,10 +104,10 @@ const createDocumentTemplate = async (req, res) => {
   }
 };
 
+// Other functions remain unchanged
 const getCurrentPhaseDocumentTemplates = async (req, res) => {
   try {
     const { phase } = req.body;
-    console.log("phase", phase);
     if (!phase) {
       return res.status(400).json({
         status: "failure",
@@ -180,11 +115,9 @@ const getCurrentPhaseDocumentTemplates = async (req, res) => {
       });
     }
 
-    // Fetch documents from the database where phase matches
     const documents = await sql`
       SELECT * FROM document_template WHERE phase @> ${[phase]}
     `;
-    console.log("documents", documents);
     res.status(200).json({
       status: "success",
       message: "Documents retrieved successfully",
@@ -200,7 +133,6 @@ const getCurrentPhaseDocumentTemplates = async (req, res) => {
   }
 };
 
-// THIS IS UPLOADED PROJECT DOCUMENTS AND ABOVE TWO ARE FOR DOCUMENT TEMPLATES
 const getProjectPhaseDocuments = async (req, res) => {
   try {
     const { projectId } = req.body;
@@ -212,7 +144,6 @@ const getProjectPhaseDocuments = async (req, res) => {
       });
     }
 
-    // Fetch project documents with template details
     const documents = await sql`
       SELECT pd.*, dt.name, dt.arabic_name, dt.description 
       FROM project_documents pd
