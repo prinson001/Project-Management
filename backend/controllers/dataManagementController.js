@@ -7,10 +7,13 @@ const getData = async (req, res) => {
   console.log("Table Name", tableName);
   console.log("userId", userId);
 
-  if (tableName == "document") {
+  if (tableName === "user") {
+    tableName = "users";
+  }
+  if (tableName === "document") {
     tableName = "document_template";
   }
-  if (!tableName || !userId) {
+  if (!tableName) {
     return res.status(400).json({
       status: "failure",
       message: "Required field missing: tableName, userId",
@@ -31,32 +34,41 @@ const getData = async (req, res) => {
     // Calculate offset for pagination
     const offset = (page - 1) * limit;
     let result = null;
-    // Get paginated data
-    if (tableName === "portfolio") {
+
+    if (tableName === "users") {
       result = await sql`
-      SELECT ${sql(tableName)}.*, users.first_name AS portfolio_manager_name
-      FROM ${sql(tableName)}
-      LEFT JOIN users ON ${sql(tableName)}.portfolio_manager = users.id
+      SELECT users.*
+      FROM users
+      JOIN role ON users.role_id = role.id
+      WHERE LOWER(role.name) NOT IN ('deputy', 'admin')
       LIMIT ${limit} OFFSET ${offset}
+`;
+    } else if (tableName === "portfolio") {
+      result = await sql`
+        SELECT ${sql(tableName)}.*, users.first_name AS portfolio_manager_name
+        FROM ${sql(tableName)}
+        LEFT JOIN users ON ${sql(tableName)}.portfolio_manager = users.id
+        LIMIT ${limit} OFFSET ${offset}
       `;
     } else if (tableName === "program") {
       result = await sql`
-      SELECT ${sql(tableName)}.*, users.first_name AS program_manager_name
-      FROM ${sql(tableName)}
-      LEFT JOIN users ON ${sql(tableName)}.program_manager = users.id
-      LIMIT ${limit} OFFSET ${offset}`;
+        SELECT ${sql(tableName)}.*, users.first_name AS program_manager_name
+        FROM ${sql(tableName)}
+        LEFT JOIN users ON ${sql(tableName)}.program_manager = users.id
+        LIMIT ${limit} OFFSET ${offset}
+      `;
     } else if (tableName === "objective") {
       result = await sql`
-      SELECT ${sql(tableName)}.*, project.name AS belongs_to
-      FROM ${sql(tableName)}
-      LEFT JOIN project ON ${sql(tableName)}.project_id = project.id
-      LIMIT ${limit} OFFSET ${offset}
-    `;
+        SELECT ${sql(tableName)}.*, project.name AS belongs_to
+        FROM ${sql(tableName)}
+        LEFT JOIN project ON ${sql(tableName)}.project_id = project.id
+        LIMIT ${limit} OFFSET ${offset}
+      `;
     } else {
       result = await sql`
-      SELECT * FROM ${sql(tableName)}
-      LIMIT ${limit} OFFSET ${offset}
-    `;
+        SELECT * FROM ${sql(tableName)}
+        LIMIT ${limit} OFFSET ${offset}
+      `;
     }
 
     // Get total count for pagination
@@ -376,6 +388,70 @@ const getUsers = async (req, res) => {
   }
 };
 
+const getRoles = async (req, res) => {
+  try {
+    const result = await sql`
+      SELECT id, name, arabic_name 
+      FROM role 
+      ORDER BY name
+    `;
+
+    res.status(200).json({
+      status: "success",
+      message: "Roles retrieved successfully",
+      result,
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({
+      status: "failure",
+      message: "Error retrieving roles",
+      error: e.message,
+    });
+  }
+};
+
+const addUser = async (req, res) => {
+  try {
+    const {
+      first_name,
+      arabic_first_name,
+      family_name,
+      arabic_family_name,
+      email,
+      password,
+      department,
+      role,
+    } = req.body.data;
+    console.log(req.body);
+    // Insert user into the database
+    const result = await sql`
+      INSERT INTO users (
+        first_name, arabic_first_name, family_name, arabic_family_name, 
+        email, password, department_id, role_id
+      ) 
+      VALUES (
+        ${first_name}, ${arabic_first_name}, ${family_name}, ${arabic_family_name}, 
+        ${email}, ${password}, ${department}, ${role}
+      ) 
+      RETURNING id, first_name, family_name, email, department_id, role_id
+    `;
+
+    res.status(201).json({
+      status: "success",
+      message: "User added successfully",
+      user: result[0],
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({
+      status: "failure",
+      message: "Error adding user",
+      error: e.message,
+    });
+  }
+};
+
 const upsertTableSetting = async (req, res) => {
   const { user_id, table_name, setting } = req.body;
 
@@ -433,5 +509,7 @@ module.exports = {
   getSetting,
   getFilteredData,
   getUsers,
+  getRoles,
+  addUser,
   upsertTableSetting,
 };

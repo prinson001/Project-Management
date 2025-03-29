@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import useAuthStore from "../store/authStore"; // Assuming this provides users, portfolios, etc.
+import useAuthStore from "../store/authStore";
 
 const UpdateDynamicForm = ({
   title,
@@ -9,12 +9,18 @@ const UpdateDynamicForm = ({
   viewData = false,
   data,
   tableName,
-  users = [], // Optional prop for dynamic options
-  portfolios = [], // Optional prop for dynamic options
+  users = [],
+  portfolios = [],
 }) => {
   console.log("update dynamic form opened... in", tableName);
+  console.log("Form data:", data); // Debugging
 
-  const { users: storeUsers, portfolios: storePortfolios } = useAuthStore(); // Fallback to store if props not provided
+  const {
+    users: storeUsers,
+    portfolios: storePortfolios,
+    departments,
+    roles,
+  } = useAuthStore();
   const finalUsers = users.length > 0 ? users : storeUsers;
   const finalPortfolios = portfolios.length > 0 ? portfolios : storePortfolios;
 
@@ -101,9 +107,8 @@ const UpdateDynamicForm = ({
     ],
     objective: [
       {
-        dbName: "name",
-        name: "ProgramEnglishName",
-        label: "Program English Name",
+        name: "name",
+        label: "Objective English Name",
         type: "text",
         required: true,
         columnSpan: 1,
@@ -133,9 +138,8 @@ const UpdateDynamicForm = ({
     ],
     program: [
       {
-        dbName: "name",
-        name: "ProjectEnglishName",
-        label: "Project English Name",
+        name: "name",
+        label: "Program English Name",
         type: "text",
         required: true,
         columnSpan: 1,
@@ -149,7 +153,7 @@ const UpdateDynamicForm = ({
         columnSpan: 1,
       },
       {
-        name: "program_manager", // Assuming this is the DB field name
+        name: "program_manager",
         label: "Program Manager",
         type: "select",
         required: true,
@@ -233,7 +237,7 @@ const UpdateDynamicForm = ({
     ],
     vendor: [
       {
-        name: "name", // Adjusted to match typical DB field
+        name: "name",
         label: "Vendor English Name",
         type: "text",
         required: true,
@@ -247,9 +251,9 @@ const UpdateDynamicForm = ({
         columnSpan: 1,
       },
     ],
-    member: [
+    users: [
       {
-        name: "first_name", // Adjusted to match typical DB field
+        name: "first_name",
         label: "First Name in English",
         type: "text",
         required: true,
@@ -293,7 +297,7 @@ const UpdateDynamicForm = ({
         columnSpan: 1,
       },
       {
-        name: "rewrite_password", // Assuming this is for confirmation, not stored
+        name: "rewritePassword",
         label: "Re-write Password",
         type: "password",
         required: true,
@@ -306,7 +310,13 @@ const UpdateDynamicForm = ({
         type: "select",
         required: true,
         columnSpan: 1,
-        options: ["HR", "Engineering", "Marketing"], // Static for now; could be dynamic
+        options:
+          departments && departments.length > 0
+            ? departments.map((dept) => ({
+                value: dept.id.toString(),
+                label: dept.name,
+              }))
+            : [],
       },
       {
         name: "role",
@@ -314,11 +324,16 @@ const UpdateDynamicForm = ({
         type: "select",
         required: true,
         columnSpan: 1,
-        options: ["Admin", "Program Manager", "User"],
+        options:
+          roles && roles.length > 0
+            ? roles.map((role) => ({
+                value: role.id.toString(),
+                label: role.name,
+              }))
+            : [],
       },
     ],
     project: [
-      // Added project to align with original
       {
         name: "name",
         label: "Project English Name",
@@ -358,28 +373,65 @@ const UpdateDynamicForm = ({
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm();
+  } = useForm({
+    defaultValues: data || {},
+  });
 
   useEffect(() => {
     if (data) {
-      reset(data);
+      const fields = getFormFields()[tableName] || [];
+      const fieldNames = fields.map((field) => field.name);
+      const filteredData = {};
+
+      // Only include fields defined in getFormFields for the current tableName
+      fieldNames.forEach((name) => {
+        if (tableName === "users" && name === "department") {
+          filteredData[name] = data.department_id?.toString() || "";
+        } else if (tableName === "users" && name === "role") {
+          filteredData[name] = data.role_id?.toString() || "";
+        } else {
+          filteredData[name] = data[name] || "";
+        }
+      });
+
+      // Add id explicitly since it's not in form fields but needed for submission
+      filteredData.id = data.id;
+
+      reset(filteredData);
     }
-  }, [data, reset]);
+  }, [data, reset, tableName]);
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
 
   const handleFormSubmit = (formData) => {
-    // Remove rewrite_password from submission if it’s just for validation
-    const { rewrite_password, ...submitData } = formData;
+    const { rewritePassword, ...submitData } = formData;
+
     if (
-      tableName === "member" &&
-      formData.password !== formData.rewrite_password
+      tableName === "users" &&
+      formData.password !== formData.rewritePassword
     ) {
       console.error("Passwords do not match");
       return; // Add proper error handling if needed
     }
-    onSubmit(submitData);
+
+    // For users, map department and role back to department_id and role_id
+    if (tableName === "users") {
+      onSubmit({
+        ...submitData,
+        department_id: submitData.department,
+        role_id: submitData.role,
+      });
+    } else {
+      // For other tables (like vendor), only submit fields defined in DB
+      const fields = getFormFields()[tableName] || [];
+      const fieldNames = fields.map((field) => field.name);
+      const filteredSubmitData = { id: submitData.id };
+      fieldNames.forEach((name) => {
+        filteredSubmitData[name] = submitData[name];
+      });
+      onSubmit(filteredSubmitData);
+    }
   };
 
   const formContent = (
@@ -405,6 +457,13 @@ const UpdateDynamicForm = ({
               <select
                 {...register(name, { required })}
                 className="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                defaultValue={
+                  name === "department"
+                    ? data?.department_id?.toString() || ""
+                    : name === "role"
+                    ? data?.role_id?.toString() || ""
+                    : data?.[name] || ""
+                }
               >
                 <option value="">Select</option>
                 {options?.map((option, i) => (
@@ -458,7 +517,16 @@ const UpdateDynamicForm = ({
               {label}
             </label>
             <div className="mt-1 p-2 bg-gray-50 dark:bg-gray-700 rounded-md text-gray-900 dark:text-white w-full">
-              {data?.[name] || "N/A"}
+              {name === "department"
+                ? departments.find(
+                    (dept) =>
+                      dept.id.toString() === data?.department_id?.toString()
+                  )?.name || "N/A"
+                : name === "role"
+                ? roles.find(
+                    (role) => role.id.toString() === data?.role_id?.toString()
+                  )?.name || "N/A"
+                : data?.[name] || "N/A"}
             </div>
           </div>
         )
