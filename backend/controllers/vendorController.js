@@ -176,5 +176,46 @@ const getVendors = async (req, res) => {
     });
   }
 };
+const deleteVendor = async (req, res) => {
+  try {
+    const { id } = req.params;
 
-module.exports = { addVendor, updateVendor, getVendors };
+    if (!id) {
+      return res.status(400).json({
+        status: "failure",
+        message: "Vendor ID is required for deletion",
+        result: null,
+      });
+    }
+
+    // Build the delete query
+    const queryText = "DELETE FROM vendor WHERE id = $1 RETURNING *";
+
+    // Execute the query
+    const result = await sql.unsafe(queryText, [id]);
+
+    if (result.length === 0) {
+      return res.status(404).json({
+        status: "failure",
+        message: "Vendor not found",
+        result: null,
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      message: "Vendor deleted successfully",
+      result: result[0] || result,
+    });
+  } catch (error) {
+    console.error("Error deleting vendor:", error);
+
+    return res.status(500).json({
+      status: "failure",
+      message: "Error deleting vendor",
+      result: error.message || error,
+    });
+  }
+};
+
+module.exports = { addVendor, updateVendor, getVendors, deleteVendor };
