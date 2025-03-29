@@ -33,11 +33,11 @@ const TableConfig = ({
                 ? "border-blue-400"
                 : "border-gray-200"
             } bg-gray-900/10 dark:bg-gray-100/10`}
-            whileHover={{
-              y: -5,
-              boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
-            }}
-            onClick={() => OpenOrClosedTaskChangeHandler("Open")}
+            // whileHover={{
+            //   y: -5,
+            //   boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
+            // }}
+            // onClick={() => OpenOrClosedTaskChangeHandler("Open")}
           >
             <div className="px-4 py-5 sm:p-6 cursor-pointer">
               <span className="flex items-center text-sm font-medium text-black dark:text-white">
@@ -60,11 +60,11 @@ const TableConfig = ({
                 ? "border-blue-400"
                 : "border-gray-200"
             } bg-gray-900/10 dark:bg-gray-100/10`}
-            whileHover={{
-              y: -5,
-              boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
-            }}
-            onClick={() => OpenOrClosedTaskChangeHandler("closed")}
+            // whileHover={{
+            //   y: -5,
+            //   boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
+            // }}
+            // onClick={() => OpenOrClosedTaskChangeHandler("closed")}
           >
             <div className="px-4 py-5 sm:p-6 cursor-pointer">
               <span className="flex items-center text-sm font-medium text-black dark:text-white">
