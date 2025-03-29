@@ -158,10 +158,12 @@ const getFilteredData = async (req, res) => {
         queryParams.push(value);
       }
     });
-
+    console.log("the tablename is " + tableName);
     // Handle date filtering
     if (dateFilter) {
-      const dateColumn = "created_at"; // Adjust to your actual date column
+      const dateColumn =
+        tableName === "initiative" ? "created_at" : "created_date"; // Adjust to your actual date column
+      console.log("the data column is" + dateColumn);
       let startDate, endDate;
       const today = new Date();
       today.setHours(23, 59, 59, 999);

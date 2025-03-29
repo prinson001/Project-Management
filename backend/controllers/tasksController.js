@@ -111,19 +111,96 @@ const filterTasks = async (req, res) => {
       queryParams.push(taskStatus.trim());
     }
 
+    // Date Filter Implementation
+    if (dateFilter && dateFilter !== "all") {
+      const dateColumn = "tasks.created_date"; // Using due_date for tasks
+      let startDate, endDate;
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+
+      switch (dateFilter) {
+        case "Today":
+          startDate = new Date(today);
+          startDate.setHours(0, 0, 0, 0);
+          whereConditions.push(
+            `${dateColumn} >= $${whereConditions.length + 1}`
+          );
+          queryParams.push(startDate.toISOString());
+          whereConditions.push(
+            `${dateColumn} <= $${whereConditions.length + 1}`
+          );
+          queryParams.push(today.toISOString());
+          break;
+        case "thisWeek":
+          startDate = new Date(today);
+          const dayOfWeek = startDate.getDay();
+          const diff = dayOfWeek <= 1 ? dayOfWeek + 6 : dayOfWeek - 1;
+          startDate.setDate(today.getDate() - diff);
+          startDate.setHours(0, 0, 0, 0);
+          endDate = new Date(startDate);
+          endDate.setDate(startDate.getDate() + 6);
+          endDate.setHours(23, 59, 59, 999);
+          whereConditions.push(
+            `${dateColumn} >= $${whereConditions.length + 1}`
+          );
+          queryParams.push(startDate.toISOString());
+          whereConditions.push(
+            `${dateColumn} <= $${whereConditions.length + 1}`
+          );
+          queryParams.push(endDate.toISOString());
+          break;
+        case "This Month":
+          startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+          startDate.setHours(0, 0, 0, 0);
+          whereConditions.push(
+            `${dateColumn} >= $${whereConditions.length + 1}`
+          );
+          queryParams.push(startDate.toISOString());
+          whereConditions.push(
+            `${dateColumn} <= $${whereConditions.length + 1}`
+          );
+          queryParams.push(today.toISOString());
+          break;
+        case "last2months":
+          startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+          startDate.setHours(0, 0, 0, 0);
+          whereConditions.push(
+            `${dateColumn} >= $${whereConditions.length + 1}`
+          );
+          queryParams.push(startDate.toISOString());
+          whereConditions.push(
+            `${dateColumn} <= $${whereConditions.length + 1}`
+          );
+          queryParams.push(today.toISOString());
+          break;
+        case "Last 3 Months":
+          startDate = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+          startDate.setHours(0, 0, 0, 0);
+          whereConditions.push(
+            `${dateColumn} >= $${whereConditions.length + 1}`
+          );
+          queryParams.push(startDate.toISOString());
+          whereConditions.push(
+            `${dateColumn} <= $${whereConditions.length + 1}`
+          );
+          queryParams.push(today.toISOString());
+          break;
+      }
+    }
+
     let queryText = `
-        SELECT tasks.*, 
-               project.name AS project_name, 
-               project.project_budget  AS project_budget,
-               project.approved_project_budget AS approved_project_budget,
-               users.first_name, 
-               users.family_name, 
-               users.arabic_first_name, 
-               users.arabic_family_name
-        FROM tasks
-        LEFT JOIN project ON tasks.related_entity_id = project.id
-        LEFT JOIN users ON tasks.assigned_to = users.id
-      `;
+      SELECT tasks.*, 
+             project.name AS project_name, 
+             project.project_budget,
+             project.approved_project_budget,
+             users.first_name, 
+             users.family_name, 
+             users.arabic_first_name, 
+             users.arabic_family_name
+      FROM tasks
+      LEFT JOIN project ON tasks.related_entity_id = project.id
+      LEFT JOIN users ON tasks.assigned_to = users.id
+    `;
 
     if (whereConditions.length > 0) {
       queryText += ` WHERE ${whereConditions.join(" AND ")}`;
@@ -156,21 +233,21 @@ const filterTasks = async (req, res) => {
     const result = await sql.unsafe(queryText, queryParams);
 
     let countQuery = `
-        SELECT COUNT(*) AS totalCount,
-               COUNT(CASE WHEN status = 'Open' THEN 1 END) AS openTasksCount,
-               COUNT(CASE WHEN status = 'Delayed' THEN 1 END) AS closedTasksCount
-        FROM tasks
-        LEFT JOIN project ON tasks.related_entity_id = project.id
-        LEFT JOIN users ON tasks.assigned_to = users.id
-        ${
-          whereConditions.length > 0
-            ? `WHERE ${whereConditions.join(" AND ")}`
-            : ""
-        }
-      `;
+      SELECT COUNT(*) AS totalCount,
+             COUNT(CASE WHEN status = 'Open' THEN 1 END) AS openTasksCount,
+             COUNT(CASE WHEN status = 'Delayed' THEN 1 END) AS closedTasksCount
+      FROM tasks
+      LEFT JOIN project ON tasks.related_entity_id = project.id
+      LEFT JOIN users ON tasks.assigned_to = users.id
+      ${
+        whereConditions.length > 0
+          ? `WHERE ${whereConditions.join(" AND ")}`
+          : ""
+      }
+    `;
 
     const totalResult = await sql.unsafe(countQuery, queryParams.slice(0, -2));
-    console.log(totalResult);
+
     res.json({
       status: "success",
       result: result,
