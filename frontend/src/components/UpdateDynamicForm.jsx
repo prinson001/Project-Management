@@ -60,7 +60,7 @@ const UpdateDynamicForm = ({
     portfolio: [
       {
         dbName: "name",
-        name: "Portfolio EnglishName",
+        name: "name",
         label: "Portfolio English Name",
         type: "text",
         required: true,
@@ -68,7 +68,7 @@ const UpdateDynamicForm = ({
       },
       {
         dbName: "arabic_name",
-        name: "PortfolioArabicName",
+        name: "arabic_name",
         label: "اسم المبادرة بالعربي",
         type: "text",
         required: true,
@@ -115,7 +115,7 @@ const UpdateDynamicForm = ({
       },
       {
         dbName: "arabic_name",
-        name: "ProgramArabicName",
+        name: "arabic_name",
         label: "اسم المبادرة بالعربي",
         type: "text",
         required: true,
@@ -146,7 +146,7 @@ const UpdateDynamicForm = ({
       },
       {
         dbName: "arabic_name",
-        name: "ProjectArabicName",
+        name: "arabic_name",
         label: "اسم المبادرة بالعربي",
         type: "text",
         required: true,
@@ -184,7 +184,7 @@ const UpdateDynamicForm = ({
     department: [
       {
         dbName: "name",
-        name: "departmentEnglishName",
+        name: "name",
         label: "Department English Name",
         type: "text",
         required: true,
@@ -192,7 +192,7 @@ const UpdateDynamicForm = ({
       },
       {
         dbName: "arabic_name",
-        name: "departmentArabicName",
+        name: "arabic_name",
         label: "اسم الإدارة بالعربي",
         type: "text",
         required: true,
@@ -202,7 +202,7 @@ const UpdateDynamicForm = ({
     objective: [
       {
         dbName: "name",
-        name: "ObjectiveEnglishName",
+        name: "name",
         label: "Objective English Name",
         type: "text",
         required: true,
@@ -210,7 +210,7 @@ const UpdateDynamicForm = ({
       },
       {
         dbName: "arabic_name",
-        name: "ObjectiveArabicName",
+        name: "arabic_name",
         label: "اسم الإدارة بالعربي",
         type: "text",
         required: true,
@@ -220,7 +220,7 @@ const UpdateDynamicForm = ({
     vendor: [
       {
         dbName: "name",
-        name: "ObjectiveEnglishName",
+        name: "name",
         label: "Objective English Name",
         type: "text",
         required: true,
@@ -228,7 +228,7 @@ const UpdateDynamicForm = ({
       },
       {
         dbName: "arabic_name",
-        name: "ObjectiveArabicName",
+        name: "arabic_name",
         label: "اسم الإدارة بالعربي",
         type: "text",
         required: true,
