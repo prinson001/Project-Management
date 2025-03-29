@@ -45,6 +45,8 @@ const TableData = ({
   const [visibleColumns, setVisibleColumns] = useState([]);
   const [showForm, setShowForm] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+
   const [selectedProject, setSelectedProject] = useState(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState(null);
@@ -65,7 +67,17 @@ const TableData = ({
   }, [columnSetting]);
 
   useEffect(() => {
-    setLoading(!(tableData && tableData.length > 0));
+    if (
+      tableData !== undefined &&
+      tableData !== null &&
+      tableData.length !== 0
+    ) {
+      setIsDataLoaded(true);
+      setLoading(false);
+    } else {
+      setIsDataLoaded(false);
+      setLoading(true);
+    }
   }, [tableData]);
 
   // Resize handlers
@@ -272,6 +284,15 @@ const TableData = ({
                   className="text-center py-4"
                 >
                   <Loader />
+                </td>
+              </tr>
+            ) : isDataLoaded && tableData.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={visibleColumns.length + 1}
+                  className="text-center py-4 text-gray-500 dark:text-gray-400"
+                >
+                  No data available
                 </td>
               </tr>
             ) : (
