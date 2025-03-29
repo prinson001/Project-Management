@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import useAuthStore from "../store/authStore";
 import axiosInstance from "../axiosInstance";
 import logo from "../assets/rakias-logo.png"; // Adjust the path to your logo image
-import { Toaster } from "sonner";
+import { toast, Toaster } from "sonner";
 const PORT = import.meta.env.VITE_PORT;
 
 const LoginPage = () => {
@@ -32,7 +32,7 @@ const LoginPage = () => {
         const data = response.data;
         console.log("Data", data);
         setToken(data.token);
-
+        toast.success("Logged in Successfully");
         // Store the user role
         const userRole = data.role;
         setRole(userRole);
@@ -55,10 +55,10 @@ const LoginPage = () => {
         }
       } else {
         console.error("Login failed");
-        Toaster.error("Login Failed");
+        toast.error("Login Failed");
       }
     } catch (error) {
-      Toaster.error("Login Failed");
+      toast.error("Login Failed");
       console.error("Error logging in:", error);
     }
   };
