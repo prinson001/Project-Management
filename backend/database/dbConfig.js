@@ -1098,6 +1098,25 @@ const setupAllForeignKeys = async (req, res) => {
   }
 };
 
+const addBoqApprovalStatusColumnToProject = async (req, res) => {
+  try {
+    const result = await sql`
+      ALTER TABLE project 
+      ADD COLUMN boq_approval_status VARCHAR(20) 
+      CHECK (boq_approval_status IN ('Not Initiated', 'Waiting On PMO', 'Approved', 'Rejected')) 
+      DEFAULT 'Not Initiated';
+    `;
+
+    res.status(200).json({
+      status: "success",
+      message: "Added boq_approval_status column to project table successfully",
+      result,
+    });
+  } catch (e) {
+    res.status(500).json({ status: "failure", message: e.message });
+  }
+};
+
 module.exports = {
   createUsersTable,
   createInitiativeTable,
@@ -1134,4 +1153,5 @@ module.exports = {
   addTriggersProjectToActivityDuration,
   createProjectDocumentsTable,
   setupAllForeignKeys,
+  addBoqApprovalStatusColumnToProject,
 };

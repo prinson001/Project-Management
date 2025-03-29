@@ -1,7 +1,12 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axiosInstance from "../axiosInstance";
 
-const BoqTaskAccordion = ({ parentId = null, projectBudget = 0, project }) => {
+const BoqTaskAccordion = ({
+  parentId = null,
+  projectBudget = 0,
+  project,
+  isReadable = false,
+}) => {
   // State management
   const [items, setItems] = useState([]);
   const [deletions, setDeletions] = useState([]);
@@ -62,6 +67,7 @@ const BoqTaskAccordion = ({ parentId = null, projectBudget = 0, project }) => {
 
   // Row operations
   const handleAddRow = () => {
+    if (isReadable) return;
     const newItem = {
       id: `temp-${Date.now()}`,
       name: "",
@@ -74,6 +80,7 @@ const BoqTaskAccordion = ({ parentId = null, projectBudget = 0, project }) => {
   };
 
   const handleDeleteRow = (id) => {
+    if (isReadable) return;
     setItems((prev) => prev.filter((item) => item.id !== id));
     if (!id.toString().startsWith("temp-")) {
       setDeletions((prev) => [...prev, id]);
@@ -81,6 +88,7 @@ const BoqTaskAccordion = ({ parentId = null, projectBudget = 0, project }) => {
   };
 
   const handleChange = (index, field, value) => {
+    if (isReadable) return;
     setItems((prev) =>
       prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
     );
@@ -88,6 +96,7 @@ const BoqTaskAccordion = ({ parentId = null, projectBudget = 0, project }) => {
 
   // Save handler
   const handleSave = async () => {
+    if (isReadable) return;
     try {
       let newItems = items.filter((item) =>
         item.id.toString().startsWith("temp-")
@@ -116,31 +125,22 @@ const BoqTaskAccordion = ({ parentId = null, projectBudget = 0, project }) => {
       setDeletions([]);
     } catch (err) {
       console.error("Save error:", err);
+      console.log(err.message);
       alert("Error saving data. Please try again.");
     }
   };
 
   // Send for Approval handler
   const handleSendForApproval = async () => {
+    if (isReadable) return;
     try {
-      // First, save the current BOQ items
       await handleSave();
       console.log("Parent Id", parentId);
-      
-      // Then send the approval request
       const response = await axiosInstance.post(
-        `/tasks/createSchedulePlanTaskForPM`,
-        {
-          projectId: parentId,
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
+        `/tasks/createBoqApprovalTaskForPMO`,
+        { projectId: parentId },
+        { headers: { "Content-Type": "application/json" } }
       );
-  
-      // Updated success check to match backend response
       if (response.data.status === "success") {
         console.log("Schedule plan task created successfully:", response.data);
         alert("BOQ saved and sent for approval successfully!");
@@ -161,165 +161,63 @@ const BoqTaskAccordion = ({ parentId = null, projectBudget = 0, project }) => {
 
   return (
     <div className="p-6 bg-gray-100 rounded-lg shadow-md">
-      {/* Budget Summary */}
-      <div className="mb-6 space-y-4">
-        <div className="flex gap-4 flex-wrap">
-          <div className="p-3 bg-blue-50 rounded-md">
-            <span className="font-semibold">Execution Cost:</span> $
-            {totalExecution.toFixed(2)}
-          </div>
-          <div className="p-3 bg-green-50 rounded-md">
-            <span className="font-semibold">Operation Cost:</span> $
-            {totalOperation.toFixed(2)}
-          </div>
-        </div>
-
-        <div
-          className={`p-4 rounded-md ${
-            isOverBudget
-              ? "bg-red-100 text-red-800"
-              : "bg-green-100 text-green-800"
-          }`}
-        >
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="font-medium">Project Budget</p>
-              <p>${projectBudget}</p>
-            </div>
-            <div>
-              <p className="font-medium">Total Cost</p>
-              <p>${totalProjectCost.toFixed(2)}</p>
-            </div>
-          </div>
-          {isOverBudget && (
-            <p className="mt-2 font-semibold">
-              ⚠️ Exceeds budget by $
-              {(totalProjectCost - projectBudget).toFixed(2)}
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* Items Table */}
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              {[
-                "Name",
-                "Unit",
-                "Quantity",
-                "Unit Amount",
-                "Total",
-                "Type",
-                "Actions",
-              ].map((header) => (
-                <th
-                  key={header}
-                  className="px-4 py-3 text-left text-sm font-medium text-gray-700"
-                >
-                  {header}
-                </th>
-              ))}
-            </tr>
-          </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {items.map((item, index) => (
               <tr key={item.id}>
+                {["name", "unit", "quantity", "unit_amount", "type"].map(
+                  (field) => (
+                    <td key={field} className="px-4 py-2">
+                      <input
+                        value={item[field]}
+                        onChange={(e) =>
+                          handleChange(index, field, e.target.value)
+                        }
+                        className="w-full border rounded px-2 py-1"
+                        readOnly={isReadable}
+                      />
+                    </td>
+                  )
+                )}
                 <td className="px-4 py-2">
-                  <input
-                    value={item.name}
-                    onChange={(e) =>
-                      handleChange(index, "name", e.target.value)
-                    }
-                    className="w-full border rounded px-2 py-1"
-                  />
-                </td>
-                <td className="px-4 py-2">
-                  <input
-                    value={item.unit}
-                    onChange={(e) =>
-                      handleChange(index, "unit", e.target.value)
-                    }
-                    className="w-full border rounded px-2 py-1"
-                  />
-                </td>
-                <td className="px-4 py-2">
-                  <input
-                    type="number"
-                    value={item.quantity}
-                    onChange={(e) =>
-                      handleChange(index, "quantity", Number(e.target.value))
-                    }
-                    className="w-full border rounded px-2 py-1"
-                    min="0"
-                    step="0.01"
-                  />
-                </td>
-                <td className="px-4 py-2">
-                  <input
-                    type="number"
-                    value={item.unit_amount}
-                    onChange={(e) =>
-                      handleChange(index, "unit_amount", Number(e.target.value))
-                    }
-                    className="w-full border rounded px-2 py-1"
-                    min="0"
-                  />
-                </td>
-                <td className="px-4 py-2 font-medium">
-                  ${(item.quantity * item.unit_amount).toFixed(2)}
-                </td>
-                <td className="px-4 py-2">
-                  <select
-                    value={item.type}
-                    onChange={(e) =>
-                      handleChange(index, "type", e.target.value)
-                    }
-                    className="w-full border rounded px-2 py-1"
-                  >
-                    {["Execution", "Operation"].map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td className="px-4 py-2">
-                  <button
-                    onClick={() => handleDeleteRow(item.id)}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    Delete
-                  </button>
+                  {!isReadable && (
+                    <button
+                      onClick={() => handleDeleteRow(item.id)}
+                      className="text-red-600 hover:text-red-800"
+                      disabled={isReadable}
+                    >
+                      Delete
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-
-      {/* Control Buttons */}
-      <div className="mt-6 flex gap-4">
-        <button
-          onClick={handleAddRow}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          Add Item
-        </button>
-        <button
-          onClick={handleSave}
-          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-        >
-          Save Changes
-        </button>
-        <button
-          onClick={handleSendForApproval}
-          className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
-        >
-          Send for Approval
-        </button>
-      </div>
+      {!isReadable && (
+        <div className="mt-6 flex gap-4">
+          <button
+            onClick={handleAddRow}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Add Item
+          </button>
+          <button
+            onClick={handleSave}
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+          >
+            Save Changes
+          </button>
+          <button
+            onClick={handleSendForApproval}
+            className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
+          >
+            Send for Approval
+          </button>
+        </div>
+      )}
     </div>
   );
 };

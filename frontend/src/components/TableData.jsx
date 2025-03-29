@@ -19,6 +19,7 @@ import ProgramAccordion from "../components/ProgramAccordion";
 import TeamAccordion from "./TeamAccordion";
 import DepartmentAccordion from "./DepartmentAccordion";
 import ObjectiveAccordion from "./ObjectiveAccordion";
+import BoqTaskApprovalAccordion from "./BoqTaskApprovalAccordion";
 import axiosInstance from "../axiosInstance";
 import Loader from "./Loader";
 import UpdateProjectModal from "./UpdateProjectModal";
@@ -385,6 +386,15 @@ const TableData = ({
                             <DeliverableAccordion2
                               project={tableData[index]}
                               parentId={tableData[index]?.related_entity_id}
+                            />
+                          )}
+                          {item.title === "Approve Uploaded BOQ" && (
+                            <BoqTaskApprovalAccordion
+                              project={tableData[index]}
+                              parentId={tableData[index]?.related_entity_id}
+                              projectBudget={
+                                tableData[index]?.approved_project_budget
+                              }
                             />
                           )}
                         </div>

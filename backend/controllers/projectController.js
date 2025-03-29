@@ -2,6 +2,7 @@ const sql = require("../database/db");
 const {
   createProjectCreationTaskForDeputy,
   createBoqTaskForPM,
+  createSchedulePlanTaskForPM,
 } = require("./taskCreationController");
 
 // @Description Add new Project
@@ -991,6 +992,99 @@ const getProjectApprovalStatus = async (req, res) => {
   }
 };
 
+const getProjectBoqApprovalStatus = async (req, res) => {
+  const { projectId } = req.body;
+  console.log("the project id is " + projectId);
+  if (!projectId) {
+    return res.status(400).json({
+      status: "failure",
+      message: "projectId is required",
+      result: null,
+    });
+  }
+
+  try {
+    // Query to fetch the approval_status of the given project
+    const query = `
+      SELECT boq_approval_status 
+      FROM project 
+      WHERE id = $1;
+    `;
+
+    const result = await sql.unsafe(query, [projectId]);
+
+    if (result.length === 0) {
+      return res.status(404).json({
+        status: "failure",
+        message: "Project not found",
+        result: null,
+      });
+    }
+    console.log("the boq status");
+    console.log(result);
+    res.json({
+      status: "success",
+      message: "Project boq approval status retrieved successfully",
+      approval_status: result[0].boq_approval_status,
+    });
+  } catch (error) {
+    console.error("Error fetching project approval status:", error);
+    res.status(500).json({
+      status: "failure",
+      message: "Error fetching project approval status",
+      result: error.message,
+    });
+  }
+};
+
+const updateBOQApprovalbyPMO = async (req, res) => {
+  console.log("update approval status by deputy:", req.body);
+  if (!req.body.approval || !req.body.id) {
+    return res.status(400).json({
+      status: "failure",
+      message: "Required field missing: id, approval is required",
+      result: null,
+    });
+  }
+  const status = req.body.approval;
+  try {
+    const result = await sql`
+      UPDATE project
+      SET boq_approval_status = ${status}
+      WHERE id = ${req.body.id}
+      RETURNING *;
+    `;
+    console.log("result", result);
+    // await createBoqTaskForPM(result);
+    if (status == "Approved") {
+      try {
+        console.log("hello");
+        await createSchedulePlanTaskForPM(req.body.id);
+      } catch (e) {
+        console.log("there was an error");
+        console.log(e);
+        console.log(e.message);
+        res.status(500).json({
+          status: "failed",
+          message: "Failed to create a schedule plan task",
+          result: e,
+        });
+      }
+    }
+    res.status(200).json({
+      status: "success",
+      message: "Successfully updated project approval",
+      result,
+    });
+  } catch (e) {
+    res.status(500).json({
+      status: "failed",
+      message: "Failed to update project approval",
+      result: e,
+    });
+  }
+};
+
 module.exports = {
   addProject,
   updateProject,
@@ -1008,4 +1102,6 @@ module.exports = {
   addBeneficiaryDepartments,
   getBeneficiaryDepartments,
   getProjectApprovalStatus,
+  updateBOQApprovalbyPMO,
+  getProjectBoqApprovalStatus,
 };

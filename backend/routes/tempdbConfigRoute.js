@@ -32,6 +32,7 @@ const {
   createProjectDocumentsTable,
   createSchedulePlan,
   setupAllForeignKeys,
+  addBoqApprovalStatusColumnToProject,
 } = require("../database/dbConfig");
 const {
   createSchedulePlanTaskForPM,
@@ -73,5 +74,9 @@ router.get("/cprojectdocuments", createProjectDocumentsTable);
 router.get("/cschedulePlan", createSchedulePlan);
 
 router.get("/createForeignKey", setupAllForeignKeys);
+router.get(
+  "/addBoqApprovalStatusColumnToProject",
+  addBoqApprovalStatusColumnToProject
+);
 
 module.exports = router;

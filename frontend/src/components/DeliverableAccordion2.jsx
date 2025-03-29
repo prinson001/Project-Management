@@ -238,6 +238,62 @@ const DeliverablesAccordion2 = ({ project }) => {
     }
   };
 
+  const handleSaveandMarkComplete = async () => {
+    try {
+      const payload = {
+        newDeliverables: items.flatMap((item) =>
+          item.deliverables
+            .filter((d) => d.status === "new")
+            .map(
+              ({ name, amount, start_date, end_date, duration, item_id }) => ({
+                name,
+                amount,
+                start_date,
+                end_date,
+                duration,
+                item_id,
+              })
+            )
+        ),
+        updatedDeliverables: items.flatMap((item) =>
+          item.deliverables
+            .filter((d) => changes.updatedDeliverables.includes(d.id))
+            .map(({ id, name, amount, start_date, end_date, duration }) => ({
+              id,
+              name,
+              amount,
+              start_date,
+              end_date,
+              duration,
+            }))
+        ),
+        deletedDeliverables: changes.deletedDeliverables,
+      };
+
+      console.log("Saving payload:", payload);
+
+      await axiosInstance.post(`/pm/${projectId}/save-deliverables`, payload);
+
+      const response = await axiosInstance.post(
+        `/data-management/updateTaskStatusToDone`,
+        {
+          taskId: project.id,
+        }
+      );
+
+      setChanges({
+        newDeliverables: [],
+        updatedDeliverables: [],
+        deletedDeliverables: [],
+      });
+
+      alert("Deliverables saved successfully!");
+    } catch (error) {
+      console.error("Error saving deliverables:", error.message);
+      alert("Error saving deliverables");
+    }
+  };
+
   const isSaveDisabled =
     changes.newDeliverables.length === 0 &&
     changes.updatedDeliverables.length === 0 &&
@@ -466,6 +522,12 @@ const DeliverablesAccordion2 = ({ project }) => {
           disabled={isSaveDisabled}
         >
           Save All Changes
+        </button>
+        <button
+          onClick={handleSaveandMarkComplete}
+          className={`px-6 py-2 rounded-md text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500  bg-green-600 hover:bg-green-700`}
+        >
+          Save and Mark as Completed
         </button>
       </div>
     </div>

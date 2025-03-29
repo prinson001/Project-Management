@@ -52,6 +52,8 @@ const {
   getProjectTypes,
   addBeneficiaryDepartments,
   getBeneficiaryDepartments,
+  updateBOQApprovalbyPMO,
+  getProjectBoqApprovalStatus,
 } = require("../controllers/projectController");
 const {
   getSchedulePlan,
@@ -93,6 +95,8 @@ const {
 const {
   createProjectCreationTaskForDeputy,
 } = require("../controllers/taskCreationController");
+
+const { updateTaskStatusToDone } = require("../controllers/tasksController");
 
 router.post("/setting", getSetting);
 router.post("/data", getData);
@@ -176,4 +180,8 @@ router.post(
 );
 
 router.post("/getProgramDetails", getProgramDetails);
+
+router.post("/updateBOQApprovalbyPMO", updateBOQApprovalbyPMO);
+router.post("/getProjectBoqApprovalStatus", getProjectBoqApprovalStatus);
+router.post("/updateTaskStatusToDone", updateTaskStatusToDone);
 module.exports = router;

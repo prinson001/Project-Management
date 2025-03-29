@@ -22,7 +22,11 @@ app.use("/pm", require("./routes/pmRoute"));
 app.use("/tasks", require("./routes/tasksRoute"));
 app.use("/deputy", require("./routes/deputyRoute"));
 
-app.post("/data-management/addProjectDocument", upload.single('file'), require("./controllers/documentController").addProjectDocument);
+app.post(
+  "/data-management/addProjectDocument",
+  upload.single("file"),
+  require("./controllers/documentController").addProjectDocument
+);
 
 app.use(errorHandler);
 
@@ -30,15 +34,15 @@ app.listen(port, (req, res) => {
   console.log(`App listening at port ${port}`);
   cronJob();
 });
-// process.on("SIGINT", () => {
-//   console.log("Shutting down server gracefully...");
-//   server.close(() => {
-//     console.log("Server closed. Exiting process...");
-//     process.exit(0);
-//   });
-// });
+process.on("SIGINT", () => {
+  console.log("Shutting down server gracefully...");
+  app.close(() => {
+    console.log("Server closed. Exiting process...");
+    process.exit(0);
+  });
+});
 
-// process.on("SIGTERM", () => {
-//   console.log("Process terminated.");
-//   server.close(() => process.exit(0));
-// });
+process.on("SIGTERM", () => {
+  console.log("Process terminated.");
+  app.close(() => process.exit(0));
+});

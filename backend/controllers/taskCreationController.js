@@ -117,9 +117,8 @@ const createBoqTaskForPM = async (project) => {
   }
 };
 
-const createSchedulePlanTaskForPM = async (req, res) => {
+const createSchedulePlanTaskForPM = async (projectId) => {
   try {
-    const { projectId } = req.body;
     console.log("project id in schedule plan", projectId);
     // Fetch project data
     const projectResult = await sql`
@@ -128,10 +127,11 @@ const createSchedulePlanTaskForPM = async (req, res) => {
 
     if (projectResult.length === 0) {
       console.log("Invalid project data.");
-      return res.status(400).json({
-        status: "error",
-        message: "Project not found",
-      });
+      return;
+      // return res.status(400).json({
+      //   status: "error",
+      //   message: "Project not found",
+      // });
     }
 
     const projectData = projectResult[0];
@@ -143,10 +143,11 @@ const createSchedulePlanTaskForPM = async (req, res) => {
 
     if (activityDurationResult.length === 0) {
       console.log("No activity duration found for 'Upload Schedule Plan'.");
-      return res.status(400).json({
-        status: "error",
-        message: "Activity duration not found",
-      });
+      return;
+      // return res.status(400).json({
+      //   status: "error",
+      //   message: "Activity duration not found",
+      // });
     }
 
     const activityDuration = activityDurationResult[0];
@@ -175,12 +176,96 @@ const createSchedulePlanTaskForPM = async (req, res) => {
       }) with due date ${dueDate.toISOString().split("T")[0]}`
     );
 
-    return res.status(200).json({
-      status: "success",
-      message: "Schedule plan task created successfully",
-    });
+    // return res.status(200).json({
+    //   status: "success",
+    //   message: "Schedule plan task created successfully",
+    // });
   } catch (e) {
     console.error("Error creating SchedulePlan task for Project Manager:", e);
+    // return res.status(500).json({
+    //   status: "error",
+    //   message: "Internal server error",
+    // });
+  }
+};
+
+const createBoqApprovalTaskForPMO = async (req, res) => {
+  try {
+    const { projectId } = req.body;
+    console.log("Project ID for BOQ approval:", projectId);
+
+    // Fetch the activity duration for "Approve Uploaded BOQ"
+    const activityDurationResult = await sql`
+      SELECT * FROM activity_duration WHERE activity_name = 'Approve Uploaded BOQ';
+    `;
+
+    if (activityDurationResult.length === 0) {
+      console.log("No activity duration found for 'Approve Uploaded BOQ'.");
+      return res.status(400).json({
+        status: "error",
+        message: "Activity duration not found",
+      });
+    }
+
+    const activityDuration = activityDurationResult[0];
+
+    // Fetch the user with role "PMO"
+    const pmos = await sql`
+      SELECT u.* 
+      FROM users u
+      JOIN role r ON u.role_id = r.id
+      WHERE r.name = 'PMO';
+    `;
+
+    if (pmos.length === 0) {
+      console.log("No PMO found.");
+      return res.status(400).json({
+        status: "error",
+        message: "No PMO found",
+      });
+    }
+
+    const pmo = pmos[0]; // Assigning to the first PMO found
+    console.log("Found PMO:", pmo);
+
+    // Calculate due date
+    const today = new Date();
+    const dueDate = new Date(today);
+    dueDate.setDate(today.getDate() + Number(activityDuration.duration));
+
+    // Insert a new task for the PMO
+    await sql`
+      INSERT INTO tasks (title, status, due_date, assigned_to, related_entity_type, related_entity_id)
+      VALUES (
+        'Approve Uploaded BOQ',
+        'Open',
+        ${dueDate.toISOString().split("T")[0]},
+        ${pmo.id},
+        'project',
+        ${projectId}
+      );
+    `;
+
+    // Update project table to set boq_approval_status to 'Waiting on PMO'
+    await sql`
+      UPDATE project
+      SET boq_approval_status = 'Waiting On PMO'
+      WHERE id = ${projectId};
+    `;
+
+    console.log(
+      `Task created for PMO (ID: ${pmo.id}) with due date ${
+        dueDate.toISOString().split("T")[0]
+      }`
+    );
+
+    return res.status(200).json({
+      status: "success",
+      message:
+        "BOQ approval task created successfully and project status updated",
+    });
+  } catch (e) {
+    console.error("Error creating BOQ approval task for PMO:", e);
     return res.status(500).json({
       status: "error",
       message: "Internal server error",
@@ -192,4 +277,5 @@ module.exports = {
   createProjectCreationTaskForDeputy,
   createBoqTaskForPM,
   createSchedulePlanTaskForPM,
+  createBoqApprovalTaskForPMO,
 };
