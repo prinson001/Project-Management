@@ -30,10 +30,10 @@ const login = asyncHandler(async (req, res) => {
   const jwtToken = generatejsonWebToken(user[0]);
 
   res.status(200);
-  res.send({ 
-    status: "success", 
+  res.send({
+    status: "success",
     token: jwtToken,
-    role: user[0].role // Include the role in the response
+    role: user[0].role, // Include the role in the response
   });
 });
 
@@ -84,4 +84,78 @@ const createUser = asyncHandler(async (req, res) => {
   }
 });
 
-module.exports = { login, updateUserData, getUsers };
+const resetPassword = asyncHandler(async (req, res) => {
+  // 1. Validate request body
+  if (!req.body.email || !req.body.currentPassword || !req.body.newPassword) {
+    console.log("Missing required fields");
+    return res.status(400).json({
+      status: "error",
+      message: "Email, current password, and new password are required",
+    });
+  }
+
+  // 2. Find the user in database
+  const users = await sql`
+    SELECT users.id, users.email, users.password
+    FROM users 
+    WHERE users.email = ${req.body.email}
+    ;`;
+
+  if (users.length === 0) {
+    console.log("User not found:", req.body.email);
+    return res.status(404).json({
+      status: "error",
+      message: "User not found",
+    });
+  }
+
+  const user = users[0];
+
+  // 3. Verify current password
+  // If using plain text comparison as in your login function
+  const passwordMatch = user.password === req.body.currentPassword;
+
+  if (!passwordMatch) {
+    console.log("Incorrect password attempt");
+    return res.status(400).json({
+      status: "error",
+      message: "Current password is incorrect",
+    });
+  }
+
+  // 4. Use the new password
+  const newPassword = req.body.newPassword;
+
+  try {
+    // 5. Update the password in the database
+    const result = await sql`
+      UPDATE users 
+      SET password = ${newPassword}
+      WHERE id = ${user.id}
+    `;
+
+    // 6. Return success response
+    if (result.count > 0) {
+      console.log("Password updated successfully for user:", user.email);
+      return res.status(200).json({
+        status: "success",
+        message: "Password updated successfully",
+      });
+    } else {
+      console.log("Database update returned 0 affected rows");
+      return res.status(500).json({
+        status: "error",
+        message: "Failed to update password",
+      });
+    }
+  } catch (error) {
+    console.error("Database error during password update:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "An error occurred while updating the password",
+      details: error.message,
+    });
+  }
+});
+
+module.exports = { login, updateUserData, getUsers, resetPassword };
