@@ -109,6 +109,7 @@ const getFilteredData = async (req, res) => {
     limit = 7, // Updated to match your query log (LIMIT 7)
     sort = {}, // Default to empty object if not provided
     dateFilter,
+    customDateRangeOption,
   } = req.body;
 
   if (!tableName) {
@@ -160,81 +161,144 @@ const getFilteredData = async (req, res) => {
     });
     console.log("the tablename is " + tableName);
     // Handle date filtering
+    // Handle date filtering
     if (dateFilter) {
       const dateColumn =
-        tableName === "initiative" ? "created_at" : "created_date"; // Adjust to your actual date column
-      console.log("the data column is" + dateColumn);
-      let startDate, endDate;
+        tableName === "initiative" ? "created_at" : "created_date";
+
+      // Helper function to format dates as YYYY-MM-DD
+      const formatDate = (date) =>
+        [
+          date.getFullYear(),
+          String(date.getMonth() + 1).padStart(2, "0"),
+          String(date.getDate()).padStart(2, "0"),
+        ].join("-");
+
       const today = new Date();
-      today.setHours(23, 59, 59, 999);
 
       switch (dateFilter) {
         case "Today":
-          startDate = new Date(today);
-          startDate.setHours(0, 0, 0, 0);
+          const todayDateStr = formatDate(today);
           whereConditions.push(
-            `"${dateColumn}" >= $${whereConditions.length + 1}`
+            `"${dateColumn}" = $${whereConditions.length + 1}`
           );
-          queryParams.push(startDate.toISOString());
-          whereConditions.push(
-            `"${dateColumn}" <= $${whereConditions.length + 1}`
-          );
-          queryParams.push(today.toISOString());
+          queryParams.push(todayDateStr);
           break;
+
         case "thisWeek":
-          startDate = new Date(today);
-          const dayOfWeek = startDate.getDay();
+          const startOfWeek = new Date(today);
+          const dayOfWeek = startOfWeek.getDay();
           const diff = dayOfWeek <= 1 ? dayOfWeek + 6 : dayOfWeek - 1;
-          startDate.setDate(today.getDate() - diff);
-          startDate.setHours(0, 0, 0, 0);
-          endDate = new Date(startDate);
-          endDate.setDate(startDate.getDate() + 6);
-          endDate.setHours(23, 59, 59, 999);
+          startOfWeek.setDate(today.getDate() - diff);
+          const endOfWeek = new Date(startOfWeek);
+          endOfWeek.setDate(startOfWeek.getDate() + 6);
+
           whereConditions.push(
-            `"${dateColumn}" >= $${whereConditions.length + 1}`
+            `"${dateColumn}" BETWEEN $${whereConditions.length + 1} AND $${
+              whereConditions.length + 2
+            }`
           );
-          queryParams.push(startDate.toISOString());
-          whereConditions.push(
-            `"${dateColumn}" <= $${whereConditions.length + 1}`
-          );
-          queryParams.push(endDate.toISOString());
+          queryParams.push(formatDate(startOfWeek), formatDate(endOfWeek));
           break;
+
         case "This Month":
-          startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-          startDate.setHours(0, 0, 0, 0);
-          whereConditions.push(
-            `"${dateColumn}" >= $${whereConditions.length + 1}`
+          const startOfMonth = new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            1
           );
-          queryParams.push(startDate.toISOString());
-          whereConditions.push(
-            `"${dateColumn}" <= $${whereConditions.length + 1}`
+          const endOfMonth = new Date(
+            today.getFullYear(),
+            today.getMonth() + 1,
+            0
           );
-          queryParams.push(today.toISOString());
+
+          whereConditions.push(
+            `"${dateColumn}" BETWEEN $${whereConditions.length + 1} AND $${
+              whereConditions.length + 2
+            }`
+          );
+          queryParams.push(formatDate(startOfMonth), formatDate(endOfMonth));
           break;
+
         case "last2months":
-          startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-          startDate.setHours(0, 0, 0, 0);
-          whereConditions.push(
-            `"${dateColumn}" >= $${whereConditions.length + 1}`
+          const startOfTwoMonthsAgo = new Date(
+            today.getFullYear(),
+            today.getMonth() - 1,
+            1
           );
-          queryParams.push(startDate.toISOString());
-          whereConditions.push(
-            `"${dateColumn}" <= $${whereConditions.length + 1}`
+          const endOfCurrentMonth = new Date(
+            today.getFullYear(),
+            today.getMonth() + 1,
+            0
           );
-          queryParams.push(today.toISOString());
+
+          whereConditions.push(
+            `"${dateColumn}" BETWEEN $${whereConditions.length + 1} AND $${
+              whereConditions.length + 2
+            }`
+          );
+          queryParams.push(
+            formatDate(startOfTwoMonthsAgo),
+            formatDate(endOfCurrentMonth)
+          );
           break;
+
         case "Last 3 Months":
-          startDate = new Date(today.getFullYear(), today.getMonth() - 2, 1);
-          startDate.setHours(0, 0, 0, 0);
-          whereConditions.push(
-            `"${dateColumn}" >= $${whereConditions.length + 1}`
+          const startOfThreeMonthsAgo = new Date(
+            today.getFullYear(),
+            today.getMonth() - 2,
+            1
           );
-          queryParams.push(startDate.toISOString());
-          whereConditions.push(
-            `"${dateColumn}" <= $${whereConditions.length + 1}`
+          const endOfCurrentMonthForThree = new Date(
+            today.getFullYear(),
+            today.getMonth() + 1,
+            0
           );
-          queryParams.push(today.toISOString());
+
+          whereConditions.push(
+            `"${dateColumn}" BETWEEN $${whereConditions.length + 1} AND $${
+              whereConditions.length + 2
+            }`
+          );
+          queryParams.push(
+            formatDate(startOfThreeMonthsAgo),
+            formatDate(endOfCurrentMonthForThree)
+          );
           break;
+
+        case "custom":
+          if (!customDateRangeOption?.start || !customDateRangeOption?.end) {
+            return res.status(400).json({
+              status: "failure",
+              message: "Missing custom date range parameters",
+              result: null,
+            });
+          }
+
+          const startDateStr = customDateRangeOption.start;
+          const endDateStr = customDateRangeOption.end;
+
+          // Validate date format
+          if (
+            !/^\d{4}-\d{2}-\d{2}$/.test(startDateStr) ||
+            !/^\d{4}-\d{2}-\d{2}$/.test(endDateStr)
+          ) {
+            return res.status(400).json({
+              status: "failure",
+              message: "Invalid date format. Use YYYY-MM-DD",
+              result: null,
+            });
+          }
+
+          whereConditions.push(
+            `"${dateColumn}" BETWEEN $${whereConditions.length + 1} AND $${
+              whereConditions.length + 2
+            }`
+          );
+          queryParams.push(startDateStr, endDateStr);
+          break;
+
         case "all":
         default:
           break;

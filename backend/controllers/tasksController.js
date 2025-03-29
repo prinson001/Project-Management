@@ -68,6 +68,7 @@ const filterTasks = async (req, res) => {
     getAllTasks = false,
     taskStatus,
     dateFilter,
+    customDateRangeOption,
     sort: sortClause,
     page = 1,
     limit = 10,
@@ -122,12 +123,13 @@ const filterTasks = async (req, res) => {
         case "Today":
           startDate = new Date(today);
           startDate.setHours(0, 0, 0, 0);
+          console.log("the start date set for today is" + startDate);
           whereConditions.push(
-            `${dateColumn} >= $${whereConditions.length + 1}`
+            `DATE(${dateColumn}) >= $${whereConditions.length + 1}`
           );
           queryParams.push(startDate.toISOString());
           whereConditions.push(
-            `${dateColumn} <= $${whereConditions.length + 1}`
+            `DATE(${dateColumn}) <= $${whereConditions.length + 1}`
           );
           queryParams.push(today.toISOString());
           break;
@@ -185,6 +187,39 @@ const filterTasks = async (req, res) => {
           );
           queryParams.push(today.toISOString());
           break;
+        case "custom":
+          console.log("the custom range is set");
+          if (
+            !customDateRangeOption ||
+            !customDateRangeOption.start ||
+            !customDateRangeOption.end
+          ) {
+            return res.status(400).json({
+              status: "failure",
+              message: "Missing custom date range parameters",
+              result: null,
+            });
+          }
+          startDate = new Date(customDateRangeOption.start);
+          endDate = new Date(customDateRangeOption.end);
+
+          if (isNaN(startDate) || isNaN(endDate)) {
+            return res.status(400).json({
+              status: "failure",
+              message: "Invalid date format for custom range",
+              result: null,
+            });
+          }
+
+          startDate.setHours(0, 0, 0, 0);
+          endDate.setHours(23, 59, 59, 999);
+
+          whereConditions.push(
+            `${dateColumn} >= $${
+              whereConditions.length + 1
+            } AND ${dateColumn} <= $${whereConditions.length + 2}`
+          );
+          queryParams.push(startDate.toISOString(), endDate.toISOString());
       }
     }
 
