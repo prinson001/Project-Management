@@ -17,12 +17,14 @@ import InitiativeAccordion from "../components/InitiativeAccordion";
 import PortfolioAccordion from "../components/PortfolioAccordion";
 import ProgramAccordion from "../components/ProgramAccordion";
 import TeamAccordion from "./TeamAccordion";
+import ProjectAccordion from "./ProjectAccordion";
 import DepartmentAccordion from "./DepartmentAccordion";
 import ObjectiveAccordion from "./ObjectiveAccordion";
 import BoqTaskApprovalAccordion from "./BoqTaskApprovalAccordion";
 import axiosInstance from "../axiosInstance";
 import Loader from "./Loader";
 import UpdateProjectModal from "./UpdateProjectModal";
+import DocumentTemplateAccordion from "./DocumentTemplateAccordion";
 
 const TableData = ({
   getData,
@@ -431,6 +433,24 @@ const TableData = ({
                           data={item}
                           title="Program details"
                         />
+                      </td>
+                    </tr>
+                  )}
+                  {tableName === "project" && openAccordion === index && (
+                    <tr>
+                      <td colSpan={visibleColumns.length + 1} className="p-0">
+                        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 dark:text-white">
+                          <ProjectAccordion data={item} />
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  {tableName === "document" && openAccordion === index && (
+                    <tr>
+                      <td colSpan={visibleColumns.length + 1} className="p-0">
+                        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 dark:text-white">
+                          <DocumentTemplateAccordion data={item} />
+                        </div>
                       </td>
                     </tr>
                   )}
