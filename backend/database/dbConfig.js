@@ -1117,6 +1117,39 @@ const addBoqApprovalStatusColumnToProject = async (req, res) => {
   }
 };
 
+const alterObjectivedatetoAutoFill = async (req, res) => {
+  try {
+    const result = await sql`
+      ALTER TABLE objective 
+      ALTER COLUMN created_date SET DEFAULT CURRENT_TIMESTAMP;
+    `;
+
+    res.status(200).json({
+      status: "success",
+      message: "Added created_date column to objective table successfully",
+      result,
+    });
+  } catch (e) {
+    res.status(500).json({ status: "failure", message: e.message });
+  }
+};
+const alterdocumentTemplatedatetoAutoFill = async (req, res) => {
+  try {
+    const result = await sql`
+      ALTER TABLE document_template 
+      ALTER COLUMN created_date SET DEFAULT CURRENT_TIMESTAMP;
+    `;
+
+    res.status(200).json({
+      status: "success",
+      message: "Added created_date column to objective table successfully",
+      result,
+    });
+  } catch (e) {
+    res.status(500).json({ status: "failure", message: e.message });
+  }
+};
+
 module.exports = {
   createUsersTable,
   createInitiativeTable,
@@ -1154,4 +1187,5 @@ module.exports = {
   createProjectDocumentsTable,
   setupAllForeignKeys,
   addBoqApprovalStatusColumnToProject,
+  alterObjectivedatetoAutoFill,
 };

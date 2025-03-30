@@ -33,6 +33,7 @@ const {
   createSchedulePlan,
   setupAllForeignKeys,
   addBoqApprovalStatusColumnToProject,
+  alterObjectivedatetoAutoFill,
 } = require("../database/dbConfig");
 const {
   createSchedulePlanTaskForPM,
@@ -78,5 +79,7 @@ router.get(
   "/addBoqApprovalStatusColumnToProject",
   addBoqApprovalStatusColumnToProject
 );
+
+router.get("/alterdateobjective", alterObjectivedatetoAutoFill);
 
 module.exports = router;

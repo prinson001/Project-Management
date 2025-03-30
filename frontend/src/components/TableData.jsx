@@ -132,6 +132,7 @@ const TableData = ({
   };
 
   const handleFormData = async (formData) => {
+    console.log(formData);
     const { id, ...updatedData } = formData;
     toggleForm(-1);
     try {
