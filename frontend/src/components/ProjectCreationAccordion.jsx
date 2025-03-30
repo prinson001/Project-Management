@@ -8,6 +8,7 @@ import { constructNow } from "date-fns";
 
 function ProjectCreationAccordion({ project }) {
   const [projectData, setProjectData] = useState(null);
+  const [projectApproval, setProjectApproval] = useState("null");
   const fetchProjectApprovalStatus = async () => {
     try {
       if (project.status === "Done") {
@@ -18,6 +19,7 @@ function ProjectCreationAccordion({ project }) {
           }
         );
         console.log(result.data.approval_status);
+        setProjectApproval(result.data.approval_status);
         project = { ...project, approval_status: result.data.approval_status };
       }
       if (project) {
@@ -143,12 +145,12 @@ function ProjectCreationAccordion({ project }) {
             Project was{" "}
             <span
               className={
-                projectData.approval_status == "Rejected"
+                projectApproval == "Rejected"
                   ? "text-red-500"
                   : "text-green-500"
               }
             >
-              {projectData?.approval_status}
+              {projectApproval}
             </span>
           </p>
         </div>
