@@ -14,6 +14,8 @@ const {
   upsertTableSetting,
   getRoles,
   addUser,
+  updateUser,
+  deleteUser,
 } = require("../controllers/dataManagementController");
 const {
   addInitiative,
@@ -68,6 +70,8 @@ const {
 const {
   addDepartment,
   getRelatedProjects,
+  updateDepartment,
+  deleteDepartment,
   getDepartments,
 } = require("../controllers/departmentController");
 
@@ -84,6 +88,8 @@ const {
 const {
   addObjective,
   getObjectives,
+  updateObjective,
+  deleteObjective,
   getRelatedProjectsforObjective,
 } = require("../controllers/objectiveController");
 
@@ -156,6 +162,8 @@ router.post("/getUserRelatedEntities", getUserRelatedEntities);
 
 router.post("/adddepartment", addDepartment);
 router.post("/getDepartments", getDepartments);
+router.post("/updateDepartment", updateDepartment);
+router.post("/deleteDepartment", deleteDepartment);
 router.post("/getDepartmentProjects", getRelatedProjects);
 
 router.post("/addvendor", addVendor);
@@ -165,6 +173,8 @@ router.post("/deletevendor", deleteVendor);
 
 router.post("/addobjective", addObjective);
 router.post("/getObjectives", getObjectives);
+router.post("/updateObjective", updateObjective);
+router.post("/deleteObjective", deleteObjective);
 router.post("/getRelatedProjectsforObjective", getRelatedProjectsforObjective);
 router.post("/getProjectDocuments", getProjectDocuments);
 //router.post("/addProjectDocument",addProjectDocument);
@@ -185,6 +195,8 @@ router.post("/getInternalSchedulePlan", getInternalSchedulePlan);
 
 router.post("/getRoles", getRoles);
 router.post("/addUser", addUser);
+router.post("/updateUsers", updateUser);
+router.post("/deleteUsers", deleteUser);
 
 router.post(
   "/createProjectCreationTaskForDeputy",

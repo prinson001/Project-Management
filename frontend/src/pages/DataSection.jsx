@@ -18,6 +18,7 @@ let getAllTasks = null;
 let taskStatus = null;
 let openTaskCount = null;
 let closedTaskCount = null;
+let customDateRange = null;
 
 let page = 1;
 
@@ -133,6 +134,7 @@ const DataSection = ({
           getAllTasks,
           taskStatus,
           dateFilter,
+          customDateRangeOption: customDateRange,
           sort: sortClause,
         });
         console.log(result);
@@ -156,6 +158,7 @@ const DataSection = ({
             filters: tablefilters,
             sort: sortClause,
             dateFilter,
+            customDateRangeOption: customDateRange,
             page,
           }
         );
@@ -194,8 +197,14 @@ const DataSection = ({
   }
 
   async function filterBasedOnDays(input) {
+    if (typeof input === "object") {
+      console.log("object is passed");
+      customDateRange = input;
+      dateFilter = "custom";
+    } else {
+      dateFilter = input;
+    }
     console.log(tablefilters);
-    dateFilter = input;
     getFilteredData();
   }
 

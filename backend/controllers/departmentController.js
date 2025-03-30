@@ -141,4 +141,172 @@ const getRelatedProjects = async (req, res) => {
   }
 };
 
-module.exports = { addDepartment, getDepartments, getRelatedProjects };
+const updateDepartment = async (req, res) => {
+  if (
+    !req.body ||
+    !req.body.id ||
+    !req.body.data ||
+    typeof req.body.data !== "object"
+  ) {
+    return res.status(400).json({
+      status: "failure",
+      message: "Required fields missing: id and data object are required",
+      result: null,
+    });
+  }
+
+  const { id, data } = req.body;
+
+  if (Object.keys(data).length === 0) {
+    return res.status(400).json({
+      status: "failure",
+      message: "No data fields provided for update",
+      result: null,
+    });
+  }
+
+  try {
+    if (isNaN(id)) {
+      return res.status(400).json({
+        status: "failure",
+        message: "Invalid id format: must be a number",
+        result: null,
+      });
+    }
+
+    const columns = Object.keys(data);
+    const values = Object.values(data);
+
+    for (const column of columns) {
+      if (!/^[a-zA-Z0-9_]+$/.test(column)) {
+        return res.status(400).json({
+          status: "failure",
+          message: `Invalid column name: ${column}`,
+          result: null,
+        });
+      }
+    }
+
+    const setClause = columns
+      .map((col, index) => `"${col}" = $${index + 1}`)
+      .join(", ");
+    values.push(id);
+    const idPlaceholder = `$${values.length}`;
+
+    const queryText = `
+        UPDATE department
+        SET ${setClause}
+        WHERE id = ${idPlaceholder}
+        RETURNING *
+      `;
+
+    const result = await sql.unsafe(queryText, values);
+
+    if (!result || result.length === 0) {
+      return res.status(404).json({
+        status: "failure",
+        message: `Department with id ${id} not found`,
+        result: null,
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      message: "Department updated successfully",
+      result: result[0] || result,
+    });
+  } catch (error) {
+    console.error("Error updating department:", error);
+
+    if (error.code === "23505") {
+      return res.status(409).json({
+        status: "failure",
+        message: "Update violates unique constraint",
+        result: error.detail || error,
+      });
+    }
+
+    if (error.code === "23503") {
+      return res.status(409).json({
+        status: "failure",
+        message: "Referenced department manager does not exist",
+        result: error.detail || error,
+      });
+    }
+
+    return res.status(500).json({
+      status: "failure",
+      message: "Error updating department",
+      result: error.message || error,
+    });
+  }
+};
+
+const deleteDepartment = async (req, res) => {
+  if (!req.body || !req.body.id) {
+    return res.status(400).json({
+      status: "failure",
+      message: "Required field missing: id is required",
+      result: null,
+    });
+  }
+
+  const { id } = req.body;
+
+  try {
+    if (isNaN(id)) {
+      return res.status(400).json({
+        status: "failure",
+        message: "Invalid id format: must be a number",
+        result: null,
+      });
+    }
+
+    const queryText = `
+        DELETE FROM department
+        WHERE id = $1
+        RETURNING id
+      `;
+
+    const result = await sql.unsafe(queryText, [id]);
+
+    if (!result || result.length === 0) {
+      return res.status(404).json({
+        status: "failure",
+        message: `Department with id ${id} not found`,
+        result: null,
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      message: "Department deleted successfully",
+      result: { id: result[0].id },
+    });
+  } catch (error) {
+    console.error("Error deleting department:", error);
+
+    if (error.code === "23503") {
+      return res.status(409).json({
+        status: "failure",
+        message:
+          "Cannot delete this department because it's referenced by other records",
+        result: error.detail || error,
+      });
+    }
+
+    return res.status(500).json({
+      status: "failure",
+      message: "Error deleting department",
+      result: error.message || error,
+    });
+  }
+};
+
+module.exports = {
+  addDepartment,
+  getDepartments,
+  updateDepartment,
+  deleteDepartment,
+  getRelatedProjects,
+};

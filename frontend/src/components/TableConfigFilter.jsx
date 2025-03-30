@@ -21,6 +21,8 @@ const TableConfigFilter = ({
   const [isOpen, setIsOpen] = useState(false);
   const [isOpen2, setIsOpen2] = useState(false);
   const [isCustomSettingOpen, setIsCustomSettingOpen] = useState(false);
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
 
   const dropdownRef = useRef(null);
   const dropdownRef2 = useRef(null);
@@ -61,11 +63,30 @@ const TableConfigFilter = ({
   };
 
   const DaysFilterOptionClickHandler = (option) => {
-    // updateFilters(option, "daysFilter");
-    console.log(option);
+    if (option === "custom") {
+      return; // Handle custom range separately
+    }
     filterBasedOnDays(option);
     setSelectedOption(option);
-    setIsOpen(false); // Close dropdown after selection
+    setIsOpen2(false);
+  };
+  // const DaysFilterOptionClickHandler = (option) => {
+  //   // updateFilters(option, "daysFilter");
+  //   console.log(option);
+  //   filterBasedOnDays(option);
+  //   setSelectedOption(option);
+  //   setIsOpen(false); // Close dropdown after selection
+  // };
+  const handleCustomDateApply = () => {
+    if (customStartDate && customEndDate) {
+      filterBasedOnDays({
+        type: "custom",
+        start: customStartDate,
+        end: customEndDate,
+      });
+      setSelectedOption("Custom Range");
+      setIsOpen2(false);
+    }
   };
 
   const tableColumnFilterHandler = (e) => {
@@ -259,6 +280,36 @@ const TableConfigFilter = ({
                     </li>
                   ))}
                 </ul>
+                <div className="p-4 border-t border-gray-200 dark:border-gray-600">
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-medium dark:text-gray-200 mb-2">
+                      Custom Range
+                    </h3>
+                    <div className="flex gap-2">
+                      <input
+                        type="date"
+                        value={customStartDate}
+                        onChange={(e) => setCustomStartDate(e.target.value)}
+                        className="w-full p-2 border rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                        placeholder="Start Date"
+                      />
+                      <input
+                        type="date"
+                        value={customEndDate}
+                        onChange={(e) => setCustomEndDate(e.target.value)}
+                        className="w-full p-2 border rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                        placeholder="End Date"
+                      />
+                    </div>
+                    <button
+                      onClick={handleCustomDateApply}
+                      className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 disabled:opacity-50"
+                      disabled={!customStartDate || !customEndDate}
+                    >
+                      Apply Custom Range
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </div>
