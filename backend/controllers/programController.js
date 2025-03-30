@@ -320,15 +320,33 @@ const deleteProgram = async (req, res) => {
       });
     }
 
-    // Build the query with parameterized id
-    const queryText = `
-        DELETE FROM program
-        WHERE id = $1
-        RETURNING id
-      `;
+    // First check if program is linked to any portfolios
+    const checkQuery = `
+      SELECT COUNT(*) as portfolio_count 
+      FROM portfolio 
+      WHERE program_id = $1
+    `;
+    const checkResult = await sql.unsafe(checkQuery, [id]);
 
-    // Execute the query
-    const result = await sql.unsafe(queryText, [id]);
+    if (checkResult[0].portfolio_count > 0) {
+      return res.status(409).json({
+        status: "failure",
+        message:
+          "Cannot delete program because it is linked to one or more portfolios",
+        result: {
+          linked_portfolios: checkResult[0].portfolio_count,
+        },
+      });
+    }
+
+    // If no linked portfolios, proceed with deletion
+    const deleteQuery = `
+      DELETE FROM program
+      WHERE id = $1
+      RETURNING id
+    `;
+
+    const result = await sql.unsafe(deleteQuery, [id]);
 
     // Check if any row was deleted
     if (!result || result.length === 0) {
@@ -348,9 +366,8 @@ const deleteProgram = async (req, res) => {
   } catch (error) {
     console.error("Error deleting program:", error);
 
-    // Handle foreign key constraint violations
+    // Handle other potential foreign key constraint violations
     if (error.code === "23503") {
-      // PostgreSQL foreign key violation code
       return res.status(409).json({
         status: "failure",
         message:
