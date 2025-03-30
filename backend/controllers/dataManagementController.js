@@ -576,6 +576,169 @@ const upsertTableSetting = async (req, res) => {
   }
 };
 
+const deleteUser = async (req, res) => {
+  if (!req.body || !req.body.id) {
+    return res.status(400).json({
+      status: "failure",
+      message: "Required field missing: id is required",
+      result: null,
+    });
+  }
+
+  const { id } = req.body;
+
+  try {
+    if (isNaN(id)) {
+      return res.status(400).json({
+        status: "failure",
+        message: "Invalid id format: must be a number",
+        result: null,
+      });
+    }
+
+    const queryText = `DELETE FROM users WHERE id = $1 RETURNING id`;
+    const result = await sql.unsafe(queryText, [id]);
+
+    if (!result || result.length === 0) {
+      return res.status(404).json({
+        status: "failure",
+        message: `User with id ${id} not found`,
+        result: null,
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      message: "User deleted successfully",
+      result: { id: result[0].id },
+    });
+  } catch (error) {
+    console.error("Error deleting user:", error); // Added logging for diagnostics
+    if (error.code === "23503") {
+      return res.status(409).json({
+        status: "failure",
+        message:
+          "Cannot delete this user because it's referenced by other records",
+        result: error.detail || error,
+      });
+    }
+    return res.status(500).json({
+      status: "failure",
+      message: "Error deleting user",
+      result: error.message || error,
+    });
+  }
+};
+
+const updateUser = async (req, res) => {
+  // Check if id and data exist in the request body
+  if (
+    !req.body ||
+    !req.body.id ||
+    !req.body.data ||
+    typeof req.body.data !== "object"
+  ) {
+    return res.status(400).json({
+      status: "failure",
+      message: "Required fields missing: id and data object are required",
+      result: null,
+    });
+  }
+
+  const { id, data } = req.body;
+
+  // Make sure we have at least some data to update
+  if (Object.keys(data).length === 0) {
+    return res.status(400).json({
+      status: "failure",
+      message: "No data fields provided for update",
+      result: null,
+    });
+  }
+
+  try {
+    // Validate that id is numeric
+    if (isNaN(id)) {
+      return res.status(400).json({
+        status: "failure",
+        message: "Invalid id format: must be a number",
+        result: null,
+      });
+    }
+
+    // Extract column names and values from the data object
+    const columns = Object.keys(data);
+    const values = Object.values(data);
+
+    // Validate column names to prevent SQL injection
+    for (const column of columns) {
+      if (!/^[a-zA-Z0-9_]+$/.test(column)) {
+        return res.status(400).json({
+          status: "failure",
+          message: `Invalid column name: ${column}`,
+          result: null,
+        });
+      }
+    }
+
+    // Build the SET part of the query with parameterized values
+    const setClause = columns
+      .map((col, index) => `"${col}" = $${index + 1}`)
+      .join(", ");
+
+    // Add the id parameter at the end
+    values.push(id);
+    const idPlaceholder = `$${values.length}`;
+
+    // Build the complete query
+    const queryText = `
+        UPDATE users
+        SET ${setClause}
+        WHERE id = ${idPlaceholder}
+        RETURNING *
+      `;
+    console.log(queryText);
+    console.log(values);
+    // Execute the query
+    const result = await sql.unsafe(queryText, values);
+
+    // Check if any row was updated
+    if (!result || result.length === 0) {
+      return res.status(404).json({
+        status: "failure",
+        message: `Initiative with id ${id} not found`,
+        result: null,
+      });
+    }
+
+    // Return success response with the updated initiative
+    return res.status(200).json({
+      status: "success",
+      message: "Initiative updated successfully",
+      result: result[0] || result,
+    });
+  } catch (error) {
+    console.error("Error updating initiative:", error);
+
+    // Handle unique constraint violations
+    if (error.code === "23505") {
+      // PostgreSQL unique violation code
+      return res.status(409).json({
+        status: "failure",
+        message: "Update violates unique constraint",
+        result: error.detail || error,
+      });
+    }
+
+    // Handle other errors
+    return res.status(500).json({
+      status: "failure",
+      message: "Error updating initiative",
+      result: error.message || error,
+    });
+  }
+};
+
 module.exports = {
   getData,
   getSetting,
@@ -583,5 +746,7 @@ module.exports = {
   getUsers,
   getRoles,
   addUser,
+  updateUser,
+  deleteUser,
   upsertTableSetting,
 };

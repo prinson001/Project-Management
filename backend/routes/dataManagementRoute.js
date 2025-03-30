@@ -14,6 +14,8 @@ const {
   upsertTableSetting,
   getRoles,
   addUser,
+  updateUser,
+  deleteUser,
 } = require("../controllers/dataManagementController");
 const {
   addInitiative,
@@ -193,6 +195,8 @@ router.post("/getInternalSchedulePlan", getInternalSchedulePlan);
 
 router.post("/getRoles", getRoles);
 router.post("/addUser", addUser);
+router.post("/updateUsers", updateUser);
+router.post("/deleteUsers", deleteUser);
 
 router.post(
   "/createProjectCreationTaskForDeputy",
