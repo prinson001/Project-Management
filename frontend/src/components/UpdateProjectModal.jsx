@@ -303,6 +303,14 @@ const UpdateProjectModal = ({
     }
   };
 
+  // Determine if category should be disabled
+  const isCategoryDisabled = useMemo(() => {
+    const restrictedTypes = ["Internal Project", "Proof of Concept"];
+    const currentType = projectTypes.find(
+      (type) => type.id.toString() === projectType?.toString()
+    );
+    return restrictedTypes.includes(currentType?.name || "");
+  }, [projectType, projectTypes]);
   // Handle schedule changes for both internal and non-internal projects
   const handleScheduleChange = useCallback(
     (data) => {
@@ -727,18 +735,34 @@ const UpdateProjectModal = ({
               </div>
               <div className="grid grid-cols-2 gap-6 mb-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Project Category <span className="text-red-500">*</span>
+                  <label
+                    className={`block text-sm font-semibold mb-1 ${
+                      isCategoryDisabled ? "opacity-50" : ""
+                    }`}
+                  >
+                    Project Category{" "}
+                    {isCategoryDisabled && "(Disabled for this project type)"}
+                    {!isCategoryDisabled && (
+                      <span className="text-red-500">*</span>
+                    )}
                   </label>
                   <div className="flex items-center space-x-6">
-                    <label className="flex items-center">
+                    <label
+                      className={`flex items-center ${
+                        isCategoryDisabled ? "opacity-50" : ""
+                      }`}
+                    >
                       <Controller
                         name="category"
                         control={control}
-                        rules={{ required: "Project category is required" }}
+                        rules={{
+                          required:
+                            !isCategoryDisabled &&
+                            "Project category is required",
+                        }}
                         render={({ field }) => (
                           <input
-                            disabled={readOnly}
+                            disabled={readOnly || isCategoryDisabled}
                             type="radio"
                             className="mr-2"
                             value="Capex"
@@ -749,13 +773,17 @@ const UpdateProjectModal = ({
                       />
                       <span>Capex</span>
                     </label>
-                    <label className="flex items-center">
+                    <label
+                      className={`flex items-center ${
+                        isCategoryDisabled ? "opacity-50" : ""
+                      }`}
+                    >
                       <Controller
                         name="category"
                         control={control}
                         render={({ field }) => (
                           <input
-                            disabled={readOnly}
+                            disabled={readOnly || isCategoryDisabled}
                             type="radio"
                             className="mr-2"
                             value="Opex"
@@ -767,7 +795,7 @@ const UpdateProjectModal = ({
                       <span>Opex</span>
                     </label>
                   </div>
-                  {errors.category && (
+                  {!isCategoryDisabled && errors.category && (
                     <p className="text-red-500 text-xs mt-1">
                       {errors.category.message}
                     </p>
