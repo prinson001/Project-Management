@@ -68,6 +68,8 @@ const {
 const {
   addDepartment,
   getRelatedProjects,
+  updateDepartment,
+  deleteDepartment,
   getDepartments,
 } = require("../controllers/departmentController");
 
@@ -158,6 +160,8 @@ router.post("/getUserRelatedEntities", getUserRelatedEntities);
 
 router.post("/adddepartment", addDepartment);
 router.post("/getDepartments", getDepartments);
+router.post("/updateDepartment", updateDepartment);
+router.post("/deleteDepartment", deleteDepartment);
 router.post("/getDepartmentProjects", getRelatedProjects);
 
 router.post("/addvendor", addVendor);
