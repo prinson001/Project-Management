@@ -178,7 +178,7 @@ const getVendors = async (req, res) => {
 };
 const deleteVendor = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.body;
 
     if (!id) {
       return res.status(400).json({
