@@ -90,10 +90,15 @@ const UpdateDynamicForm = ({
         columnSpan: 1,
         options:
           finalUsers && finalUsers.length > 0
-            ? finalUsers.map((user) => ({
-                value: user.id.toString(),
-                label: `${user.first_name} ${user.family_name || ""}`,
-              }))
+            ? finalUsers
+                .filter(
+                  (user) =>
+                    user.role_name?.toUpperCase() === "PORTFOLIO MANAGER"
+                )
+                .map((user) => ({
+                  value: user.id.toString(),
+                  label: `${user.first_name} ${user.family_name || ""}`,
+                }))
             : [],
       },
       {
@@ -110,6 +115,40 @@ const UpdateDynamicForm = ({
         required: true,
         columnSpan: 2,
         className: "text-right",
+      },
+    ],
+    program: [
+      {
+        name: "name",
+        label: "Program English Name",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
+      {
+        name: "arabic_name",
+        label: "اسم البرنامج بالعربي",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
+      {
+        name: "program_manager",
+        label: "Program Manager",
+        type: "select",
+        required: true,
+        columnSpan: 1,
+        options:
+          finalUsers && finalUsers.length > 0
+            ? finalUsers
+                .filter(
+                  (user) => user.role_name?.toUpperCase() === "PROGRAM MANAGER"
+                )
+                .map((user) => ({
+                  value: user.id.toString(),
+                  label: `${user.first_name} ${user.family_name || ""}`,
+                }))
+            : [],
       },
     ],
     department: [

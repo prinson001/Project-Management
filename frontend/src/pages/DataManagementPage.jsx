@@ -246,10 +246,15 @@ const DataManagementPage = () => {
         columnSpan: 1,
         options:
           users && users.length > 0
-            ? users.map((user) => ({
-                value: user.id.toString(),
-                label: `${user.first_name} ${user.family_name || ""}`,
-              }))
+            ? users
+                .filter(
+                  (user) =>
+                    user.role_name?.toUpperCase() === "PORTFOLIO MANAGER"
+                )
+                .map((user) => ({
+                  value: user.id.toString(),
+                  label: `${user.first_name} ${user.family_name || ""}`,
+                }))
             : [],
       },
       {
@@ -321,10 +326,14 @@ const DataManagementPage = () => {
         columnSpan: 1,
         options:
           users && users.length > 0
-            ? users.map((user) => ({
-                value: user.id.toString(),
-                label: `${user.first_name} ${user.family_name || ""}`,
-              }))
+            ? users
+                .filter(
+                  (user) => user.role_name?.toUpperCase() === "PROGRAM MANAGER"
+                )
+                .map((user) => ({
+                  value: user.id.toString(),
+                  label: `${user.first_name} ${user.family_name || ""}`,
+                }))
             : [],
       },
       {

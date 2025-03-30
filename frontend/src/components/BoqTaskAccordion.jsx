@@ -98,6 +98,7 @@ const BoqTaskAccordion = ({
       setLoading(false);
     }
   };
+
   useEffect(() => {
     console.log("***********************");
     console.log(projectDetails);
