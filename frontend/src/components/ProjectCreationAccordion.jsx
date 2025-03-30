@@ -10,15 +10,19 @@ function ProjectCreationAccordion({ project }) {
   const [projectData, setProjectData] = useState(null);
   const fetchProjectApprovalStatus = async () => {
     try {
-      const result = await axiosInstance.post(
-        "/deputy/getProjectApprovalStatus",
-        {
-          projectId: project.related_entity_id,
-        }
-      );
-      console.log(result.data.approval_status);
-      project = { ...project, approval_status: result.data.approval_status };
+      if (project.status === "Done") {
+        const result = await axiosInstance.post(
+          "/deputy/getProjectApprovalStatus",
+          {
+            projectId: project.related_entity_id,
+          }
+        );
+        console.log(result.data.approval_status);
+        project = { ...project, approval_status: result.data.approval_status };
+      }
       if (project) {
+        console.log("the project details in if block");
+        console.log(structuredClone(project));
         const modifiedProjectData = {
           id: project.related_entity_id, // Use related_entity_id as id
           name: project.project_name, // Map project_name to name
@@ -35,7 +39,6 @@ function ProjectCreationAccordion({ project }) {
           maintenance_duration: project?.maintenance_duration,
           project_budget: project?.project_budget,
           approved_project_budget: project?.approved_project_budget,
-          approval_status: result.data.approval_status,
           created_date: project?.created_date,
           updated_at: project?.updated_at,
           program_id: project?.program_id,
@@ -43,19 +46,22 @@ function ProjectCreationAccordion({ project }) {
           portfolio_id: project?.portfolio_id,
           vendor_id: project?.vendor_id,
         };
+
         setProjectData(modifiedProjectData);
         console.log("modifiedProjectData", modifiedProjectData);
+      } else {
+        console.log("error");
       }
     } catch (e) {
       console.log("there was an errror fetching project approval status");
+      console.log(e);
+      console.log(e.message);
     }
   };
   useEffect(() => {
     console.log("the project details");
     console.log(structuredClone(project));
-    if (project.status === "Done") {
-      fetchProjectApprovalStatus();
-    }
+    fetchProjectApprovalStatus();
   }, [project]);
 
   const updateApprovalStatus = async ({ status, projectData }) => {
