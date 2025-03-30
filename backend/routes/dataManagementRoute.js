@@ -85,6 +85,7 @@ const {
   addObjective,
   getObjectives,
   updateObjective,
+  deleteObjective,
   getRelatedProjectsforObjective,
 } = require("../controllers/objectiveController");
 
@@ -167,6 +168,7 @@ router.post("/deletevendor", deleteVendor);
 router.post("/addobjective", addObjective);
 router.post("/getObjectives", getObjectives);
 router.post("/updateObjective", updateObjective);
+router.post("/deleteObjective", deleteObjective);
 router.post("/getRelatedProjectsforObjective", getRelatedProjectsforObjective);
 router.post("/getProjectDocuments", getProjectDocuments);
 //router.post("/addProjectDocument",addProjectDocument);
