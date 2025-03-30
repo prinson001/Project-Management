@@ -338,10 +338,8 @@ const updateProject = async (req, res) => {
   }
 };
 
-// @Description Delete existing project
-// @Route site.com/data-management/deleteproject
 const deleteProject = async (req, res) => {
-  if (!req.body || !req.body.id) {
+  if (!req.body?.id) {
     return res.status(400).json({
       status: "failure",
       message: "Required field missing: id is required",
@@ -351,49 +349,69 @@ const deleteProject = async (req, res) => {
 
   const { id } = req.body;
 
+  if (isNaN(id)) {
+    return res.status(400).json({
+      status: "failure",
+      message: "Invalid id format: must be a number",
+      result: null,
+    });
+  }
+
   try {
-    if (isNaN(id)) {
-      return res.status(400).json({
-        status: "failure",
-        message: "Invalid id format: must be a number",
-        result: null,
-      });
-    }
+    // Use sql.begin() for proper transaction handling
+    const result = await sql.begin(async (sql) => {
+      // 1. First delete from beneficiary_departments
+      await sql`
+        DELETE FROM beneficiary_departments
+        WHERE project_id = ${id}
+      `;
 
-    const queryText = `
-      DELETE FROM project
-      WHERE id = $1
-      RETURNING id
-    `;
-    const result = await sql.unsafe(queryText, [id]);
+      // 2. Delete from schedule_plan (if exists)
+      await sql`
+        DELETE FROM schedule_plan_new
+        WHERE project_id = ${id}
+      `;
 
-    if (!result || result.length === 0) {
-      return res.status(404).json({
-        status: "failure",
-        message: `Project with id ${id} not found`,
-        result: null,
-      });
-    }
+      // 4. Delete project documents (if exists)
+      await sql`
+        DELETE FROM project_documents
+        WHERE project_id = ${id}
+      `;
+
+      // 5. Finally delete the project and return the id
+      const [deletedProject] = await sql`
+        DELETE FROM project
+        WHERE id = ${id}
+        RETURNING id
+      `;
+
+      if (!deletedProject) {
+        throw new Error(`Project with id ${id} not found`);
+      }
+
+      return deletedProject;
+    });
 
     return res.status(200).json({
       status: "success",
       message: "Project deleted successfully",
-      result: { id: result[0].id },
+      result: { id: result.id },
     });
   } catch (error) {
     console.error("Error deleting project:", error);
+
     if (error.code === "23503") {
       return res.status(409).json({
         status: "failure",
-        message:
-          "Cannot delete this project because it's referenced by other records",
-        result: error.detail || error,
+        message: "Cannot delete project - it's referenced by other records",
+        result: error.detail || error.message,
       });
     }
+
     return res.status(500).json({
       status: "failure",
       message: "Error deleting project",
-      result: error.message || error,
+      result: error.message,
     });
   }
 };
