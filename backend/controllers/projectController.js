@@ -1103,6 +1103,48 @@ const updateBOQApprovalbyPMO = async (req, res) => {
   }
 };
 
+const getProjectDetailsWithVendor = async (req, res) => {
+  try {
+    const { projectId } = req.body; // Extract project ID from request params
+
+    if (!projectId) {
+      return res.status(400).json({
+        status: "failure",
+        message: "Project ID is required",
+      });
+    }
+
+    const result = await sql`
+      SELECT 
+        project.*,
+        vendor.name AS vendor_name
+      FROM project
+      LEFT JOIN vendor ON project.vendor_id = vendor.id
+      WHERE project.id = ${projectId};
+    `;
+
+    if (result.length === 0) {
+      return res.status(404).json({
+        status: "failure",
+        message: "Project not found",
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      message: "Project details with vendor retrieved successfully",
+      result: result[0], // Return a single project object
+    });
+  } catch (error) {
+    console.error("Error retrieving project details with vendor:", error);
+    return res.status(500).json({
+      status: "failure",
+      message: "Error retrieving project details with vendor",
+      result: error.message || error,
+    });
+  }
+};
+
 module.exports = {
   addProject,
   updateProject,
@@ -1122,4 +1164,5 @@ module.exports = {
   getProjectApprovalStatus,
   updateBOQApprovalbyPMO,
   getProjectBoqApprovalStatus,
+  getProjectDetailsWithVendor,
 };
