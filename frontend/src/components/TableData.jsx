@@ -386,14 +386,14 @@ const TableData = ({
                             <ExternalLink className="w-6 h-5" />
                           </a>
                         )}
-                        {tableName === "document" && (
+                        {/* {tableName === "document" && (
                           <button
                             onClick={() => toggleForm(index)}
                             className="text-blue-500 hover:text-blue-700"
                           >
                             <Edit className="w-5 h-5" />
                           </button>
-                        )}
+                        )} */}
                         {tableName !== "tasks" && tableName !== "document" && (
                           <button
                             onClick={() => toggleForm(index)}
