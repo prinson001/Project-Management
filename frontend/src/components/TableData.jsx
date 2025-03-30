@@ -68,6 +68,7 @@ const TableData = ({
   }, [columnSetting]);
 
   useEffect(() => {
+    console.log("loader", tableData);
     if (
       tableData !== undefined &&
       tableData !== null &&
@@ -76,8 +77,9 @@ const TableData = ({
       setIsDataLoaded(true);
       setLoading(false);
     } else {
-      setIsDataLoaded(false);
-      setLoading(true);
+      setIsDataLoaded(true);
+      setLoading(false);
+      console.log("we are here");
     }
   }, [tableData]);
 

@@ -40,7 +40,7 @@ const getData = async (req, res) => {
       SELECT users.*
       FROM users
       JOIN role ON users.role_id = role.id
-      WHERE LOWER(role.name) NOT IN ('deputy', 'admin')
+      WHERE LOWER(role.name) NOT IN ('deputy', 'admin','pmo')
       LIMIT ${limit} OFFSET ${offset}
 `;
     } else if (tableName === "portfolio") {
