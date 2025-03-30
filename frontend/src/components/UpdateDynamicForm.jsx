@@ -338,7 +338,7 @@ const UpdateDynamicForm = ({
                 <option
                   key={i}
                   value={option.value}
-                  disabled={isRoleDisabled}
+                  hidden={isRoleDisabled}
                   className={
                     isRoleDisabled ? "bg-gray-100 dark:bg-gray-600" : ""
                   }
