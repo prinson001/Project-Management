@@ -476,6 +476,39 @@ const ProjectModal = ({
     }
   }, [watch("currentPhase"), projectPhases]);
 
+  const filteredProjectPhases = useMemo(() => {
+    if (!projectType || !projectPhases.length) return projectPhases;
+
+    // Find the project type name from the ID
+    const selectedProjectType = projectTypes.find(
+      (type) => type.id.toString() === projectType
+    );
+
+    // If it's "Internal Project" or "Proof of Concept", filter phases
+    if (
+      selectedProjectType &&
+      ["Internal Project", "Proof of Concept"].includes(
+        selectedProjectType.name
+      )
+    ) {
+      return projectPhases.filter((phase) =>
+        ["Planning", "Execution", "Closed"].includes(phase.name)
+      );
+    }
+
+    // Otherwise, return all phases
+    return projectPhases;
+  }, [projectType, projectPhases, projectTypes]);
+
+  // Determine if category should be disabled
+  const isCategoryDisabled = useMemo(() => {
+    const restrictedTypes = ["Internal Project", "Proof of Concept"];
+    const currentType = projectTypes.find(
+      (type) => type.id.toString() === projectType?.toString()
+    );
+    return restrictedTypes.includes(currentType?.name || "");
+  }, [projectType, projectTypes]);
+
   const getCurrentPhaseDocumentTemplates = async (phase) => {
     try {
       const result = await axiosInstance.post(
@@ -861,40 +894,90 @@ const ProjectModal = ({
   };
 
   // Helper function to determine which sections should be visible based on project type
-  const shouldShowSection = (section) => {
-    if (activeSection === "all") return true;
+  const shouldShowSection = useCallback(
+    (section) => {
+      // Debug header - collapsed group for cleaner console
+      console.groupCollapsed(
+        `[Visibility Check] Section: ${section}, ProjectType: ${projectType}`
+      );
 
-    switch (section) {
-      case "category":
-        return !["Internal Project", "Proof of Concept"].includes(projectType);
-      case "vendor":
-        return (
-          projectType === "Proof of Concept" ||
-          projectType === "External Project" ||
-          projectType === "Strategic Project"
-        );
-      case "budget":
-        if (projectType === "Internal Project") return false;
-        if (currentPhase === "Planning" || currentPhase === "Bidding")
-          return false;
-        return (
-          projectType === "External Project" ||
-          projectType === "Strategic Project"
-        );
-      case "schedule":
-        return (
-          projectType === "External Project" ||
-          projectType === "Strategic Project"
-        );
-      case "internalSchedule":
-        return (
-          projectType === "Internal Project" ||
-          projectType === "Proof of Concept"
-        );
-      default:
+      // Early return if showing all sections
+      if (activeSection === "all") {
+        console.log("Showing all sections (activeSection='all')");
+        console.groupEnd();
         return true;
-    }
-  };
+      }
+
+      // Safely get project type name
+      const currentProjectType = projectTypes.find(
+        (type) => type.id.toString() === projectType?.toString()
+      );
+      const projectTypeName = currentProjectType?.name;
+
+      console.log("Resolved project type:", {
+        id: projectType,
+        name: projectTypeName,
+        typeObject: currentProjectType,
+      });
+
+      // Define restricted categories (using both ID and name checks for redundancy)
+      const isInternalOrPoC =
+        ["1", "4"].includes(projectType?.toString()) ||
+        ["Internal Project", "Proof of Concept"].includes(
+          projectTypeName || ""
+        );
+
+      let isVisible;
+
+      switch (section) {
+        case "category":
+          isVisible = !isInternalOrPoC;
+          console.log("Category visibility:", {
+            isInternalOrPoC,
+            shouldShow: isVisible,
+            reason: isInternalOrPoC
+              ? "Hidden for Internal/PoC projects"
+              : "Visible for other project types",
+          });
+          break;
+
+        case "vendor":
+          isVisible = [
+            "Proof of Concept",
+            "External Project",
+            "Strategic Project",
+          ].includes(projectTypeName || "");
+          break;
+
+        case "budget":
+          isVisible =
+            !isInternalOrPoC &&
+            !["Planning", "Bidding"].includes(currentPhase) &&
+            ["External Project", "Strategic Project"].includes(
+              projectTypeName || ""
+            );
+          break;
+
+        case "schedule":
+          isVisible = ["External Project", "Strategic Project"].includes(
+            projectTypeName || ""
+          );
+          break;
+
+        case "internalSchedule":
+          isVisible = isInternalOrPoC;
+          break;
+
+        default:
+          isVisible = true;
+      }
+
+      console.log("Final visibility decision:", isVisible);
+      console.groupEnd();
+      return isVisible;
+    },
+    [projectType, currentPhase, activeSection, projectTypes]
+  );
 
   // Toggle beneficiary department
   const toggleBeneficiaryDepartment = (deptId) => {
@@ -1075,9 +1158,7 @@ const ProjectModal = ({
                       <option value="" disabled>
                         Select Project Type
                       </option>
-                      <option value="" disabled>
-                        {" "}
-                      </option>
+                      <option value=""> </option>
 
                       {projectTypes.map((type) => (
                         <option key={type.id} value={type.id}>
@@ -1118,7 +1199,7 @@ const ProjectModal = ({
                       <option value="" disabled>
                         Select Current Phase
                       </option>
-                      {projectPhases.map((phase) => (
+                      {filteredProjectPhases.map((phase) => (
                         <option key={phase.id} value={phase.id}>
                           {phase.name}
                         </option>
@@ -1156,7 +1237,7 @@ const ProjectModal = ({
                           {...field}
                           onChange={(e) => {
                             field.onChange(e);
-                            fetchProgramDetails(e.target.value); // Fetch details when program changes
+                            fetchProgramDetails(e.target.value);
                           }}
                         >
                           <option value="">Select Program</option>
@@ -1198,47 +1279,67 @@ const ProjectModal = ({
               </div>
               <div className="grid grid-cols-2 gap-6 mb-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Project Category <span className="text-red-500">*</span>
+                  <label
+                    className={`block text-sm font-semibold mb-1 ${
+                      isCategoryDisabled ? "opacity-50" : ""
+                    }`}
+                  >
+                    Project Category{" "}
+                    {isCategoryDisabled && "(Disabled for this project type)"}
+                    <span className="text-red-500">*</span>
                   </label>
                   <div className="flex items-center space-x-6">
-                    <label className="flex items-center">
+                    <label
+                      className={`flex items-center ${
+                        isCategoryDisabled ? "opacity-50" : ""
+                      }`}
+                    >
                       <Controller
                         name="projectCategory"
                         control={control}
-                        rules={{ required: "Project category is required" }}
+                        rules={{
+                          required:
+                            !isCategoryDisabled &&
+                            "Project category is required",
+                        }}
                         render={({ field }) => (
                           <input
-                            readOnly={readOnly}
+                            readOnly={readOnly || isCategoryDisabled}
                             type="radio"
                             className="mr-2"
                             value="Capex"
                             checked={field.value === "Capex"}
                             onChange={() => field.onChange("Capex")}
+                            disabled={isCategoryDisabled}
                           />
                         )}
                       />
                       <span>Capex</span>
                     </label>
-                    <label className="flex items-center">
+                    <label
+                      className={`flex items-center ${
+                        isCategoryDisabled ? "opacity-50" : ""
+                      }`}
+                    >
                       <Controller
                         name="projectCategory"
                         control={control}
                         render={({ field }) => (
                           <input
-                            readOnly={readOnly}
+                            readOnly={readOnly || isCategoryDisabled}
                             type="radio"
                             className="mr-2"
                             value="Opex"
                             checked={field.value === "Opex"}
                             onChange={() => field.onChange("Opex")}
+                            disabled={isCategoryDisabled}
                           />
                         )}
                       />
                       <span>Opex</span>
                     </label>
                   </div>
-                  {errors.projectCategory && (
+                  {!isCategoryDisabled && errors.projectCategory && (
                     <p className="text-red-500 text-xs mt-1">
                       {errors.projectCategory.message}
                     </p>
@@ -1472,7 +1573,7 @@ const ProjectModal = ({
             shouldShowSection("internalSchedule")) &&
             (["1", "4"].includes(projectType) ? (
               <InternalSchedulePlanSection
-                projectId={projectData.id}
+                projectId={null}
                 onScheduleChange={handleScheduleChange}
                 internalScheduleData={internalScheduleData}
               />
