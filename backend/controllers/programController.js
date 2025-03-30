@@ -324,7 +324,7 @@ const deleteProgram = async (req, res) => {
     const checkQuery = `
       SELECT COUNT(*) as portfolio_count 
       FROM portfolio 
-      WHERE program_id = $1
+      WHERE id = $1
     `;
     const checkResult = await sql.unsafe(checkQuery, [id]);
 
