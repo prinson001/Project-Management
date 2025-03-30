@@ -22,6 +22,7 @@ import DepartmentAccordion from "./DepartmentAccordion";
 import ObjectiveAccordion from "./ObjectiveAccordion";
 import BoqTaskApprovalAccordion from "./BoqTaskApprovalAccordion";
 import axiosInstance from "../axiosInstance";
+import { toast } from "sonner";
 import Loader from "./Loader";
 import UpdateProjectModal from "./UpdateProjectModal";
 import DocumentTemplateAccordion from "./DocumentTemplateAccordion";
@@ -145,9 +146,11 @@ const TableData = ({
             item.id === id ? { ...item, ...updatedData } : item
           )
         );
+        toast.success("Record updated successfully");
         console.log("Record updated successfully");
       }
     } catch (e) {
+      toast.error("Error updating record: ", e);
       console.log("Error updating record:", e);
     }
   };
@@ -159,7 +162,15 @@ const TableData = ({
         { id }
       );
       setTableData((prevData) => prevData.filter((e) => e.id !== id));
+      toast.success("Record deleted successfully");
     } catch (e) {
+      if (e.status == 409) {
+        toast.error(
+          "Deletion not allowed since record is linked to other entity"
+        );
+      } else {
+        toast.error("Error deleting record: ", e);
+      }
       console.log("Error deleting record:", e);
     }
   };
