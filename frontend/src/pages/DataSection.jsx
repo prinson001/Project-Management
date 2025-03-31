@@ -9,6 +9,7 @@ const TableData = React.lazy(() => import("../components/TableData"));
 import TableConfig from "../components/TableConfig";
 import TableConfigFilter from "../components/TableConfigFilter";
 import Loader from "../components/Loader";
+import useAuthStore from "../store/authStore";
 const PORT = import.meta.env.VITE_PORT;
 
 let tablefilters = {};
@@ -48,8 +49,10 @@ const DataSection = ({
   const [openTaskCount, setOpenTaskCount] = useState(0);
   const [delayedTaskCount, setDelayedTaskCount] = useState(0);
   let originalTableData = [];
+  const { userId } = useAuthStore();
 
   async function getData() {
+    console.log("user id ", userId);
     try {
       console.log("the dableName in getData function", tableName);
       let result = [];
