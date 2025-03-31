@@ -266,7 +266,23 @@ const ProjectTimelineSettings = () => {
         const result = await axiosInstance.get(`/admin/getPhaseDurations`);
         console.log("the fetched data");
         console.log(result);
-        setTimelineData(result.data.data.map((item) => ({ ...item })));
+        setTimelineData(
+          result.data.data.map((phase) => ({
+            ...phase,
+            budget_durations:
+              phase.budget_durations &&
+              Object.entries(phase.budget_durations).reduce(
+                (acc, [key, budget]) => ({
+                  ...acc,
+                  [key]: {
+                    ...budget,
+                    duration_weeks: Math.floor(budget.duration_days / 7),
+                  },
+                }),
+                {}
+              ),
+          }))
+        );
       } catch (e) {
         console.log(e);
       }
@@ -274,6 +290,11 @@ const ProjectTimelineSettings = () => {
     fetchranges();
     fetchPhaseData();
   }, []);
+
+  useEffect(() => {
+    console.log("timeline data");
+    console.log(structuredClone(timelineData));
+  }, [timelineData]);
 
   // Track when state is updated
 
@@ -294,7 +315,8 @@ const ProjectTimelineSettings = () => {
               ...phase.budget_durations,
               [rangeId]: {
                 ...phase.budget_durations?.[rangeId],
-                duration_days: parseInt(newValue) || 0,
+                duration_weeks: parseInt(newValue) || 0,
+                duration_days: parseInt(newValue) * 7,
               },
             },
           };
@@ -315,7 +337,7 @@ const ProjectTimelineSettings = () => {
         {
           phase_id: phaseId,
           range_id: rangeId,
-          duration_days: Number(newValue.split(" ")[0]),
+          duration_weeks: Number(newValue.split(" ")[0]),
         },
       ];
     });
@@ -337,9 +359,14 @@ const ProjectTimelineSettings = () => {
 
   async function saveData() {
     console.log("save button clicked");
+    console.log("the changes to save");
+    console.log(changesToSave);
     try {
       const result = await axiosInstance.post(`/admin/updatephaseduration`, {
-        updates: changesToSave,
+        updates: changesToSave.map(({ duration_weeks, ...rest }) => ({
+          ...rest,
+          duration_days: duration_weeks * 7,
+        })),
       });
       console.log(result);
     } catch (e) {
@@ -406,7 +433,7 @@ const ProjectTimelineSettings = () => {
                         {/* Added key */}
                         <WeekDropdown
                           value={`${
-                            row.budget_durations[range.id]?.duration_days || 0
+                            row.budget_durations[range.id]?.duration_weeks || 0
                           } weeks`}
                           onChange={(value) =>
                             handleWeekChange(row.phase_id, range.id, value)
