@@ -210,6 +210,12 @@ const ProjectModal = ({
   }, [projectType, projectTypes]);
 
   useEffect(() => {
+    if (isVendorDisabled) {
+      setValue("vendor_id", "");
+    }
+  }, [isVendorDisabled, setValue]);
+
+  useEffect(() => {
     const fetchPhaseDurations = async () => {
       try {
         const response = await axiosInstance.post(
@@ -1397,6 +1403,7 @@ const ProjectModal = ({
                       <option disabled value="">
                         Select Project Manager
                       </option>
+                      <option value=""></option>
                       {projectManagers.map((user) => (
                         <option key={user.id} value={user.id}>
                           {user.first_name} {user.family_name}

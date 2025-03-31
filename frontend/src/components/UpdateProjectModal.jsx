@@ -117,6 +117,14 @@ const UpdateProjectModal = ({
     return users.filter((user) => user.role_name === "PM");
   }, [users]);
 
+  const isVendorDisabled = useMemo(() => {
+    const restrictedTypes = ["Internal Project", "Proof of Concept"];
+    const currentType = projectTypes.find(
+      (type) => type.id.toString() === projectType?.toString()
+    );
+    return restrictedTypes.includes(currentType?.name || "");
+  }, [projectType, projectTypes]);
+
   // Fetch departments and beneficiary departments
   useEffect(() => {
     const fetchDepartmentsAndBeneficiaries = async () => {
@@ -943,8 +951,13 @@ const UpdateProjectModal = ({
               </div>
               {shouldShowSection("vendor") && (
                 <div>
-                  <label className="block text-sm font-semibold mb-1">
+                  <label
+                    className={`block text-sm font-semibold mb-1 ${
+                      isVendorDisabled ? "opacity-50" : ""
+                    }`}
+                  >
                     Vendor Name
+                    {isVendorDisabled && " (Disabled for this project type)"}
                   </label>
                   <div className="relative">
                     <Controller
@@ -952,8 +965,12 @@ const UpdateProjectModal = ({
                       control={control}
                       render={({ field }) => (
                         <select
-                          disabled={readOnly}
-                          className="w-full p-2 border border-gray-300 rounded appearance-none bg-white"
+                          disabled={readOnly || isVendorDisabled}
+                          className={`w-full p-2 border border-gray-300 rounded appearance-none bg-white ${
+                            isVendorDisabled
+                              ? "bg-gray-100 cursor-not-allowed"
+                              : ""
+                          }`}
                           {...field}
                         >
                           <option value="">Select Vendor</option>
