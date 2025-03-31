@@ -202,12 +202,12 @@ const ProjectModal = ({
     [] // Empty dependency array if static, or add dependencies if dynamic
   );
   const isVendorDisabled = useMemo(() => {
-  const restrictedTypes = ["Internal Project", "Proof of Concept"];
-  const currentType = projectTypes.find(
-    (type) => type.id.toString() === projectType?.toString()
-  );
-  return restrictedTypes.includes(currentType?.name || "");
-}, [projectType, projectTypes]);
+    const restrictedTypes = ["Internal Project", "Proof of Concept"];
+    const currentType = projectTypes.find(
+      (type) => type.id.toString() === projectType?.toString()
+    );
+    return restrictedTypes.includes(currentType?.name || "");
+  }, [projectType, projectTypes]);
 
   useEffect(() => {
     const fetchPhaseDurations = async () => {
@@ -1368,111 +1368,153 @@ const ProjectModal = ({
             </div>
           )}
           {/* Assignee & Communication */}
-          <div className="mb-6 border-t pt-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold">Assignee & communication</h3>
-              <button type="button">
-                <ChevronUp size={16} />
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-6 mb-4">
-              <div>
-                <label className="block text-sm font-semibold mb-1">
-                  Project Manager <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <Controller
-                    name="projectManager"
-                    control={control}
-                    rules={{ required: "Project manager is required" }}
-                    render={({ field }) => (
-                      <select
-                        className={`w-full p-2 border ${
-                          errors.projectManager
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        } rounded appearance-none bg-white`}
-                        {...field}
-                      >
-                        <option disabled value="">
-                          Select Project Manager
+          {/* <div className="mb-6 border-t pt-4"> */}
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-semibold">Assignee & communication</h3>
+            <button type="button">
+              <ChevronUp size={16} />
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-6 mb-4">
+            <div>
+              <label className="block text-sm font-semibold mb-1">
+                Project Manager <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <Controller
+                  name="projectManager"
+                  control={control}
+                  rules={{ required: "Project manager is required" }}
+                  render={({ field }) => (
+                    <select
+                      className={`w-full p-2 border ${
+                        errors.projectManager
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      } rounded appearance-none bg-white`}
+                      {...field}
+                    >
+                      <option disabled value="">
+                        Select Project Manager
+                      </option>
+                      {projectManagers.map((user) => (
+                        <option key={user.id} value={user.id}>
+                          {user.first_name} {user.family_name}
                         </option>
-                        {projectManagers.map((user) => (
-                          <option key={user.id} value={user.id}>
-                            {user.first_name} {user.family_name}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  />
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                    <ChevronDown size={16} />
-                  </div>
+                      ))}
+                    </select>
+                  )}
+                />
+                <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                  <ChevronDown size={16} />
                 </div>
-                {errors.projectManager && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.projectManager.message}
-                  </p>
-                )}
               </div>
-              <div>
-                <label className="block text-sm font-semibold mb-1">
-                  Beneficiary Department <span className="text-red-500">*</span>
-                </label>
-                <div className="border border-gray-300 rounded p-2">
-                  <div className="mb-4">
-                    <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">
-                      Beneficiary Departments
-                    </label>
-                    <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto p-2 border rounded">
-                      {departments.length > 0 ? (
-                        departments.map((dept) => (
-                          <div key={dept.id} className="flex items-center">
-                            <input
-                              type="checkbox"
-                              id={`dept-${dept.id}`}
-                              checked={dept.checked}
-                              onChange={() => handleDepartmentChange(dept.id)}
-                              className="mr-2"
-                            />
-                            <label
-                              htmlFor={`dept-${dept.id}`}
-                              className="text-sm text-gray-700 dark:text-gray-300"
-                            >
-                              {dept.name}{" "}
-                              {dept.arabic_name ? `(${dept.arabic_name})` : ""}
-                            </label>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-center text-gray-500">
-                          No departments available. Please add departments
-                          first.
+              {errors.projectManager && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.projectManager.message}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-1">
+                Beneficiary Department <span className="text-red-500">*</span>
+              </label>
+              <div className="border border-gray-300 rounded p-2">
+                <div className="mb-4">
+                  <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">
+                    Beneficiary Departments
+                  </label>
+                  <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto p-2 border rounded">
+                    {departments.length > 0 ? (
+                      departments.map((dept) => (
+                        <div key={dept.id} className="flex items-center">
+                          <input
+                            type="checkbox"
+                            id={`dept-${dept.id}`}
+                            checked={dept.checked}
+                            onChange={() => handleDepartmentChange(dept.id)}
+                            className="mr-2"
+                          />
+                          <label
+                            htmlFor={`dept-${dept.id}`}
+                            className="text-sm text-gray-700 dark:text-gray-300"
+                          >
+                            {dept.name}{" "}
+                            {dept.arabic_name ? `(${dept.arabic_name})` : ""}
+                          </label>
                         </div>
-                      )}
-                    </div>
+                      ))
+                    ) : (
+                      <div className="text-center text-gray-500">
+                        No departments available. Please add departments first.
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
+          </div>
+          <div className="grid grid-cols-2 gap-6 mb-4">
+            <div>
+              <label className="block text-sm font-semibold mb-1">
+                Alternative Project Manager
+              </label>
+              <div className="relative">
+                <Controller
+                  name="alternativeProjectManager"
+                  control={control}
+                  render={({ field }) => (
+                    <select
+                      className="w-full p-2 border border-gray-300 rounded appearance-none bg-white"
+                      {...field}
+                    >
+                      <option value="">Select Alternative Manager</option>
+                      {projectManagers.map((user) => (
+                        <option key={user.id} value={user.id}>
+                          {user.first_name} {user.family_name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                />
+                <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                  <ChevronDown size={16} />
+                </div>
+              </div>
+            </div>
+          </div>
+          {shouldShowSection("vendor") && (
             <div className="grid grid-cols-2 gap-6 mb-4">
               <div>
-                <label className="block text-sm font-semibold mb-1">
-                  Alternative Project Manager
+                <label
+                  className={`block text-sm font-semibold mb-1 ${
+                    isVendorDisabled ? "opacity-50" : ""
+                  }`}
+                >
+                  Vendor Name
+                  {isVendorDisabled && " (Disabled for this project type)"}
                 </label>
                 <div className="relative">
                   <Controller
-                    name="alternativeProjectManager"
+                    name="vendor_id"
                     control={control}
                     render={({ field }) => (
                       <select
-                        className="w-full p-2 border border-gray-300 rounded appearance-none bg-white"
+                        className={`w-full p-2 border border-gray-300 rounded appearance-none bg-white ${
+                          isVendorDisabled
+                            ? "bg-gray-100 cursor-not-allowed"
+                            : ""
+                        }`}
                         {...field}
+                        disabled={isVendorDisabled}
                       >
-                        <option value="">Select Alternative Manager</option>
-                        {projectManagers.map((user) => (
-                          <option key={user.id} value={user.id}>
-                            {user.first_name} {user.family_name}
+                        <option value="">Select Vendor</option>
+                        {vendors.map((vendor) => (
+                          <option key={vendor.id} value={vendor.id}>
+                            {vendor.name}{" "}
+                            {vendor.arabic_name
+                              ? `(${vendor.arabic_name})`
+                              : ""}
                           </option>
                         ))}
                       </select>
@@ -1484,44 +1526,7 @@ const ProjectModal = ({
                 </div>
               </div>
             </div>
-            {shouldShowSection("vendor") && (
-  <div className="grid grid-cols-2 gap-6 mb-4">
-    <div>
-      <label className={`block text-sm font-semibold mb-1 ${
-        isVendorDisabled ? "opacity-50" : ""
-      }`}>
-        Vendor Name
-        {isVendorDisabled && " (Disabled for this project type)"}
-      </label>
-      <div className="relative">
-        <Controller
-          name="vendor_id"
-          control={control}
-          render={({ field }) => (
-            <select
-              className={`w-full p-2 border border-gray-300 rounded appearance-none bg-white ${
-                isVendorDisabled ? "bg-gray-100 cursor-not-allowed" : ""
-              }`}
-              {...field}
-              disabled={isVendorDisabled}
-            >
-              <option value="">Select Vendor</option>
-              {vendors.map((vendor) => (
-                <option key={vendor.id} value={vendor.id}>
-                  {vendor.name}{" "}
-                  {vendor.arabic_name ? `(${vendor.arabic_name})` : ""}
-                </option>
-              ))}
-            </select>
           )}
-        />
-        <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-          <ChevronDown size={16} />
-        </div>
-      </div>
-    </div>
-  </div>
-)}
           {/* Objectives and Budget */}
           <div className="mb-6 border-t pt-4">
             <h3 className="font-semibold mb-4">Objectives and Budget</h3>
