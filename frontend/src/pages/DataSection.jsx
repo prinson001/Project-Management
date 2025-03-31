@@ -49,17 +49,18 @@ const DataSection = ({
   const [openTaskCount, setOpenTaskCount] = useState(0);
   const [delayedTaskCount, setDelayedTaskCount] = useState(0);
   let originalTableData = [];
-  const { userId } = useAuthStore();
+  const { userId, role } = useAuthStore();
 
   async function getData() {
     console.log("user id ", userId);
+    console.log("role ", role);
     try {
       console.log("the dableName in getData function", tableName);
       let result = [];
       if (tableName == "tasks") {
         result = await axiosInstanceInstance.post(`/tasks/getTasks`, {
           tableName,
-          userId: 5,
+          userId: userId,
           limit: 7,
         });
       } else {
@@ -129,7 +130,7 @@ const DataSection = ({
       const { project_name, filters } = tablefilters;
       try {
         const result = await axiosInstanceInstance.post(`/tasks/filtertasks`, {
-          userId: 5,
+          userId: userId,
           limit: 7,
           page,
           filters: filters,

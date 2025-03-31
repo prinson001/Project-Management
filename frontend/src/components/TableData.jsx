@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import Loader from "./Loader";
 import UpdateProjectModal from "./UpdateProjectModal";
 import DocumentTemplateAccordion from "./DocumentTemplateAccordion";
+import useAuthStore from "../store/authStore";
 import EditDocumentFormModal from "./EditDocumentFormModal"; // Import the new modal
 
 const TableData = ({
@@ -52,6 +53,7 @@ const TableData = ({
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [isEditDocumentModalOpen, setIsEditDocumentModalOpen] = useState(false);
+  const { userId, role } = useAuthStore();
 
   // Initialize column widths and visible columns
   useEffect(() => {
@@ -133,6 +135,9 @@ const TableData = ({
     }
     setOpenAccordion(null);
     getData();
+  };
+  const closeUserAccordion = () => {
+    setOpenAccordion(null);
   };
   const handleResizeEnd = () => {
     setResizingColumn(null);
@@ -575,13 +580,30 @@ const TableData = ({
                       </td>
                     </tr>
                   )}
-                  {tableName === "users" && openAccordion === index && (
-                    <tr>
-                      <td colSpan={visibleColumns.length + 1} className="p-0">
-                        <TeamAccordion datas={item} />
-                      </td>
-                    </tr>
-                  )}
+                  {tableName === "users" &&
+                    openAccordion === index &&
+                    role != "ADMIN" && (
+                      <tr>
+                        <td colSpan={visibleColumns.length + 1} className="p-0">
+                          <TeamAccordion datas={item} />
+                        </td>
+                      </tr>
+                    )}
+                  {tableName === "users" &&
+                    openAccordion === index &&
+                    role === "ADMIN" && (
+                      <tr>
+                        <td colSpan={visibleColumns.length + 1} className="p-0">
+                          <UserAccordion
+                            userPersonalData={item}
+                            getData={getData}
+                            parentId={item.id}
+                            closeAccordion={closeUserAccordion}
+                            index={index}
+                          />
+                        </td>
+                      </tr>
+                    )}
                   {tableName === "department" && openAccordion === index && (
                     <tr>
                       <td colSpan={visibleColumns.length + 1} className="p-0">
