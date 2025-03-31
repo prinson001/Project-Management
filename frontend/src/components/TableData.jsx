@@ -125,7 +125,15 @@ const TableData = ({
       }));
     }
   };
-
+  const closeAccordion = (message, type) => {
+    if (type === "success") {
+      toast.success("successfully updated");
+    } else {
+      toast.error(message);
+    }
+    setOpenAccordion(null);
+    getData();
+  };
   const handleResizeEnd = () => {
     setResizingColumn(null);
     setStartX(null);
@@ -484,6 +492,7 @@ const TableData = ({
                         <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 dark:text-white">
                           {item.title === "Approve Project Creation" && (
                             <ProjectCreationAccordion
+                              closeAccordion={closeAccordion}
                               project={tableData[index]}
                             />
                           )}

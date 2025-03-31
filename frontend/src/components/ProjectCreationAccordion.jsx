@@ -6,7 +6,7 @@ import UpdateProjectModal from "./UpdateProjectModal";
 import { toast } from "sonner";
 import { constructNow } from "date-fns";
 
-function ProjectCreationAccordion({ project }) {
+function ProjectCreationAccordion({ project, closeAccordion }) {
   const [projectData, setProjectData] = useState(null);
   const [projectApproval, setProjectApproval] = useState("null");
   const fetchProjectApprovalStatus = async () => {
@@ -84,6 +84,7 @@ function ProjectCreationAccordion({ project }) {
       );
 
       if (response.data.status === "success") {
+        closeAccordion("Success ", "success");
         const response = await axiosInstance.post(
           `/deputy/updateTaskStatusToDone`,
           {
