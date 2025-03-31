@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { ChevronDown } from "lucide-react";
 import { Controller, useForm } from "react-hook-form";
-import { addDays, format } from "date-fns";
+import { addDays, format, parseISO } from "date-fns";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import axiosInstance from "../axiosInstance";
@@ -14,7 +14,7 @@ const InternalSchedulePlanSection = ({
 }) => {
   const [internalSchedule, setInternalSchedule] = useState([]);
   const [activeTab] = useState("B. Days");
-  const prevScheduleRef = useRef([]); // To track previous schedule and avoid infinite loops
+  const prevScheduleRef = useRef([]);
 
   const { control, watch, setValue } = useForm({
     defaultValues: {
@@ -26,6 +26,7 @@ const InternalSchedulePlanSection = ({
 
   // Utility functions
   const convertToDays = useCallback((durationStr) => {
+    if (!durationStr) return 0;
     const daysMatch = durationStr.match(/(\d+)\s*days?/i);
     if (daysMatch) return parseInt(daysMatch[1], 10);
     const weeksMatch = durationStr.match(/(\d+)\s*weeks?/i);
@@ -65,70 +66,8 @@ const InternalSchedulePlanSection = ({
     []
   );
 
-  // Fetch internal schedule data
-  useEffect(() => {
-    const fetchInternalSchedule = async () => {
-      if (!projectId) {
-        setInternalSchedule(defaultInternalSchedule());
-        return;
-      }
-
-      try {
-        const response = await axiosInstance.post(
-          `/data-management/getSchedulePlan`,
-          { projectId }
-        );
-
-        if (response.data.status === "success" && response.data.result) {
-          const fetchedData = response.data.result
-            .filter((phase) => [1, 4].includes(phase.phase_id))
-            .map((phase) => ({
-              id: phase.phase_id,
-              mainPhase: phase.main_phase,
-              subPhase: phase.phase_name,
-              duration: `${phase.duration_days} days`,
-              durationDays: phase.duration_days,
-              startDate: phase.start_date
-                ? format(new Date(phase.start_date), "yyyy-MM-dd")
-                : null,
-              endDate: phase.end_date
-                ? format(new Date(phase.end_date), "yyyy-MM-dd")
-                : null,
-            }));
-
-          const mergedSchedule = defaultInternalSchedule().map(
-            (defaultPhase) => {
-              const fetchedPhase = fetchedData.find(
-                (p) => p.id === defaultPhase.id
-              );
-              return fetchedPhase || defaultPhase;
-            }
-          );
-
-          setInternalSchedule(mergedSchedule);
-          prevScheduleRef.current = mergedSchedule;
-
-          const executionPhase = fetchedData.find((p) => p.id === 4);
-          if (executionPhase?.startDate) {
-            setValue("executionStartDate", new Date(executionPhase.startDate));
-          }
-        } else {
-          setInternalSchedule(defaultInternalSchedule());
-          prevScheduleRef.current = defaultInternalSchedule();
-        }
-      } catch (error) {
-        console.error("Error fetching internal schedule data:", error);
-        toast.error("Failed to load internal schedule data");
-        setInternalSchedule(defaultInternalSchedule());
-        prevScheduleRef.current = defaultInternalSchedule();
-      }
-    };
-
-    fetchInternalSchedule();
-  }, [projectId, defaultInternalSchedule, setValue]);
-
-  // Handle date calculations
-  useEffect(() => {
+  // Calculate dates based on execution start date and durations
+  const calculateDates = useCallback(() => {
     if (!executionStartDate) {
       setInternalSchedule((prev) =>
         prev.map((phase) => ({
@@ -148,37 +87,105 @@ const InternalSchedulePlanSection = ({
 
       const executionStart = new Date(executionStartDate);
       const executionEnd = addDays(executionStart, executionPhase.durationDays);
-      const planningEnd = executionStart;
+      const planningEnd = new Date(executionStart);
       const planningStart = addDays(planningEnd, -planningPhase.durationDays);
 
-      const newSchedule = [...prev];
-      newSchedule[prev.findIndex((p) => p.id === 1)] = {
-        ...planningPhase,
-        startDate: format(planningStart, "dd-MMM-yyyy"),
-        endDate: format(planningEnd, "dd-MMM-yyyy"),
-      };
-      newSchedule[prev.findIndex((p) => p.id === 4)] = {
-        ...executionPhase,
-        startDate: format(executionStart, "dd-MMM-yyyy"),
-        endDate: format(executionEnd, "dd-MMM-yyyy"),
-      };
+      const formatDate = (date) => format(date, "dd-MMM-yyyy");
 
-      // Only update if dates have changed to avoid infinite loop
-      const prevDates = prevScheduleRef.current;
-      const datesChanged =
-        prevDates.length !== newSchedule.length ||
-        prevDates.some(
-          (phase, i) =>
-            phase.startDate !== newSchedule[i].startDate ||
-            phase.endDate !== newSchedule[i].endDate
-        );
+      const newSchedule = prev.map((phase) => {
+        if (phase.id === 1) {
+          return {
+            ...phase,
+            startDate: formatDate(planningStart),
+            endDate: formatDate(planningEnd),
+          };
+        }
+        if (phase.id === 4) {
+          return {
+            ...phase,
+            startDate: formatDate(executionStart),
+            endDate: formatDate(executionEnd),
+          };
+        }
+        return phase;
+      });
 
-      if (!datesChanged) return prev;
-
-      prevScheduleRef.current = newSchedule;
       return newSchedule;
     });
-  }, [executionStartDate]); // Removed internalSchedule from dependencies
+  }, [executionStartDate]);
+
+  // Fetch internal schedule data
+  useEffect(() => {
+    const fetchInternalSchedule = async () => {
+      if (!projectId) {
+        const defaultSchedule = defaultInternalSchedule();
+        setInternalSchedule(defaultSchedule);
+        prevScheduleRef.current = defaultSchedule;
+        return;
+      }
+
+      try {
+        const response = await axiosInstance.post(
+          `/data-management/getSchedulePlan`,
+          { projectId }
+        );
+
+        if (response.data.status === "success" && response.data.result) {
+          const fetchedData = response.data.result
+            .filter((phase) => [1, 4].includes(phase.phase_id))
+            .map((phase) => ({
+              id: phase.phase_id,
+              mainPhase: phase.main_phase,
+              subPhase: phase.phase_name,
+              duration: `${phase.duration_days} days`,
+              durationDays: phase.duration_days,
+              startDate: phase.start_date ? parseISO(phase.start_date) : null,
+              endDate: phase.end_date ? parseISO(phase.end_date) : null,
+            }));
+
+          const mergedSchedule = defaultInternalSchedule().map(
+            (defaultPhase) => {
+              const fetchedPhase = fetchedData.find(
+                (p) => p.id === defaultPhase.id
+              );
+              return (
+                fetchedPhase || {
+                  ...defaultPhase,
+                  startDate: null,
+                  endDate: null,
+                }
+              );
+            }
+          );
+
+          setInternalSchedule(mergedSchedule);
+          prevScheduleRef.current = mergedSchedule;
+
+          const executionPhase = fetchedData.find((p) => p.id === 4);
+          if (executionPhase?.startDate) {
+            setValue("executionStartDate", executionPhase.startDate);
+          }
+        } else {
+          const defaultSchedule = defaultInternalSchedule();
+          setInternalSchedule(defaultSchedule);
+          prevScheduleRef.current = defaultSchedule;
+        }
+      } catch (error) {
+        console.error("Error fetching internal schedule data:", error);
+        toast.error("Failed to load internal schedule data");
+        const defaultSchedule = defaultInternalSchedule();
+        setInternalSchedule(defaultSchedule);
+        prevScheduleRef.current = defaultSchedule;
+      }
+    };
+
+    fetchInternalSchedule();
+  }, [projectId, defaultInternalSchedule, setValue]);
+
+  // Handle date calculations when execution date changes
+  useEffect(() => {
+    calculateDates();
+  }, [executionStartDate, calculateDates]);
 
   // Notify parent of changes
   useEffect(() => {
@@ -200,11 +207,16 @@ const InternalSchedulePlanSection = ({
               }
             : phase
         );
-        prevScheduleRef.current = updatedSchedule; // Update ref to reflect new durations
+        prevScheduleRef.current = updatedSchedule;
         return updatedSchedule;
       });
+
+      // Trigger date recalculation after state update
+      setTimeout(() => {
+        calculateDates();
+      }, 0);
     },
-    [convertToDays, convertDuration]
+    [convertToDays, convertDuration, calculateDates]
   );
 
   const getDurationOptions = () => {
@@ -228,11 +240,12 @@ const InternalSchedulePlanSection = ({
             render={({ field: { onChange, value } }) => (
               <DatePicker
                 showIcon
-                selected={value || null}
+                selected={value}
                 onChange={onChange}
                 dateFormat="dd-MMM-yyyy"
                 placeholderText="Select date"
                 className="w-full p-2 border border-gray-300 rounded"
+                isClearable
               />
             )}
           />
@@ -288,10 +301,14 @@ const InternalSchedulePlanSection = ({
                   </div>
                 </td>
                 <td className="border border-gray-300 p-2">
-                  {row.startDate || "N/A"}
+                  {row.startDate
+                    ? format(new Date(row.startDate), "dd-MMM-yyyy")
+                    : "N/A"}
                 </td>
                 <td className="border border-gray-300 p-2">
-                  {row.endDate || "N/A"}
+                  {row.endDate
+                    ? format(new Date(row.endDate), "dd-MMM-yyyy")
+                    : "N/A"}
                 </td>
               </tr>
             ))}
