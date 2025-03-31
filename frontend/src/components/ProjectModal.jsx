@@ -201,6 +201,13 @@ const ProjectModal = ({
     ],
     [] // Empty dependency array if static, or add dependencies if dynamic
   );
+  const isVendorDisabled = useMemo(() => {
+  const restrictedTypes = ["Internal Project", "Proof of Concept"];
+  const currentType = projectTypes.find(
+    (type) => type.id.toString() === projectType?.toString()
+  );
+  return restrictedTypes.includes(currentType?.name || "");
+}, [projectType, projectTypes]);
 
   useEffect(() => {
     const fetchPhaseDurations = async () => {
@@ -1478,40 +1485,43 @@ const ProjectModal = ({
               </div>
             </div>
             {shouldShowSection("vendor") && (
-              <div className="grid grid-cols-2 gap-6 mb-4">
-                <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Vendor Name
-                  </label>
-                  <div className="relative">
-                    <Controller
-                      name="vendor_id" // Changed from "vendorName" to "vendor_id"
-                      control={control}
-                      render={({ field }) => (
-                        <select
-                          className="w-full p-2 border border-gray-300 rounded appearance-none bg-white"
-                          {...field}
-                        >
-                          <option value="">Select Vendor</option>
-                          {vendors.map((vendor) => (
-                            <option key={vendor.id} value={vendor.id}>
-                              {vendor.name}{" "}
-                              {vendor.arabic_name
-                                ? `(${vendor.arabic_name})`
-                                : ""}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    />
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                      <ChevronDown size={16} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+  <div className="grid grid-cols-2 gap-6 mb-4">
+    <div>
+      <label className={`block text-sm font-semibold mb-1 ${
+        isVendorDisabled ? "opacity-50" : ""
+      }`}>
+        Vendor Name
+        {isVendorDisabled && " (Disabled for this project type)"}
+      </label>
+      <div className="relative">
+        <Controller
+          name="vendor_id"
+          control={control}
+          render={({ field }) => (
+            <select
+              className={`w-full p-2 border border-gray-300 rounded appearance-none bg-white ${
+                isVendorDisabled ? "bg-gray-100 cursor-not-allowed" : ""
+              }`}
+              {...field}
+              disabled={isVendorDisabled}
+            >
+              <option value="">Select Vendor</option>
+              {vendors.map((vendor) => (
+                <option key={vendor.id} value={vendor.id}>
+                  {vendor.name}{" "}
+                  {vendor.arabic_name ? `(${vendor.arabic_name})` : ""}
+                </option>
+              ))}
+            </select>
+          )}
+        />
+        <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+          <ChevronDown size={16} />
+        </div>
+      </div>
+    </div>
+  </div>
+)}
           {/* Objectives and Budget */}
           <div className="mb-6 border-t pt-4">
             <h3 className="font-semibold mb-4">Objectives and Budget</h3>
