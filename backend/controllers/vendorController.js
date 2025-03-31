@@ -210,6 +210,16 @@ const deleteVendor = async (req, res) => {
   } catch (error) {
     console.error("Error deleting vendor:", error);
 
+    if (error.code === "23503") {
+      // PostgreSQL foreign key violation code
+      return res.status(409).json({
+        status: "failure",
+        message:
+          "Cannot delete this vendor because it's referenced by other records",
+        result: error.detail || error,
+      });
+    }
+
     return res.status(500).json({
       status: "failure",
       message: "Error deleting vendor",
