@@ -57,11 +57,11 @@ const LoginPage = () => {
             break;
         }
       } else {
-        console.error("Login failed");
-        toast.error("Login Failed");
+        console.error(response.response.data.message);
+        toast.error(response.response.data.message);
       }
     } catch (error) {
-      toast.error("Login Failed");
+      toast.error(error.response.data.message);
       console.error("Error logging in:", error);
     }
   };
