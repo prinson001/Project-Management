@@ -128,11 +128,6 @@ const TableData = ({
     }
   };
   const closeAccordion = (message, type) => {
-    if (type === "success") {
-      toast.success("successfully updated");
-    } else {
-      toast.error(message);
-    }
     setOpenAccordion(null);
     getData();
   };
@@ -508,12 +503,14 @@ const TableData = ({
                               projectBudget={
                                 tableData[index]?.approved_project_budget
                               }
+                              closeAccordion={closeAccordion}
                             />
                           )}
                           {item.title === "Upload Schedule Plan" && (
                             <DeliverableAccordion2
                               project={tableData[index]}
                               parentId={tableData[index]?.related_entity_id}
+                              closeAccordion={closeAccordion}
                             />
                           )}
                           {item.title === "Approve Uploaded BOQ" && (
@@ -523,6 +520,7 @@ const TableData = ({
                               projectBudget={
                                 tableData[index]?.approved_project_budget
                               }
+                              closeAccordion={closeAccordion}
                             />
                           )}
                         </div>

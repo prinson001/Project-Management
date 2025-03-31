@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
+import { toast } from "sonner";
 import axiosInstance from "../axiosInstance";
 import { FileText, Download } from "lucide-react";
 
@@ -7,6 +8,7 @@ const BoqTaskAccordion = ({
   projectBudget = 0,
   project,
   isReadable = false,
+  closeAccordion,
 }) => {
   // State management
   const [items, setItems] = useState([]);
@@ -222,13 +224,14 @@ const BoqTaskAccordion = ({
         ...payload,
       });
       console.log("Save result:", data);
-
+      toast.success("Boq Uploaded successfully");
       await fetchItems();
       setDeletions([]);
+      closeAccordion();
     } catch (err) {
       console.error("Save error:", err);
       console.log(err.message);
-      alert("Error saving data. Please try again.");
+      toast.error("Error saving data. Please try again.");
     }
   };
 
@@ -251,7 +254,7 @@ const BoqTaskAccordion = ({
           }
         );
         console.log("Schedule plan task created successfully:", response.data);
-        alert("BOQ saved and sent for approval successfully!");
+        toast.success("BOQ saved and sent for approval successfully!");
       } else {
         throw new Error(
           response.data.message || "Failed to create schedule plan task"
@@ -259,7 +262,7 @@ const BoqTaskAccordion = ({
       }
     } catch (err) {
       console.error("Error sending for approval:", err);
-      alert("Error sending BOQ for approval: " + err.message);
+      toast.error("Error sending BOQ for approval: ");
     }
   };
 
