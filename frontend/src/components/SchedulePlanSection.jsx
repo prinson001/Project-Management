@@ -419,7 +419,7 @@ const SchedulePlanSection = React.memo(
       <div className="mb-6 border-t pt-4">
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-semibold">Schedule Plan</h3>
-          <div className="flex border border-gray-300 rounded">
+          {/* <div className="flex border border-gray-300 rounded">
             {["B. Days", "Weeks", "Months"].map((tab) => (
               <button
                 key={tab}
@@ -436,7 +436,7 @@ const SchedulePlanSection = React.memo(
                 {tab}
               </button>
             ))}
-          </div>
+          </div> */}
         </div>
         <div className="grid grid-cols-3 gap-6 mb-4">
           <div>

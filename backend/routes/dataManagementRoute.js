@@ -58,6 +58,9 @@ const {
   getBeneficiaryDepartments,
   updateBOQApprovalbyPMO,
   getProjectBoqApprovalStatus,
+  addProjectObjectives,
+  getProjectObjectives,
+  updateProjectObjectives,
 } = require("../controllers/projectController");
 const {
   getSchedulePlan,
@@ -165,6 +168,9 @@ router.post("/getDepartments", getDepartments);
 router.post("/updateDepartment", updateDepartment);
 router.post("/deleteDepartment", deleteDepartment);
 router.post("/getDepartmentProjects", getRelatedProjects);
+router.post("/addProjectObjectives", addProjectObjectives);
+router.post("/getProjectObjectives", getProjectObjectives);
+router.post("/updateProjectObjectives", updateProjectObjectives);
 
 router.post("/addvendor", addVendor);
 router.post("/updatevendor", updateVendor);

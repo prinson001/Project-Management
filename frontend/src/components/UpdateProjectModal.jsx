@@ -113,6 +113,10 @@ const UpdateProjectModal = ({
     []
   );
 
+  const projectManagers = useMemo(() => {
+    return users.filter((user) => user.role_name === "PM");
+  }, [users]);
+
   // Fetch departments and beneficiary departments
   useEffect(() => {
     const fetchDepartmentsAndBeneficiaries = async () => {
@@ -251,7 +255,33 @@ const UpdateProjectModal = ({
     };
     fetchObjectives();
   }, [projectData?.objectives, setValue]);
+  useEffect(() => {
+    const fetchProjectObjectives = async () => {
+      try {
+        const response = await axiosInstance.post(
+          `/data-management/getProjectObjectives`,
+          { projectId: projectData.id }
+        );
 
+        if (response.data.status === "success") {
+          // Mark objectives as checked if they exist for this project
+          setObjectives((prev) =>
+            prev.map((obj) => ({
+              ...obj,
+              checked: response.data.result.some((o) => o.id === obj.id),
+            }))
+          );
+        }
+      } catch (error) {
+        console.error("Error fetching project objectives:", error);
+        toast.error("Failed to load project objectives");
+      }
+    };
+
+    if (projectData?.id) {
+      fetchProjectObjectives();
+    }
+  }, [projectData?.id]);
   // Fetch program details
   const fetchProgramDetails = async (programId) => {
     if (!programId) {
@@ -375,6 +405,12 @@ const UpdateProjectModal = ({
         await axiosInstance.post(`/data-management/addBeneficiaryDepartments`, {
           projectId: projectData.id,
           departmentIds: selectedDepartmentIds,
+        });
+
+        // Update project objectives (NEW)
+        await axiosInstance.post(`/data-management/updateProjectObjectives`, {
+          projectId: projectData.id,
+          objectiveIds: selectedObjectiveIds,
         });
 
         // Upload documents if any
@@ -834,7 +870,7 @@ const UpdateProjectModal = ({
                         {...field}
                       >
                         <option value="">Select Project Manager</option>
-                        {users.map((user) => (
+                        {projectManagers.map((user) => (
                           <option key={user.id} value={user.id}>
                             {user.first_name} {user.family_name}
                           </option>
@@ -892,7 +928,7 @@ const UpdateProjectModal = ({
                         {...field}
                       >
                         <option value="">Select Alternative Manager</option>
-                        {users.map((user) => (
+                        {projectManagers.map((user) => (
                           <option key={user.id} value={user.id}>
                             {user.first_name} {user.family_name}
                           </option>

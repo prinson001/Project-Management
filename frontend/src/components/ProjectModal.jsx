@@ -132,6 +132,8 @@ const ProjectModal = ({
     },
   });
 
+  console.log("Project Modal Users:", users);
+
   // Watch for changes in projectType and currentPhase
   const projectType = watch("projectType");
   const currentPhase = watch("currentPhase");
@@ -500,6 +502,10 @@ const ProjectModal = ({
     return projectPhases;
   }, [projectType, projectPhases, projectTypes]);
 
+  const projectManagers = useMemo(() => {
+    return users.filter((user) => user.role_name === "PM");
+  }, [users]);
+
   // Determine if category should be disabled
   const isCategoryDisabled = useMemo(() => {
     const restrictedTypes = ["Internal Project", "Proof of Concept"];
@@ -798,6 +804,12 @@ const ProjectModal = ({
               "Failed to save beneficiary departments"
           );
         }
+
+        //  Save project objectives
+        await axiosInstance.post(`/data-management/addProjectObjectives`, {
+          projectId,
+          objectiveIds: selectedObjectiveIds,
+        });
 
         // Step 2: Upload documents
         await uploadDocuments(projectId, localFiles);
@@ -1378,7 +1390,7 @@ const ProjectModal = ({
                         <option disabled value="">
                           Select Project Manager
                         </option>
-                        {users.map((user) => (
+                        {projectManagers.map((user) => (
                           <option key={user.id} value={user.id}>
                             {user.first_name} {user.family_name}
                           </option>
@@ -1451,7 +1463,7 @@ const ProjectModal = ({
                         {...field}
                       >
                         <option value="">Select Alternative Manager</option>
-                        {users.map((user) => (
+                        {projectManagers.map((user) => (
                           <option key={user.id} value={user.id}>
                             {user.first_name} {user.family_name}
                           </option>
@@ -1542,7 +1554,7 @@ const ProjectModal = ({
                 <div>
                   <div className="mb-4">
                     <label className="block text-sm font-semibold mb-1">
-                      Project Planned Budget
+                      Project Planned Budget (In Millions)
                     </label>
                     <input
                       readOnly={readOnly}
@@ -1554,7 +1566,7 @@ const ProjectModal = ({
                   </div>
                   <div>
                     <label className="block text-sm font-semibold mb-1">
-                      Project Approved Budget
+                      Project Approved Budget (In Millions)
                     </label>
                     <input
                       readOnly={readOnly}
