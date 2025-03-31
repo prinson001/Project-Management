@@ -249,11 +249,11 @@ const updateActivityDurations = async (req, res) => {
 
       for (const [rowId, rowData] of Object.entries(data)) {
         const numericId = Number(rowId);
-        console.log(numericId);
-        console.log(rowData);
+        const numericValue = Number(rowData.duration);
+        console.log(numericId + "  :  " + numericValue);
         const updateResult = await transaction`
           UPDATE activity_duration
-          SET ${sql(rowData)}
+          SET duration = ${numericValue}
           WHERE id = ${numericId}
           RETURNING *
         `;

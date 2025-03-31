@@ -6,7 +6,7 @@ function Expected() {
       <DataSection
         tableName="activity_duration"
         showTableConfigFilter={false}
-        showTablePagination={false}
+        showTablePagination={true}
       ></DataSection>
     </>
   );

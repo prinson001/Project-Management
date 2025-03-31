@@ -294,7 +294,7 @@ const ProjectTimelineSettings = () => {
               ...phase.budget_durations,
               [rangeId]: {
                 ...phase.budget_durations?.[rangeId],
-                duration_weeks: parseInt(newValue) || 0,
+                duration_days: parseInt(newValue) || 0,
               },
             },
           };
@@ -315,7 +315,7 @@ const ProjectTimelineSettings = () => {
         {
           phase_id: phaseId,
           range_id: rangeId,
-          duration_weeks: Number(newValue.split(" ")[0]),
+          duration_days: Number(newValue.split(" ")[0]),
         },
       ];
     });
@@ -406,7 +406,7 @@ const ProjectTimelineSettings = () => {
                         {/* Added key */}
                         <WeekDropdown
                           value={`${
-                            row.budget_durations[range.id]?.duration_weeks || 0
+                            row.budget_durations[range.id]?.duration_days || 0
                           } weeks`}
                           onChange={(value) =>
                             handleWeekChange(row.phase_id, range.id, value)

@@ -14,7 +14,7 @@ const sql = require("../database/db");
 //               'name', COALESCE(br.label, 'Default Range'),
 //               'min', COALESCE(br.min_budget, 0),
 //               'max', COALESCE(br.max_budget, NULL),
-//               'duration_weeks', COALESCE(pd.duration_weeks, 0)
+//               'duration_days', COALESCE(pd.duration_days, 0)
 //             )
 //           ) FILTER (WHERE br.id IS NOT NULL),
 //           '{}'::json
@@ -86,8 +86,8 @@ const updatePhaseDurations = async (req, res) => {
       if (!Number.isInteger(change.range_id)) {
         validationErrors.push(`${errorPrefix} Invalid or missing range_id`);
       }
-      if (!Number.isInteger(change.duration_weeks)) {
-        validationErrors.push(`${errorPrefix} Invalid duration_weeks format`);
+      if (!Number.isInteger(change.duration_days)) {
+        validationErrors.push(`${errorPrefix} Invalid duration_days format`);
       }
     });
 
@@ -108,15 +108,15 @@ const updatePhaseDurations = async (req, res) => {
             INSERT INTO phase_duration (
               phase_id,
               range_id,
-              duration_weeks
+              duration_days
             ) VALUES (
               ${change.phase_id},
               ${change.range_id},
-              ${change.duration_weeks}
+              ${change.duration_days}
             )
             ON CONFLICT (phase_id, range_id) DO UPDATE
             SET
-              duration_weeks = EXCLUDED.duration_weeks
+              duration_days = EXCLUDED.duration_days
             RETURNING *
           `;
 

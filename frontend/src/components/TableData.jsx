@@ -219,15 +219,22 @@ const TableData = ({
     }));
   };
 
-  const handleBackendSubmit = async (e) => {
-    e.preventDefault();
+  const handleBackendSubmit = async () => {
+    console.log("the changed input is");
+    console.log(changedinput);
     try {
       const result = await axiosInstance.post(`/admin/updateactivityduration`, {
         data: changedinput,
       });
       console.log(result);
+      if (result.status == 200) {
+        setChangedinput({}); // Should be an empty object, not array
+        toast.success("Changes updated successfully");
+      }
     } catch (e) {
       console.log("Error submitting changes:", e);
+      // Fix the toast.error call
+      toast.error(`Error in updating changes: ${e.message || "Unknown error"}`);
     }
   };
 
