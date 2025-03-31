@@ -113,6 +113,10 @@ const UpdateProjectModal = ({
     []
   );
 
+  const projectManagers = useMemo(() => {
+    return users.filter((user) => user.role_name === "PM");
+  }, [users]);
+
   // Fetch departments and beneficiary departments
   useEffect(() => {
     const fetchDepartmentsAndBeneficiaries = async () => {
@@ -866,7 +870,7 @@ const UpdateProjectModal = ({
                         {...field}
                       >
                         <option value="">Select Project Manager</option>
-                        {users.map((user) => (
+                        {projectManagers.map((user) => (
                           <option key={user.id} value={user.id}>
                             {user.first_name} {user.family_name}
                           </option>
@@ -924,7 +928,7 @@ const UpdateProjectModal = ({
                         {...field}
                       >
                         <option value="">Select Alternative Manager</option>
-                        {users.map((user) => (
+                        {projectManagers.map((user) => (
                           <option key={user.id} value={user.id}>
                             {user.first_name} {user.family_name}
                           </option>

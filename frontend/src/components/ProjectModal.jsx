@@ -132,6 +132,8 @@ const ProjectModal = ({
     },
   });
 
+  console.log("Project Modal Users:", users);
+
   // Watch for changes in projectType and currentPhase
   const projectType = watch("projectType");
   const currentPhase = watch("currentPhase");
@@ -499,6 +501,10 @@ const ProjectModal = ({
     // Otherwise, return all phases
     return projectPhases;
   }, [projectType, projectPhases, projectTypes]);
+
+  const projectManagers = useMemo(() => {
+    return users.filter((user) => user.role_name === "PM");
+  }, [users]);
 
   // Determine if category should be disabled
   const isCategoryDisabled = useMemo(() => {
@@ -1384,7 +1390,7 @@ const ProjectModal = ({
                         <option disabled value="">
                           Select Project Manager
                         </option>
-                        {users.map((user) => (
+                        {projectManagers.map((user) => (
                           <option key={user.id} value={user.id}>
                             {user.first_name} {user.family_name}
                           </option>
@@ -1457,7 +1463,7 @@ const ProjectModal = ({
                         {...field}
                       >
                         <option value="">Select Alternative Manager</option>
-                        {users.map((user) => (
+                        {projectManagers.map((user) => (
                           <option key={user.id} value={user.id}>
                             {user.first_name} {user.family_name}
                           </option>
