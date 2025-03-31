@@ -10,7 +10,7 @@ const login = asyncHandler(async (req, res) => {
   }
 
   const user = await sql`
-    SELECT users.first_name , users.email,users.password , role.name  as role
+    SELECT users.id, users.first_name , users.email,users.password , role.name  as role
     FROM users 
     JOIN role ON users.role_id = role.id 
     WHERE users.email = ${req.body.email}
@@ -28,7 +28,7 @@ const login = asyncHandler(async (req, res) => {
     throw new Error("Invalid password");
   }
   const jwtToken = generatejsonWebToken(user[0]);
-
+  console.log("User Login", user[0]);
   res.status(200);
   res.send({
     status: "success",
