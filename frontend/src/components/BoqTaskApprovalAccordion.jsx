@@ -1,7 +1,13 @@
 import React, { useEffect, useState } from "react";
 import BoqTaskAccordion from "./BoqTaskAccordion";
+import { toast } from "sonner";
 import axiosInstance from "../axiosInstance";
-function BoqTaskApprovalAccordion({ project, parentId, projectBudget }) {
+function BoqTaskApprovalAccordion({
+  project,
+  parentId,
+  projectBudget,
+  closeAccordion,
+}) {
   const [boq_status, setBoq_status] = useState("Not Initiatied");
 
   const fetchProjectApprovalStatus = async () => {
@@ -50,13 +56,14 @@ function BoqTaskApprovalAccordion({ project, parentId, projectBudget }) {
           }
         );
 
-        console.log(`Project status updated to: ${status}`);
+        toast.success(`Project status updated to: ${status}`);
+        closeAccordion();
       } else {
-        console.error(response.data.message);
+        toast.error(response.data.message);
       }
     } catch (error) {
       console.error("Error updating project status:", error);
-      alert("Error updating project status");
+      toast.error("Error updating project status");
     }
   };
 

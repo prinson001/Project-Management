@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Disclosure, Transition } from "@headlessui/react";
 import axiosInstance from "../axiosInstance";
+import { toast } from "sonner";
 const PORT = import.meta.env.VITE_PORT;
 
-const DeliverablesAccordion2 = ({ project }) => {
+const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
   let projectId = project?.related_entity_id;
   console.log("the project id is ", projectId);
   console.log("the project is ", project);
@@ -231,10 +232,11 @@ const DeliverablesAccordion2 = ({ project }) => {
         deletedDeliverables: [],
       });
 
-      alert("Deliverables saved successfully!");
+      toast.success("Deliverables saved successfully!");
+      closeAccordion();
     } catch (error) {
       console.error("Error saving deliverables:", error.message);
-      alert("Error saving deliverables");
+      toast.error("Error saving deliverables");
     }
   };
 
@@ -287,10 +289,11 @@ const DeliverablesAccordion2 = ({ project }) => {
         deletedDeliverables: [],
       });
 
-      alert("Deliverables saved successfully!");
+      toast.success("Deliverables saved successfully!");
+      closeAccordion();
     } catch (error) {
       console.error("Error saving deliverables:", error.message);
-      alert("Error saving deliverables");
+      toast.error("Error saving deliverables");
     }
   };
 
