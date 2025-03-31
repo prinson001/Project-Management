@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axiosInstance from "../axiosInstance";
-import { FileText } from "lucide-react";
+import { FileText, Download } from "lucide-react";
 
 const BoqTaskAccordion = ({
   parentId = null,
@@ -160,6 +160,40 @@ const BoqTaskAccordion = ({
         return item;
       })
     );
+  };
+
+  const handleDownload = async (fileUrl, fileName) => {
+    if (!fileUrl) {
+      toast.error("No file URL available for download.");
+      return;
+    }
+
+    try {
+      // For Supabase storage URLs, we can use them directly
+      const response = await fetch(fileUrl);
+      console.log(fileName + " the name of the file");
+      console.log("the url of file " + fileUrl);
+      console.log("the response");
+      console.log(response);
+      if (!response.ok) {
+        throw new Error("Failed to fetch the file");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success(`Downloaded ${fileName}`);
+    } catch (error) {
+      console.error("Error downloading file:", error);
+      toast.error("Failed to download file");
+    }
   };
 
   // Save handler
@@ -365,22 +399,18 @@ const BoqTaskAccordion = ({
             className="p-4 border rounded-lg mb-4 bg-white dark:bg-gray-700 shadow-sm hover:shadow-md transition-shadow"
           >
             <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-center mb-2">
-                  <FileText
-                    className="mr-2 text-green-600 dark:text-green-400"
-                    size={16}
+              <div className="flex items-center mb-2">
+                <p>{document.name}</p>
+                {document.file_url && (
+                  <Download
+                    className="text-green-500 hover:text-green-700 cursor-pointer"
+                    size={20}
+                    onClick={() =>
+                      handleDownload(document.document_name, document.file_url)
+                    }
+                    title="Download document"
                   />
-                  <a
-                    href={document.document_name}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800"
-                  >
-                    {document.document_name.split("/").pop()}{" "}
-                    {/* Show filename */}
-                  </a>
-                </div>
+                )}
               </div>
             </div>
           </div>
