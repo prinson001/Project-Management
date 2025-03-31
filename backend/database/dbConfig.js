@@ -760,8 +760,6 @@ const createTableProject = async (req, res) => {
   }
 };
 
-module.exports = { createTableProject };
-
 // Create timestamp update trigger for project table
 const createProjectTimestampTrigger = async (req, res) => {
   try {
@@ -1045,7 +1043,7 @@ const linkProjectToProgram = async (req, res) => {
     const result = await sql`
       ALTER TABLE projects 
       ADD COLUMN program_id INT,
-      ADD CONSTRAINT fk_program FOREIGN KEY (program_id) REFERENCES programs(id) ON DELETE SET NULL
+      ADD CONSTRAINT fk_program FOREIGN KEY (program_id) REFERENCES programs(id) ON DELETE RESTRICT
     `;
 
     console.log(result);
