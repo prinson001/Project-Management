@@ -440,9 +440,16 @@ const getSetting = async (req, res) => {
 const getUsers = async (req, res) => {
   try {
     const result = await sql`
-      SELECT id, first_name, family_name, email 
-      FROM users 
-      ORDER BY first_name, family_name
+      SELECT 
+        users.id, 
+        users.first_name, 
+        users.family_name, 
+        users.email,
+        role.name as role_name,
+        role.arabic_name as role_arabic_name
+      FROM users
+      LEFT JOIN role ON users.role_id = role.id
+      ORDER BY users.first_name, users.family_name
     `;
 
     res.status(200).json({
