@@ -18,6 +18,7 @@ const LoginPage = () => {
   const [passwordError, setPasswordError] = useState("");
   const setToken = useAuthStore((state) => state.setToken);
   const setRole = useAuthStore((state) => state.setRole);
+  const setUserId = useAuthStore((state) => state.setUserId);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -35,7 +36,9 @@ const LoginPage = () => {
         toast.success("Logged in Successfully");
         // Store the user role
         const userRole = data.role;
+        const userId = data.userId;
         setRole(userRole);
+        setUserId(userId);
 
         // Redirect based on role
         switch (userRole) {

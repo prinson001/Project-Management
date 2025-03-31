@@ -34,6 +34,7 @@ const login = asyncHandler(async (req, res) => {
     status: "success",
     token: jwtToken,
     role: user[0].role, // Include the role in the response
+    userId: user[0].id,
   });
 });
 

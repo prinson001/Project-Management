@@ -82,6 +82,30 @@ const TableData = ({
       console.log("we are here");
     }
   }, [tableData]);
+  useEffect(() => {
+    if (tableData && tableData.length > 0) {
+      const parsedData = tableData.map((item) => {
+        const result = { ...item };
+        [
+          "created_date",
+          "created_at",
+          "due_date",
+          "start_date",
+          "end_date",
+        ].forEach((field) => {
+          if (result[field] && typeof result[field] === "string") {
+            result[field] = new Date(result[field]);
+          }
+        });
+        return result;
+      });
+
+      // Only update if dates were actually parsed
+      if (JSON.stringify(parsedData) !== JSON.stringify(tableData)) {
+        setTableData(parsedData); // If you have access to setTableData
+      }
+    }
+  }, [tableData]);
 
   // Resize handlers
   const handleResizeStart = (e, columnId) => {
@@ -192,17 +216,28 @@ const TableData = ({
     }
   };
 
-  const getRelativeDate = (dateString) => {
-    const createdDate = new Date(dateString);
-    const today = new Date();
-    const diffDays = differenceInCalendarDays(today, createdDate);
-    if (diffDays === -1) return "Tomorrow";
-    if (diffDays === 0) return "Today";
-    if (diffDays === 1) return "Yesterday";
-    if (diffDays < 0) return `After ${Math.abs(diffDays)} days`;
-    return `${diffDays} days ago`;
-  };
+  const getRelativeDate = (dateInput) => {
+    try {
+      const createdDate =
+        dateInput instanceof Date ? dateInput : new Date(dateInput);
 
+      // Check if the date is valid
+      if (isNaN(createdDate.getTime())) {
+        return "Invalid date";
+      }
+
+      const today = new Date();
+      const diffDays = differenceInCalendarDays(today, createdDate);
+      if (diffDays === -1) return "Tomorrow";
+      if (diffDays === 0) return "Today";
+      if (diffDays === 1) return "Yesterday";
+      if (diffDays < 0) return `After ${Math.abs(diffDays)} days`;
+      return `${diffDays} days ago`;
+    } catch (e) {
+      console.error("Error parsing date:", dateInput, e);
+      return "Invalid date";
+    }
+  };
   const sortDataHandler = (event) => {
     const name = event.target.dataset.name;
     const order = event.target.dataset.sort === "ASC" ? "DESC" : "ASC";
@@ -350,9 +385,20 @@ const TableData = ({
                               column.dbColumn === "created_at" ||
                               column.dbColumn === "due_date" ? (
                                 showDate ? (
-                                  item[column.dbColumn].split("T")[0]
+                                  item[column.dbColumn] instanceof Date ? (
+                                    format(item[column.dbColumn], "yyyy-MM-dd")
+                                  ) : typeof item[column.dbColumn] ===
+                                    "string" ? (
+                                    item[column.dbColumn].split("T")[0]
+                                  ) : (
+                                    "Invalid date"
+                                  )
                                 ) : (
-                                  getRelativeDate(item[column.dbColumn])
+                                  getRelativeDate(
+                                    item[column.dbColumn] instanceof Date
+                                      ? item[column.dbColumn]
+                                      : new Date(item[column.dbColumn])
+                                  )
                                 )
                               ) : (
                                 <input

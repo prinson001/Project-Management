@@ -3,6 +3,7 @@ import { create } from "zustand";
 const useAuthStore = create((set) => ({
   token: localStorage.getItem("token") || null,
   role: localStorage.getItem("role") || null,
+  userId: localStorage.getItem("userId") || null,
   users: [],
   projectTypes: [],
   projectPhases: [],
@@ -16,6 +17,11 @@ const useAuthStore = create((set) => ({
   setRole: (role) => {
     set({ role });
     localStorage.setItem("role", role);
+  },
+  setUserId: (userId) => {
+    // Add setter for userId
+    set({ userId });
+    localStorage.setItem("userId", userId);
   },
   clearToken: () => {
     set({ token: null, role: null });
