@@ -410,7 +410,7 @@ const TableData = ({
                                 )
                               ) : (
                                 <input
-                                  className="w-full h-full px-2 py-1 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                  className="w-full h-full px-2 py-1 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white "
                                   type={column.type}
                                   data-dbcolumn={column.dbColumn}
                                   data-rowid={item.id}
@@ -430,7 +430,17 @@ const TableData = ({
                                 getRelativeDate(item[column.dbColumn])
                               )
                             ) : (
-                              <span className="truncate block">
+                              <span
+                                className={`w-full h-full px-5 py-2   rounded dark:bg-gray-700 dark:border-gray-600 ${
+                                  column.dbColumn === "status"
+                                    ? item[column.dbColumn] === "Delayed"
+                                      ? "text-red-600 dark:text-red-400 bg-red-50"
+                                      : item[column.dbColumn] === "Open"
+                                      ? "text-yellow-600 bg-yellow-50 dark:text-yellow-400"
+                                      : "text-green-600 bg-green-50 dark:text-green-400"
+                                    : "dark:text-white"
+                                }`}
+                              >
                                 {item[column.dbColumn]}
                               </span>
                             )}
