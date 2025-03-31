@@ -64,6 +64,13 @@ const getData = async (req, res) => {
         LEFT JOIN project ON ${sql(tableName)}.project_id = project.id
         LIMIT ${limit} OFFSET ${offset}
       `;
+    } else if (tableName === "project") {
+      result = await sql`
+        SELECT ${sql(tableName)}.*, users.first_name AS project_manager_name
+        FROM ${sql(tableName)}
+        LEFT JOIN users ON ${sql(tableName)}.project_manager_id = users.id
+        LIMIT ${limit} OFFSET ${offset}
+      `;
     } else {
       result = await sql`
         SELECT * FROM ${sql(tableName)}

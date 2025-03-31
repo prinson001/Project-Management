@@ -1023,7 +1023,7 @@ const UpdateProjectModal = ({
                 <div>
                   <div className="mb-4">
                     <label className="block text-sm font-semibold mb-1">
-                      Project Planned Budget
+                      Project Planned Budget (In Millions)
                     </label>
                     <input
                       readOnly={readOnly}
@@ -1034,7 +1034,7 @@ const UpdateProjectModal = ({
                   </div>
                   <div>
                     <label className="block text-sm font-semibold mb-1">
-                      Project Approved Budget
+                      Project Approved Budget (In Millions)
                     </label>
                     <input
                       readOnly={readOnly}
