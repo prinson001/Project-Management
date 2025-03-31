@@ -1145,6 +1145,151 @@ const getProjectDetailsWithVendor = async (req, res) => {
   }
 };
 
+// @Description Add/Update objectives for a project
+// @Route POST /data-management/addProjectObjectives
+const addProjectObjectives = async (req, res) => {
+  const { projectId, objectiveIds } = req.body;
+
+  // Validate the request
+  if (!projectId || !objectiveIds || !Array.isArray(objectiveIds)) {
+    return res.status(400).json({
+      status: "failure",
+      message: "Invalid request: projectId and objectiveIds are required",
+      result: null,
+    });
+  }
+
+  try {
+    await sql.begin(async (sql) => {
+      // Step 1: Delete existing objectives for this project
+      await sql`
+        DELETE FROM project_objective
+        WHERE project_id = ${projectId};
+      `;
+
+      // Step 2: Validate objective IDs
+      const validObjectives = await sql`
+        SELECT id FROM objective WHERE id = ANY(${objectiveIds});
+      `;
+      const validObjectiveIds = validObjectives.map((row) => row.id);
+      const invalidIds = objectiveIds.filter(
+        (id) => !validObjectiveIds.includes(id)
+      );
+
+      if (invalidIds.length > 0) {
+        throw new Error(`Invalid objective IDs: ${invalidIds.join(", ")}`);
+      }
+
+      // Step 3: Insert new project objectives
+      for (const objectiveId of objectiveIds) {
+        await sql`
+          INSERT INTO project_objective (project_id, objective_id)
+          VALUES (${projectId}, ${objectiveId})
+          ON CONFLICT (project_id, objective_id) DO NOTHING;
+        `;
+      }
+    });
+
+    return res.status(200).json({
+      status: "success",
+      message: "Project objectives updated successfully",
+      result: null,
+    });
+  } catch (error) {
+    console.error("Error updating project objectives:", error);
+    return res.status(500).json({
+      status: "failure",
+      message: "Error updating project objectives",
+      result: error.message || error,
+    });
+  }
+};
+
+// @Description Get objectives for a specific project
+// @Route GET /data-management/getProjectObjectives
+const getProjectObjectives = async (req, res) => {
+  const { projectId } = req.body;
+
+  try {
+    const objectives = await sql`
+      SELECT o.id, o.name, o.arabic_name 
+      FROM objective o
+      JOIN project_objective po ON o.id = po.objective_id
+      WHERE po.project_id = ${projectId}
+    `;
+
+    return res.status(200).json({
+      status: "success",
+      message: "Project objectives retrieved successfully",
+      result: objectives,
+    });
+  } catch (error) {
+    console.error("Error fetching project objectives:", error);
+    return res.status(500).json({
+      status: "failure",
+      message: "Error fetching project objectives",
+      result: error.message || error,
+    });
+  }
+};
+
+// @Description Update objectives for a project
+// @Route POST /data-management/updateProjectObjectives
+const updateProjectObjectives = async (req, res) => {
+  const { projectId, objectiveIds } = req.body;
+
+  if (!projectId || !Array.isArray(objectiveIds)) {
+    return res.status(400).json({
+      status: "failure",
+      message: "projectId and objectiveIds array are required",
+      result: null,
+    });
+  }
+
+  try {
+    await sql.begin(async (sql) => {
+      await sql`
+        DELETE FROM project_objective 
+        WHERE project_id = ${projectId}
+      `;
+
+      // Insert new objectives if any
+      if (objectiveIds.length > 0) {
+        // Validate objective IDs exist
+        const validObjectives = await sql`
+          SELECT id FROM objective WHERE id IN ${sql(objectiveIds)}
+        `;
+
+        if (validObjectives.length !== objectiveIds.length) {
+          const invalidIds = objectiveIds.filter(
+            (id) => !validObjectives.some((o) => o.id === id)
+          );
+          throw new Error(`Invalid objective IDs: ${invalidIds.join(", ")}`);
+        }
+
+        // Insert valid objectives
+        await sql`
+          INSERT INTO project_objective (project_id, objective_id)
+          VALUES ${sql(objectiveIds.map((id) => [projectId, id]))}
+        `;
+      }
+    });
+
+    return res.status(200).json({
+      status: "success",
+      message: "Project objectives updated successfully",
+      result: null,
+    });
+  } catch (error) {
+    console.error("Error updating project objectives:", error);
+    return res.status(500).json({
+      status: "failure",
+      message: "Error updating project objectives",
+      result: error.message || error,
+    });
+  }
+};
+
 module.exports = {
   addProject,
   updateProject,
@@ -1165,4 +1310,7 @@ module.exports = {
   updateBOQApprovalbyPMO,
   getProjectBoqApprovalStatus,
   getProjectDetailsWithVendor,
+  addProjectObjectives,
+  getProjectObjectives,
+  updateProjectObjectives,
 };

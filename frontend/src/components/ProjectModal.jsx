@@ -799,6 +799,12 @@ const ProjectModal = ({
           );
         }
 
+        //  Save project objectives
+        await axiosInstance.post(`/data-management/addProjectObjectives`, {
+          projectId,
+          objectiveIds: selectedObjectiveIds,
+        });
+
         // Step 2: Upload documents
         await uploadDocuments(projectId, localFiles);
         console.log("Documents uploaded successfully"); // Debug log
@@ -1542,7 +1548,7 @@ const ProjectModal = ({
                 <div>
                   <div className="mb-4">
                     <label className="block text-sm font-semibold mb-1">
-                      Project Planned Budget
+                      Project Planned Budget (In Millions)
                     </label>
                     <input
                       readOnly={readOnly}
@@ -1554,7 +1560,7 @@ const ProjectModal = ({
                   </div>
                   <div>
                     <label className="block text-sm font-semibold mb-1">
-                      Project Approved Budget
+                      Project Approved Budget (In Millions)
                     </label>
                     <input
                       readOnly={readOnly}
