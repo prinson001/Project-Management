@@ -36,22 +36,8 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
         console.error("Error fetching items:", error);
       }
     };
-    const fetchProjectDocuments = async () => {
-      try {
-        const response = await axiosInstance.post(`/pm/getProjectDocuments`, {
-          projectId,
-        });
-        console.log("project documents");
-        console.log(response);
-        setItems(response.data);
-      } catch (e) {
-        console.log("there was an error");
-        console.log(e);
-      }
-    };
 
     fetchItemsWithDeliverables();
-    fetchProjectDocuments();
   }, [projectId]);
 
   const handleDeliverableChange = (
