@@ -61,7 +61,7 @@ const SidebarPage = ({ isSidebarOpen, toggleSidebar }) => {
 
   return (
     // Remove the fixed positioning and top value to prevent overlap
-    <div className="h-full">
+    <div className="h-full ">
       <div className="absolute top-2 left-2 p-2 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 z-50">
         <button
           onClick={handleToggleSidebar}
@@ -122,7 +122,9 @@ const SidebarPage = ({ isSidebarOpen, toggleSidebar }) => {
             <button
               onClick={() => handleLanguageChange("en")}
               className={`w-10 h-10 rounded-full border-2 transition-all duration-300 ${
-                currentLanguage === "en" ? "border-blue-500" : "border-transparent"
+                currentLanguage === "en"
+                  ? "border-blue-500"
+                  : "border-transparent"
               } overflow-hidden ${isSidebarOpen ? "scale-100" : "scale-0"}`}
             >
               <img
@@ -134,7 +136,9 @@ const SidebarPage = ({ isSidebarOpen, toggleSidebar }) => {
             <button
               onClick={() => handleLanguageChange("ar")}
               className={`w-10 h-10 rounded-full border-2 ml-2 transition-all duration-300 ${
-                currentLanguage === "ar" ? "border-blue-500" : "border-transparent"
+                currentLanguage === "ar"
+                  ? "border-blue-500"
+                  : "border-transparent"
               } overflow-hidden ${isSidebarOpen ? "scale-100" : "scale-0"}`}
             >
               <img
