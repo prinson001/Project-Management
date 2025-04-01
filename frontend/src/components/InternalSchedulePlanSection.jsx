@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { ChevronDown } from "lucide-react";
 import { Controller, useForm } from "react-hook-form";
-import { addDays, format, parseISO } from "date-fns";
+import { subDays, format, parseISO } from "date-fns";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import axiosInstance from "../axiosInstance";
@@ -18,13 +18,13 @@ const InternalSchedulePlanSection = ({
 
   const { control, watch, setValue } = useForm({
     defaultValues: {
-      executionStartDate: null,
+      executionTargetDate: null, // Changed from executionStartDate to executionTargetDate
     },
   });
 
-  const executionStartDate = watch("executionStartDate");
+  const executionTargetDate = watch("executionTargetDate"); // Changed variable name
 
-  // Utility functions
+  // Utility functions (unchanged)
   const convertToDays = useCallback((durationStr) => {
     if (!durationStr) return 0;
     const daysMatch = durationStr.match(/(\d+)\s*days?/i);
@@ -41,7 +41,7 @@ const InternalSchedulePlanSection = ({
     return `${durationDays} day${durationDays !== 1 ? "s" : ""}`;
   }, []);
 
-  // Default internal schedule data
+  // Default internal schedule data (unchanged)
   const defaultInternalSchedule = useCallback(
     () => [
       {
@@ -66,9 +66,9 @@ const InternalSchedulePlanSection = ({
     []
   );
 
-  // Calculate dates based on execution start date and durations
+  // Calculate dates in reverse order (modified)
   const calculateDates = useCallback(() => {
-    if (!executionStartDate) {
+    if (!executionTargetDate) {
       setInternalSchedule((prev) =>
         prev.map((phase) => ({
           ...phase,
@@ -85,10 +85,13 @@ const InternalSchedulePlanSection = ({
 
       if (!planningPhase || !executionPhase) return prev;
 
-      const executionStart = new Date(executionStartDate);
-      const executionEnd = addDays(executionStart, executionPhase.durationDays);
+      // Treat executionTargetDate as the END date of execution
+      const executionEnd = new Date(executionTargetDate);
+      const executionStart = subDays(executionEnd, executionPhase.durationDays);
+
+      // Planning ends when execution starts
       const planningEnd = new Date(executionStart);
-      const planningStart = addDays(planningEnd, -planningPhase.durationDays);
+      const planningStart = subDays(planningEnd, planningPhase.durationDays);
 
       const formatDate = (date) => format(date, "dd-MMM-yyyy");
 
@@ -104,7 +107,7 @@ const InternalSchedulePlanSection = ({
           return {
             ...phase,
             startDate: formatDate(executionStart),
-            endDate: formatDate(executionEnd),
+            endDate: formatDate(executionEnd), // This is now the target date
           };
         }
         return phase;
@@ -112,9 +115,9 @@ const InternalSchedulePlanSection = ({
 
       return newSchedule;
     });
-  }, [executionStartDate]);
+  }, [executionTargetDate]);
 
-  // Fetch internal schedule data
+  // Fetch internal schedule data (modified to use execution end date)
   useEffect(() => {
     const fetchInternalSchedule = async () => {
       if (!projectId) {
@@ -161,9 +164,10 @@ const InternalSchedulePlanSection = ({
           setInternalSchedule(mergedSchedule);
           prevScheduleRef.current = mergedSchedule;
 
+          // Set the execution target date (end date) if available
           const executionPhase = fetchedData.find((p) => p.id === 4);
-          if (executionPhase?.startDate) {
-            setValue("executionStartDate", executionPhase.startDate);
+          if (executionPhase?.endDate) {
+            setValue("executionTargetDate", executionPhase.endDate);
           }
         } else {
           const defaultSchedule = defaultInternalSchedule();
@@ -182,18 +186,19 @@ const InternalSchedulePlanSection = ({
     fetchInternalSchedule();
   }, [projectId, defaultInternalSchedule, setValue]);
 
-  // Handle date calculations when execution date changes
+  // Handle date calculations when execution target date changes
   useEffect(() => {
     calculateDates();
-  }, [executionStartDate, calculateDates]);
+  }, [executionTargetDate, calculateDates]);
 
-  // Notify parent of changes
+  // Notify parent of changes (unchanged)
   useEffect(() => {
     if (onScheduleChange) {
       onScheduleChange(internalSchedule);
     }
   }, [internalSchedule, onScheduleChange]);
 
+  // Handle duration change (unchanged)
   const handleInternalDurationChange = useCallback(
     (id, newDuration) => {
       const durationDays = convertToDays(newDuration);
@@ -219,6 +224,7 @@ const InternalSchedulePlanSection = ({
     [convertToDays, convertDuration, calculateDates]
   );
 
+  // Get duration options (unchanged)
   const getDurationOptions = () => {
     return Array.from({ length: 90 }, (_, i) => ({
       value: `${i + 1} days`,
@@ -232,10 +238,10 @@ const InternalSchedulePlanSection = ({
       <div className="grid grid-cols-3 gap-6 mb-4">
         <div>
           <label className="block text-sm font-semibold mb-1">
-            Execution Targeted Start Date
+            Execution Target Date (End Date)
           </label>
           <Controller
-            name="executionStartDate"
+            name="executionTargetDate" // Changed from executionStartDate
             control={control}
             render={({ field: { onChange, value } }) => (
               <DatePicker
@@ -243,7 +249,7 @@ const InternalSchedulePlanSection = ({
                 selected={value}
                 onChange={onChange}
                 dateFormat="dd-MMM-yyyy"
-                placeholderText="Select date"
+                placeholderText="Select target date"
                 className="w-full p-2 border border-gray-300 rounded"
                 isClearable
               />

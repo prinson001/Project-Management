@@ -337,7 +337,6 @@ const updateProject = async (req, res) => {
     });
   }
 };
-
 const deleteProject = async (req, res) => {
   if (!req.body?.id) {
     return res.status(400).json({
@@ -358,27 +357,40 @@ const deleteProject = async (req, res) => {
   }
 
   try {
-    // Use sql.begin() for proper transaction handling
     const result = await sql.begin(async (sql) => {
-      // 1. First delete from beneficiary_departments
+      // 1. Delete deliverables linked to objectives
+      await sql`
+        DELETE FROM deliverable
+        WHERE objective_id IN (
+          SELECT id FROM objective WHERE project_id = ${id}
+        )
+      `;
+
+      // 2. Delete objectives linked to the project
+      await sql`
+        DELETE FROM objective
+        WHERE project_id = ${id}
+      `;
+
+      // 3. Delete from beneficiary_departments
       await sql`
         DELETE FROM beneficiary_departments
         WHERE project_id = ${id}
       `;
 
-      // 2. Delete from schedule_plan (if exists)
+      // 4. Delete from schedule_plan (if exists)
       await sql`
         DELETE FROM schedule_plan_new
         WHERE project_id = ${id}
       `;
 
-      // 4. Delete project documents (if exists)
+      // 5. Delete project documents (if exists)
       await sql`
         DELETE FROM project_documents
         WHERE project_id = ${id}
       `;
 
-      // 5. Finally delete the project and return the id
+      // 6. Finally delete the project
       const [deletedProject] = await sql`
         DELETE FROM project
         WHERE id = ${id}
