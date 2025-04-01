@@ -16,7 +16,7 @@ const PMOPage = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-gray-50 dark:bg-black">
+    <div className="text-sm flex flex-col h-screen overflow-hidden bg-gray-50 dark:bg-black">
       <Toaster position="top-center" richColors />
       <TopHeader />
       <div className="flex flex-1 overflow-hidden relative">

@@ -25,7 +25,7 @@ function Pagination({ pagination, getPageData }) {
 
   return (
     <nav aria-label="Page navigation example">
-      <ul className="flex items-center justify-end mt-2 -space-x-px h-15 text-base">
+      <ul className="flex items-center justify-end mt-2 -space-x-px h-15 text-xs">
         {/* Previous Button */}
         <li>
           <div

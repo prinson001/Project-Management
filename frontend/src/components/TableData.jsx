@@ -303,8 +303,8 @@ const TableData = ({
 
   return (
     <>
-      <div className="relative overflow-x-auto rounded-lg shadow-md">
-        <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-white">
+      <div className="relative text-xs overflow-x-auto rounded-lg shadow-md">
+        <table className="w-full text-xs text-left rtl:text-right text-gray-500 dark:text-white">
           <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-[#090b0d] dark:text-gray-400">
             <tr>
               {columnSetting.map(
