@@ -109,7 +109,7 @@ const getData = async (req, res) => {
 // @Description retrieve filtered Table data (sorting, ordering, filtering table records)
 // @Route site.com/data-management/filtereddata
 const getFilteredData = async (req, res) => {
-  const {
+  let {
     tableName,
     filters = {}, // Default to empty object if not provided
     page = 1,
