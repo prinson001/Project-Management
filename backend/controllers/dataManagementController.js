@@ -452,6 +452,7 @@ const getUsers = async (req, res) => {
         users.first_name, 
         users.family_name, 
         users.email,
+        users.is_program_manager,
         role.name as role_name,
         role.arabic_name as role_arabic_name
       FROM users
@@ -508,10 +509,25 @@ const addUser = async (req, res) => {
       password,
       department,
       role,
+      is_program_manager,
     } = req.body.data;
     console.log(req.body);
+    let result = null;
     // Insert user into the database
-    const result = await sql`
+    if (is_program_manager) {
+      result = await sql`
+      INSERT INTO users (
+        first_name, arabic_first_name, family_name, arabic_family_name, 
+        email, password, department_id, role_id , is_program_manager
+      ) 
+      VALUES (
+        ${first_name}, ${arabic_first_name}, ${family_name}, ${arabic_family_name}, 
+        ${email}, ${password}, ${department}, ${role} , ${is_program_manager}
+      ) 
+      RETURNING id, first_name, family_name, email, department_id, role_id , is_program_manager
+    `;
+    } else {
+      result = await sql`
       INSERT INTO users (
         first_name, arabic_first_name, family_name, arabic_family_name, 
         email, password, department_id, role_id
@@ -522,6 +538,7 @@ const addUser = async (req, res) => {
       ) 
       RETURNING id, first_name, family_name, email, department_id, role_id
     `;
+    }
 
     res.status(201).json({
       status: "success",
