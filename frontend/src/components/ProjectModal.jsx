@@ -528,6 +528,14 @@ const ProjectModal = ({
     return restrictedTypes.includes(currentType?.name || "");
   }, [projectType, projectTypes]);
 
+  const isBudgetDisabled = useMemo(() => {
+    const restrictedTypes = ["Internal Project", "Proof of Concept"];
+    const currentType = projectTypes.find(
+      (type) => type.id.toString() === projectType?.toString()
+    );
+    return restrictedTypes.includes(currentType?.name || "");
+  }, [projectType, projectTypes]);
+
   const getCurrentPhaseDocumentTemplates = async (phase) => {
     try {
       const result = await axiosInstance.post(
@@ -1575,27 +1583,43 @@ const ProjectModal = ({
               {shouldShowSection("budget") && (
                 <div>
                   <div className="mb-4">
-                    <label className="block text-sm font-semibold mb-1">
+                    <label
+                      className={`block text-sm font-semibold mb-1 ${
+                        isBudgetDisabled ? "opacity-50" : ""
+                      }`}
+                    >
                       Project Planned Budget (In Millions)
+                      {isBudgetDisabled && " (Disabled for this project type)"}
                     </label>
                     <input
-                      readOnly={readOnly}
+                      readOnly={readOnly || isBudgetDisabled}
                       type="text"
-                      className="w-full p-2 border border-gray-300 rounded"
+                      className={`w-full p-2 border border-gray-300 rounded ${
+                        isBudgetDisabled ? "bg-gray-100 cursor-not-allowed" : ""
+                      }`}
                       placeholder=""
                       {...register("planned_budget")}
+                      disabled={isBudgetDisabled}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold mb-1">
+                    <label
+                      className={`block text-sm font-semibold mb-1 ${
+                        isBudgetDisabled ? "opacity-50" : ""
+                      }`}
+                    >
                       Project Approved Budget (In Millions)
+                      {isBudgetDisabled && " (Disabled for this project type)"}
                     </label>
                     <input
-                      readOnly={readOnly}
+                      readOnly={readOnly || isBudgetDisabled}
                       type="text"
-                      className="w-full p-2 border border-gray-300 rounded"
+                      className={`w-full p-2 border border-gray-300 rounded ${
+                        isBudgetDisabled ? "bg-gray-100 cursor-not-allowed" : ""
+                      }`}
                       placeholder=""
                       {...register("approved_budget")}
+                      disabled={isBudgetDisabled}
                     />
                   </div>
                 </div>
