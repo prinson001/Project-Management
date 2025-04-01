@@ -13,6 +13,7 @@ const UpdateDynamicForm = ({
   portfolios = [],
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [pmRole, setPmRole] = useState(false);
   const {
     register,
     handleSubmit,
@@ -142,7 +143,9 @@ const UpdateDynamicForm = ({
           finalUsers && finalUsers.length > 0
             ? finalUsers
                 .filter(
-                  (user) => user.role_name?.toUpperCase() === "PROGRAM MANAGER"
+                  (user) =>
+                    user.role_name?.toUpperCase() === "PROGRAM MANAGER" ||
+                    user.is_program_manager
                 )
                 .map((user) => ({
                   value: user.id.toString(),
@@ -250,6 +253,13 @@ const UpdateDynamicForm = ({
               }))
             : [],
       },
+      {
+        name: "is_program_manager",
+        label: "",
+        type: "checkbox",
+        required: false,
+        columnSpan: 1,
+      },
     ],
     project: [
       {
@@ -309,7 +319,22 @@ const UpdateDynamicForm = ({
       reset(filteredData);
     }
   }, [data, reset, tableName]);
+  const changeHandler = (e) => {
+    const { name, value } = e.target;
+    console.log(`${name} changed to:`, value);
 
+    if (name === "role") {
+      console.log("Role selected:", value);
+      const selectedText = e.target.options[e.target.selectedIndex].text;
+      console.log("selected text", selectedText);
+      if (selectedText == "PM") {
+        setPmRole(true);
+      } else {
+        setPmRole(false);
+      }
+      // Do something with the value
+    }
+  };
   const handleFormSubmit = (formData) => {
     const { rewritePassword, ...submitData } = formData; // Fix destructuring
 
@@ -364,6 +389,10 @@ const UpdateDynamicForm = ({
         {type === "select" ? (
           <select
             {...register(name, { required })}
+            onChange={(e) => {
+              register("role").onChange(e); // This ensures React Hook Form gets the update
+              changeHandler(e);
+            }}
             className="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
             defaultValue={data?.[name] || ""}
           >
@@ -393,6 +422,21 @@ const UpdateDynamicForm = ({
             className="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
             rows={4}
           />
+        ) : type === "checkbox" ? (
+          <div className="mt-1">
+            <label className="inline-flex items-center w-full cursor-pointer">
+              <input
+                type="checkbox"
+                disabled={!pmRole}
+                {...register(name, { required })}
+                className="sr-only peer"
+              />
+              <div className="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-500 peer-checked:bg-blue-600 dark:peer-checked:bg-blue-600"></div>
+              <span className="ms-3 text-sm font-medium text-gray-900 dark:text-gray-300">
+                set as program manager
+              </span>
+            </label>
+          </div>
         ) : (
           <input
             type={type}

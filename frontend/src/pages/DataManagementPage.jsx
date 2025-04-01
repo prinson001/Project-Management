@@ -328,7 +328,9 @@ const DataManagementPage = () => {
           users && users.length > 0
             ? users
                 .filter(
-                  (user) => user.role_name?.toUpperCase() === "PROGRAM MANAGER"
+                  (user) =>
+                    user.role_name?.toUpperCase() === "PROGRAM MANAGER" ||
+                    user.is_program_manager
                 )
                 .map((user) => ({
                   value: user.id.toString(),
@@ -477,6 +479,13 @@ const DataManagementPage = () => {
                 label: role.name,
               }))
             : [],
+      },
+      {
+        name: "is_program_manager",
+        label: "",
+        type: "checkbox",
+        required: false,
+        columnSpan: 1,
       },
     ],
   });

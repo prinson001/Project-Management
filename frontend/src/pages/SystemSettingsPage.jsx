@@ -125,6 +125,12 @@ const SystemSettingsPage = () => {
               }))
             : [],
       },
+      {
+        name: "is_program_manager",
+        type: "checkbox",
+        required: false,
+        columnSpan: 1,
+      },
     ],
   });
   const getTabContent = () => {
