@@ -119,6 +119,12 @@ const DataSection = ({
       }
     }
     fetchData();
+    tablefilters = {};
+    sortClause = {};
+    dateFilter = null;
+    getAllTasks = null;
+    taskStatus = null;
+    customDateRange = null;
     return () => {
       console.log("Component Unmounted!");
       console.log("the tableName is " + tableName);
@@ -126,6 +132,8 @@ const DataSection = ({
   }, [tableName, refreshTrigger]); // Add tableName as a dependency
 
   async function getFilteredData() {
+    console.log("the filters applied are");
+    console.log(structuredClone(tablefilters));
     if (tableName === "tasks") {
       const { project_name, filters } = tablefilters;
       try {
