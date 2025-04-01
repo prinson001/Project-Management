@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Upload, X, FileText, Download } from "lucide-react";
-import axiosInstance from "../axiosInstance"; // Use axiosInstance for consistency
+import axiosInstance from "../axiosInstance";
 import { toast } from "sonner";
 
 const UpdateProjectDocumentSection = ({
@@ -19,8 +19,8 @@ const UpdateProjectDocumentSection = ({
   // Fetch both document templates and uploaded project documents
   useEffect(() => {
     const fetchDocuments = async () => {
-      if (!projectId || !phaseName) {
-        setError("Project ID or phase name is missing.");
+      if (!projectId) {
+        setError("Project ID is missing.");
         setLoading(false);
         return;
       }
@@ -29,31 +29,43 @@ const UpdateProjectDocumentSection = ({
         setLoading(true);
         setError(null);
 
-        // Fetch document templates for the current phase using phase name
-        const templatesResponse = await axiosInstance.post(
-          `/data-management/getCurrentPhaseDocumentTemplates`,
-          { phase: phaseName }
-        );
-        if (templatesResponse.data.status !== "success") {
-          throw new Error("Failed to fetch document templates");
-        }
-        const templates = templatesResponse.data.data || [];
+        // First fetch document templates for the current phase
+        let templates = [];
+        if (phaseName) {
+          const templatesResponse = await axiosInstance.post(
+            `/data-management/getCurrentPhaseDocumentTemplates`,
+            { phase: phaseName }
+          );
 
-        // Fetch uploaded project documents
-        const projectDocsResponse = await axiosInstance.post(
-          `/data-management/getProjectDocuments`,
-          { project_id: projectId }
-        );
-        if (projectDocsResponse.data.status !== "success") {
-          throw new Error("Failed to fetch project documents");
+          if (templatesResponse.data?.status === "success") {
+            templates = templatesResponse.data.data || [];
+          } else {
+            console.warn("No document templates found for this phase");
+          }
         }
-        const projectDocs = projectDocsResponse.data.result || [];
+
+        // Then fetch uploaded project documents
+        let projectDocs = [];
+        try {
+          const projectDocsResponse = await axiosInstance.post(
+            `/data-management/getProjectDocuments`,
+            { project_id: projectId }
+          );
+
+          if (projectDocsResponse.data?.status === "success") {
+            projectDocs = projectDocsResponse.data.result || [];
+          }
+        } catch (projectDocsError) {
+          console.warn("Failed to fetch project documents:", projectDocsError);
+          // Continue with empty projectDocs if this fails
+        }
 
         // Merge templates with uploaded documents
         const mergedDocuments = templates.map((template) => {
           const uploadedDoc = projectDocs.find(
             (doc) => doc.template_id === template.id
           );
+
           return uploadedDoc
             ? {
                 ...template,
@@ -62,24 +74,32 @@ const UpdateProjectDocumentSection = ({
                   name: uploadedDoc.document_name,
                   url: uploadedDoc.file_url,
                 },
-                date: new Date(uploadedDoc.uploaded_at).toLocaleDateString(
-                  "en-GB",
-                  {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                  }
-                ),
+                date: uploadedDoc.uploaded_at
+                  ? new Date(uploadedDoc.uploaded_at).toLocaleDateString(
+                      "en-GB",
+                      {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      }
+                    )
+                  : null,
                 document_id: uploadedDoc.id,
               }
-            : { ...template, file: null, date: null, document_id: null };
+            : {
+                ...template,
+                file: null,
+                date: null,
+                document_id: null,
+              };
         });
 
         setDocuments(mergedDocuments);
       } catch (error) {
-        console.error("Error fetching documents:", error);
-        setError("Failed to load project documents. Please try again.");
-        toast.error("Failed to load project documents");
+        console.error("Error in document processing:", error);
+        setError(
+          "Error loading documents. You can still proceed with updates."
+        );
       } finally {
         setLoading(false);
       }
@@ -88,7 +108,7 @@ const UpdateProjectDocumentSection = ({
     fetchDocuments();
   }, [projectId, phaseName]);
 
-  // Handle file upload
+  // Handle file upload (unchanged)
   const handleUpload = (index, file) => {
     if (!file) {
       toast.error("No file selected for upload.");
@@ -96,7 +116,6 @@ const UpdateProjectDocumentSection = ({
     }
 
     try {
-      // Validate file type and size (optional, adjust as needed)
       const allowedTypes = [
         "application/pdf",
         "application/msword",
@@ -114,31 +133,28 @@ const UpdateProjectDocumentSection = ({
         return;
       }
 
-      // Add file to localFiles for later processing during form submission
       setLocalFiles((prev) => [
-        ...prev.filter((f) => f.index !== index), // Remove any existing file at this index
+        ...prev.filter((f) => f.index !== index),
         {
           index,
           file,
-          template_id: documents[index].id,
-          phase: projectPhaseId, // Use phase ID for database storage
+          template_id: documents[index]?.id,
+          phase: projectPhaseId,
         },
       ]);
 
-      // Update UI immediately
       const newDocs = [...documents];
       newDocs[index] = {
         ...newDocs[index],
         file: {
           name: file.name,
-          // We don't have a URL yet as it's not uploaded to the server
         },
         date: new Date().toLocaleDateString("en-GB", {
           day: "2-digit",
           month: "short",
           year: "numeric",
         }),
-        document_id: null, // Reset document_id since this is a new file
+        document_id: null,
       };
       setDocuments(newDocs);
 
@@ -151,7 +167,7 @@ const UpdateProjectDocumentSection = ({
     }
   };
 
-  // Handle file download
+  // Handle file download (unchanged)
   const handleDownload = async (fileUrl, fileName) => {
     if (!fileUrl) {
       toast.error("No file URL available for download.");
@@ -159,11 +175,8 @@ const UpdateProjectDocumentSection = ({
     }
 
     try {
-      // For Supabase storage URLs, we can use them directly
       const response = await fetch(fileUrl);
-      if (!response.ok) {
-        throw new Error("Failed to fetch the file");
-      }
+      if (!response.ok) throw new Error("Failed to fetch the file");
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -182,17 +195,13 @@ const UpdateProjectDocumentSection = ({
     }
   };
 
-  // Handle file removal
+  // Handle file removal (unchanged)
   const handleRemove = async (index, documentId) => {
     try {
       if (documentId) {
-        // Call API to delete the document from the server
         const response = await axiosInstance.post(
           `/data-management/deleteProjectDocument`,
-          {
-            project_id: projectId,
-            document_id: documentId,
-          }
+          { project_id: projectId, document_id: documentId }
         );
 
         if (response.data.status !== "success") {
@@ -200,10 +209,8 @@ const UpdateProjectDocumentSection = ({
         }
       }
 
-      // Remove from localFiles if it exists there
       setLocalFiles((prev) => prev.filter((file) => file.index !== index));
 
-      // Update UI
       const newDocs = [...documents];
       newDocs[index] = {
         ...newDocs[index],
@@ -227,7 +234,17 @@ const UpdateProjectDocumentSection = ({
   }
 
   if (error) {
-    return <div className="p-4 text-center text-red-500">{error}</div>;
+    return (
+      <div className="p-6 border rounded-lg bg-white shadow-md">
+        <h2 className="text-lg font-semibold mb-4 text-gray-800">
+          Project Documentation
+        </h2>
+        <div className="text-red-500 p-4">{error}</div>
+        <p className="text-gray-500">
+          You can still proceed with uploading new documents below.
+        </p>
+      </div>
+    );
   }
 
   return (
