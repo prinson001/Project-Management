@@ -69,15 +69,8 @@ const UpdateProjectModal = ({
           ? new Date(projectData.execution_start_date)
           : new Date(),
       },
-      execution_duration: projectData?.execution_duration || "4 weeks",
-      maintenance_duration: {
-        startDate: projectData?.maintenance_duration
-          ? new Date(projectData.maintenance_duration)
-          : new Date(),
-        endDate: projectData?.maintenance_duration
-          ? new Date(projectData.maintenance_duration)
-          : new Date(),
-      },
+      execution_duration: projectData?.execution_duration || "4 weeks", // String, not Datepicker
+      maintenance_duration: projectData?.maintenance_duration || "1 month",
       internal_start_date: {
         startDate: projectData?.execution_start_date
           ? new Date(projectData.execution_start_date)
@@ -362,7 +355,7 @@ const UpdateProjectModal = ({
     [projectType]
   );
 
-  const onSubmit = async (data) => {
+  const onSubmit = async (data, sendForApproval = false) => {
     try {
       const selectedDepartmentIds = departments
         .filter((dept) => dept.checked)
@@ -401,6 +394,9 @@ const UpdateProjectModal = ({
         execution_start_date: data.execution_start_date?.startDate || null,
         execution_duration: data.execution_duration || null,
         maintenance_duration: data.maintenance_duration?.startDate || null,
+        approval_status: sendForApproval
+          ? "Waiting on deputy"
+          : projectData.approval_status,
       };
 
       const response = await axiosInstance.post(
@@ -409,24 +405,20 @@ const UpdateProjectModal = ({
       );
 
       if (response.data.status === "success") {
-        // Update beneficiary departments
         await axiosInstance.post(`/data-management/addBeneficiaryDepartments`, {
           projectId: projectData.id,
           departmentIds: selectedDepartmentIds,
         });
 
-        // Update project objectives (NEW)
         await axiosInstance.post(`/data-management/updateProjectObjectives`, {
           projectId: projectData.id,
           objectiveIds: selectedObjectiveIds,
         });
 
-        // Upload documents if any
         if (localFiles.length > 0) {
           await uploadDocuments(projectData.id, localFiles);
         }
 
-        // Update schedule based on project type
         const isInternal = ["1", "4"].includes(projectType);
         if (isInternal && internalScheduleDataState.length > 0) {
           const internalScheduleResponse = await axiosInstance.post(
@@ -434,22 +426,15 @@ const UpdateProjectModal = ({
             {
               projectId: projectData.id,
               schedule: internalScheduleDataState.map((phase) => ({
-                phaseId: phase.id, // Use id to match InternalSchedulePlanSection
+                phaseId: phase.id,
                 durationDays: phase.durationDays,
                 startDate: phase.startDate,
                 endDate: phase.endDate,
               })),
             }
           );
-
-          if (
-            internalScheduleResponse.data &&
-            internalScheduleResponse.data.status !== "success"
-          ) {
-            throw new Error(
-              internalScheduleResponse.data?.message ||
-                "Failed to save internal schedule plan"
-            );
+          if (internalScheduleResponse.data.status !== "success") {
+            throw new Error("Failed to save internal schedule plan");
           }
         } else if (scheduleTableData.length > 0) {
           const schedulePlanResponse = await axiosInstance.post(
@@ -464,27 +449,26 @@ const UpdateProjectModal = ({
               })),
             }
           );
-
-          if (
-            schedulePlanResponse.data &&
-            schedulePlanResponse.data.status !== "success"
-          ) {
-            throw new Error(
-              schedulePlanResponse.data?.message ||
-                "Failed to save schedule plan"
-            );
+          if (schedulePlanResponse.data.status !== "success") {
+            throw new Error("Failed to save schedule plan");
           }
         }
 
-        toast.success("Project updated successfully!");
+        toast.success(
+          sendForApproval
+            ? "Project saved and sent for approval successfully!"
+            : "Project updated successfully!"
+        );
         onUpdate(updatedProjectData);
         onClose();
+        return response; // Return the response for chaining
       } else {
         throw new Error(response.data.message || "Failed to update project");
       }
     } catch (error) {
       console.error("Update error:", error);
       toast.error(error.message || "Failed to update project");
+      throw error; // Re-throw to allow catching in handleSaveAndSendForApproval
     }
   };
 
@@ -505,6 +489,39 @@ const UpdateProjectModal = ({
         return ["1", "4"].includes(projectType); // Internal, PoC
       default:
         return true;
+    }
+  };
+  const handleSaveAndSendForApproval = async (data) => {
+    try {
+      console.log("Starting save and send for approval process");
+      // Save the project with updated approval_status
+      await onSubmit(data, true); // Pass true to set approval_status to "Waiting on deputy"
+
+      // Use the existing projectId from projectData since this is an update
+      const projectId = projectData.id;
+      console.log("Project ID for deputy task:", projectId);
+
+      // Create the approval task
+      const taskResponse = await axiosInstance.post(
+        "/data-management/createProjectCreationTaskForDeputy",
+        { projectId }
+      );
+      console.log("Task creation response:", taskResponse.data);
+
+      if (taskResponse.data.status === "success") {
+        toast.success("Project saved and sent for approval successfully!");
+        // onUpdate is already called in onSubmit, no need to repeat
+        onClose();
+      } else {
+        throw new Error(
+          taskResponse.data?.message || "Failed to create approval task"
+        );
+      }
+    } catch (error) {
+      console.error("Error saving and sending for approval:", error);
+      toast.error(
+        "Failed to save and send project for approval: " + error.message
+      );
     }
   };
 
@@ -1104,6 +1121,15 @@ const UpdateProjectModal = ({
               >
                 Update Project
               </button>
+              {projectData.approval_status === "Not initiated" && (
+                <button
+                  type="button"
+                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                  onClick={handleSubmit(handleSaveAndSendForApproval)}
+                >
+                  Save and Send for Approval
+                </button>
+              )}
             </div>
           )}
         </form>
