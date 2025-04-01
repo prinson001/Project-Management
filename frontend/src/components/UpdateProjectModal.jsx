@@ -59,7 +59,7 @@ const UpdateProjectModal = ({
       vendor_id: projectData?.vendor_id?.toString() || "",
       beneficiaryDepartments: [],
       objectives: [],
-      planned_budget: projectData?.project_budget?.toString() || "",
+      project_budget: projectData?.project_budget?.toString() || "",
       approved_budget: projectData?.approved_project_budget?.toString() || "",
       execution_start_date: {
         startDate: projectData?.execution_start_date
@@ -393,8 +393,8 @@ const UpdateProjectModal = ({
         vendor_id: parseInt(data.vendor_id) || null,
         beneficiary_departments: selectedDepartmentIds,
         objectives: selectedObjectiveIds,
-        project_budget: data.planned_budget
-          ? parseFloat(data.planned_budget)
+        project_budget: data.project_budget
+          ? parseFloat(data.project_budget)
           : null,
         approved_project_budget: data.approved_budget
           ? parseFloat(data.approved_budget)
@@ -1061,7 +1061,7 @@ const UpdateProjectModal = ({
                       className={`w-full p-2 border border-gray-300 rounded ${
                         isBudgetDisabled ? "bg-gray-100 cursor-not-allowed" : ""
                       }`}
-                      {...register("planned_budget")}
+                      {...register("project_budget")}
                       disabled={isBudgetDisabled}
                     />
                   </div>

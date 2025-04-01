@@ -111,10 +111,10 @@ const getData = async (req, res) => {
 const getFilteredData = async (req, res) => {
   let {
     tableName,
-    filters = {}, // Default to empty object if not provided
+    filters = {},
     page = 1,
-    limit = 7, // Updated to match your query log (LIMIT 7)
-    sort = {}, // Default to empty object if not provided
+    limit = 7,
+    sort = {},
     dateFilter,
     customDateRangeOption,
   } = req.body;
@@ -166,8 +166,7 @@ const getFilteredData = async (req, res) => {
         queryParams.push(value);
       }
     });
-    console.log("the tablename is " + tableName);
-    // Handle date filtering
+
     // Handle date filtering
     if (dateFilter) {
       const dateColumn =
@@ -322,7 +321,6 @@ const getFilteredData = async (req, res) => {
       const sortParts = [];
 
       Object.entries(sort).forEach(([column, direction]) => {
-        // Ensure column is defined and valid, and direction is valid
         if (
           column &&
           column !== "undefined" &&
@@ -332,24 +330,35 @@ const getFilteredData = async (req, res) => {
           validDirections.includes(String(direction).toUpperCase())
         ) {
           sortParts.push(`"${column}" ${String(direction).toUpperCase()}`);
-        } else {
-          console.warn(
-            `Invalid sort parameter: column=${column}, direction=${direction}`
-          );
         }
       });
 
       if (sortParts.length > 0) {
         orderByClause = `ORDER BY ${sortParts.join(", ")}`;
-      } else {
-        console.log("No valid sort parameters provided; skipping ORDER BY");
       }
-    } else {
-      console.log("Sort parameter is empty or invalid; skipping ORDER BY");
     }
 
-    // Build the base query
-    let queryText = `SELECT * FROM "${tableName}"`;
+    // Build the base query with custom fields for specific tables
+    let queryText = "";
+    if (tableName === "project") {
+      queryText = `SELECT p.*, u.first_name AS project_manager_name 
+                  FROM "${tableName}" p
+                  LEFT JOIN users u ON p.project_manager_id = u.id`;
+    } else if (tableName === "portfolio") {
+      queryText = `SELECT p.*, u.first_name AS portfolio_manager_name 
+                  FROM "${tableName}" p
+                  LEFT JOIN users u ON p.portfolio_manager = u.id`;
+    } else if (tableName === "program") {
+      queryText = `SELECT p.*, u.first_name AS program_manager_name 
+                  FROM "${tableName}" p
+                  LEFT JOIN users u ON p.program_manager = u.id`;
+    } else if (tableName === "objective") {
+      queryText = `SELECT o.*, p.name AS belongs_to 
+                  FROM "${tableName}" o
+                  LEFT JOIN project p ON o.project_id = p.id`;
+    } else {
+      queryText = `SELECT * FROM "${tableName}"`;
+    }
 
     // Add WHERE clause if we have conditions
     if (whereConditions.length > 0) {
@@ -374,10 +383,17 @@ const getFilteredData = async (req, res) => {
     const result = await sql.unsafe(queryText, queryParams);
 
     // Get total count for pagination
-    let countQueryText = `SELECT COUNT(*) FROM "${tableName}"`;
+    let countQueryText = "";
+    if (tableName === "project") {
+      countQueryText = `SELECT COUNT(*) FROM "${tableName}" p`;
+    } else {
+      countQueryText = `SELECT COUNT(*) FROM "${tableName}"`;
+    }
+
     if (whereConditions.length > 0) {
       countQueryText += ` WHERE ${whereConditions.join(" AND ")}`;
     }
+
     const countQueryParams = queryParams.slice(0, -2);
     const countResult = await sql.unsafe(countQueryText, countQueryParams);
     const totalCount = parseInt(countResult[0].count);
