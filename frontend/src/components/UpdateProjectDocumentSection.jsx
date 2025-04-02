@@ -15,6 +15,7 @@ const UpdateProjectDocumentSection = ({
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [noDocumentsFound, setNoDocumentsFound] = useState(false);
 
   // Fetch both document templates and uploaded project documents
   useEffect(() => {
@@ -28,8 +29,9 @@ const UpdateProjectDocumentSection = ({
       try {
         setLoading(true);
         setError(null);
+        setNoDocumentsFound(false);
 
-        // First fetch document templates for the current phase
+        // Fetch document templates for the current phase
         let templates = [];
         if (phaseName) {
           const templatesResponse = await axiosInstance.post(
@@ -44,7 +46,7 @@ const UpdateProjectDocumentSection = ({
           }
         }
 
-        // Then fetch uploaded project documents
+        // Fetch uploaded project documents
         let projectDocs = [];
         try {
           const projectDocsResponse = await axiosInstance.post(
@@ -54,10 +56,29 @@ const UpdateProjectDocumentSection = ({
 
           if (projectDocsResponse.data?.status === "success") {
             projectDocs = projectDocsResponse.data.result || [];
+          } else if (
+            projectDocsResponse.data?.status === "failure" &&
+            projectDocsResponse.data?.message ===
+              `No documents found for project with id ${projectId}`
+          ) {
+            // Explicitly handle the "no documents" case
+            setNoDocumentsFound(true);
+          } else {
+            throw new Error(
+              projectDocsResponse.data?.message ||
+                "Unknown error fetching project documents"
+            );
           }
         } catch (projectDocsError) {
           console.warn("Failed to fetch project documents:", projectDocsError);
-          // Continue with empty projectDocs if this fails
+          if (
+            projectDocsError.response?.data?.message ===
+            `No documents found for project with id ${projectId}`
+          ) {
+            setNoDocumentsFound(true);
+          } else {
+            throw projectDocsError; // Re-throw other errors
+          }
         }
 
         // Merge templates with uploaded documents
@@ -104,7 +125,6 @@ const UpdateProjectDocumentSection = ({
         setLoading(false);
       }
     };
-
     fetchDocuments();
   }, [projectId, phaseName]);
 
@@ -258,94 +278,104 @@ const UpdateProjectDocumentSection = ({
           No document templates available for this phase.
         </p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left text-sm">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="p-3 border-b font-semibold text-gray-700">
-                  Document Name
-                </th>
-                <th className="p-3 border-b font-semibold text-gray-700">
-                  Required
-                </th>
-                <th className="p-3 border-b font-semibold text-gray-700">
-                  File Name
-                </th>
-                <th className="p-3 border-b font-semibold text-gray-700">
-                  Uploaded Date
-                </th>
-                <th className="p-3 border-b font-semibold text-gray-700">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {documents.map((doc, index) => (
-                <tr key={index} className="border-b hover:bg-gray-50">
-                  <td className="p-3 text-gray-800">{doc.name}</td>
-                  <td className="p-3">
-                    <span
-                      className={`px-2 py-1 rounded text-xs ${
-                        doc.isrequired
-                          ? "bg-red-100 text-red-700"
-                          : "bg-green-100 text-green-700"
-                      }`}
-                    >
-                      {doc.isrequired ? "Yes" : "Optional"}
-                    </span>
-                  </td>
-                  <td className="p-3 text-gray-800">
-                    {doc.file ? (
-                      <span className="flex items-center gap-1">
-                        <FileText size={16} className="text-blue-500" />
-                        {doc.file.name}
-                      </span>
-                    ) : (
-                      "-"
-                    )}
-                  </td>
-                  <td className="p-3 text-gray-800">{doc.date || "-"}</td>
-                  <td className="p-3 flex items-center gap-3">
-                    <label className="cursor-pointer">
-                      <input
-                        type="file"
-                        className="hidden"
-                        onChange={(e) => handleUpload(index, e.target.files[0])}
-                        accept=".pdf,.doc,.docx"
-                      />
-                      <Upload
-                        className="text-blue-500 hover:text-blue-700"
-                        size={20}
-                        title="Upload document"
-                      />
-                    </label>
-
-                    {doc.file && (
-                      <>
-                        {doc.file.url && (
-                          <Download
-                            className="text-green-500 hover:text-green-700 cursor-pointer"
-                            size={20}
-                            onClick={() =>
-                              handleDownload(doc.file.url, doc.file.name)
-                            }
-                            title="Download document"
-                          />
-                        )}
-                        <X
-                          className="text-red-500 hover:text-red-700 cursor-pointer"
-                          size={20}
-                          onClick={() => handleRemove(index, doc.document_id)}
-                          title="Remove document"
-                        />
-                      </>
-                    )}
-                  </td>
+        <>
+          {noDocumentsFound && (
+            <p className="text-center text-gray-500 my-4">
+              No documents have been uploaded for this project yet. You can
+              upload documents below.
+            </p>
+          )}
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-left text-sm">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="p-3 border-b font-semibold text-gray-700">
+                    Document Name
+                  </th>
+                  <th className="p-3 border-b font-semibold text-gray-700">
+                    Required
+                  </th>
+                  <th className="p-3 border-b font-semibold text-gray-700">
+                    File Name
+                  </th>
+                  <th className="p-3 border-b font-semibold text-gray-700">
+                    Uploaded Date
+                  </th>
+                  <th className="p-3 border-b font-semibold text-gray-700">
+                    Actions
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {documents.map((doc, index) => (
+                  <tr key={index} className="border-b hover:bg-gray-50">
+                    <td className="p-3 text-gray-800">{doc.name}</td>
+                    <td className="p-3">
+                      <span
+                        className={`px-2 py-1 rounded text-xs ${
+                          doc.isrequired
+                            ? "bg-red-100 text-red-700"
+                            : "bg-green-100 text-green-700"
+                        }`}
+                      >
+                        {doc.isrequired ? "Yes" : "Optional"}
+                      </span>
+                    </td>
+                    <td className="p-3 text-gray-800">
+                      {doc.file ? (
+                        <span className="flex items-center gap-1">
+                          <FileText size={16} className="text-blue-500" />
+                          {doc.file.name}
+                        </span>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
+                    <td className="p-3 text-gray-800">{doc.date || "-"}</td>
+                    <td className="p-3 flex items-center gap-3">
+                      <label className="cursor-pointer">
+                        <input
+                          type="file"
+                          className="hidden"
+                          onChange={(e) =>
+                            handleUpload(index, e.target.files[0])
+                          }
+                          accept=".pdf,.doc,.docx"
+                        />
+                        <Upload
+                          className="text-blue-500 hover:text-blue-700"
+                          size={20}
+                          title="Upload document"
+                        />
+                      </label>
+
+                      {doc.file && (
+                        <>
+                          {doc.file.url && (
+                            <Download
+                              className="text-green-500 hover:text-green-700 cursor-pointer"
+                              size={20}
+                              onClick={() =>
+                                handleDownload(doc.file.url, doc.file.name)
+                              }
+                              title="Download document"
+                            />
+                          )}
+                          <X
+                            className="text-red-500 hover:text-red-700 cursor-pointer"
+                            size={20}
+                            onClick={() => handleRemove(index, doc.document_id)}
+                            title="Remove document"
+                          />
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );
