@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react"; // Added useCallback
 import { ChevronUp } from "lucide-react";
 import Datepicker from "react-tailwindcss-datepicker";
 import { Controller, useForm } from "react-hook-form";
-import axios from "axios";
 import { addDays, format } from "date-fns";
 import { toast } from "sonner";
-import axiosInstance from "../axiosInstance"; // Assuming you have this for API calls
+import axiosInstance from "../axiosInstance";
 
 const PORT = import.meta.env.VITE_PORT;
 
@@ -22,12 +21,44 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
   } = useForm({
     defaultValues: {
       executionStartDate: null,
-      executionDuration: "28 days", // Default to 4 weeks in days
+      executionDuration: "28 days",
       maintenanceDate: null,
     },
   });
 
   const executionStartDate = watch("executionStartDate");
+
+  // Convert duration to days
+  const convertToDays = useCallback((durationStr) => {
+    const daysMatch = durationStr.match(/(\d+)\s*days?/i);
+    if (daysMatch) return parseInt(daysMatch[1], 10);
+    const weeksMatch = durationStr.match(/(\d+)\s*weeks?/i);
+    if (weeksMatch) return parseInt(weeksMatch[1], 10) * 7;
+    const monthsMatch = durationStr.match(/(\d+)\s*months?/i);
+    if (monthsMatch) return parseInt(monthsMatch[1], 10) * 30;
+    return 0;
+  }, []);
+
+  // Convert duration for display with rounding
+  const convertDuration = useCallback((durationDays, targetUnit) => {
+    if (durationDays <= 0) return "0 days";
+    if (targetUnit === "B. Days") {
+      return `${durationDays} day${durationDays !== 1 ? "s" : ""}`;
+    } else if (targetUnit === "Weeks") {
+      const weeks = Math.round(durationDays / 7); // Round to nearest week
+      return `${weeks} week${weeks !== 1 ? "s" : ""}`;
+    } else if (targetUnit === "Months") {
+      const months = Math.round(durationDays / 30); // Round to nearest month
+      return `${months} month${months !== 1 ? "s" : ""}`;
+    }
+    return `${durationDays} days`;
+  }, []);
+
+  // Add duration in days (backwards calculation from end date)
+  const addDuration = useCallback((date, durationDays) => {
+    if (!date || durationDays <= 0) return null;
+    return addDays(date, -durationDays);
+  }, []);
 
   // Initialize with project data
   useEffect(() => {
@@ -41,7 +72,6 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
       maintenance_duration,
     } = projectData;
 
-    // Set initial form values
     if (execution_start_date) {
       setValue("executionStartDate", new Date(execution_start_date));
     }
@@ -61,18 +91,15 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
       );
     }
 
-    // Fetch existing schedule or phases
     fetchSchedulePlan(id, project_budget);
-  }, [projectData, setValue, activeTab]); // Include activeTab to update display format
+  }, [projectData, setValue, activeTab, convertDuration]);
 
   // Fetch existing schedule plan or phases if none exists
   const fetchSchedulePlan = async (projectId, budget) => {
     try {
       const response = await axiosInstance.post(
         `/data-management/getSchedulePlan`,
-        {
-          projectId,
-        }
+        { projectId }
       );
       if (
         response.data.status === "success" &&
@@ -98,7 +125,7 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
     } catch (error) {
       console.error("Error fetching schedule plan:", error);
       toast.error("Failed to load existing schedule plan");
-      fetchPhases(budget, projectId); // Fallback to fetching phases
+      fetchPhases(budget, projectId);
     }
   };
 
@@ -106,24 +133,17 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
     try {
       const response = await axiosInstance.post(
         `/data-management/getSchedulePhases`,
-        {
-          budget,
-        }
+        { budget }
       );
       if (response.data.status === "success") {
         const initialSchedule = response.data.result.map((phase) => {
-          if (!phase.duration_days) {
-            console.warn(
-              `No duration found for phase ${phase.phase_name} in budget range. Defaulting to 7 days.`
-            );
-          }
-          const durationDays = phase.duration_days || 7; // Default to 7 days if not set
+          const durationDays = phase.duration_days || 7;
           return {
             phaseId: phase.id,
             mainPhase: phase.main_phase,
             subPhase: phase.phase_name,
             duration: convertDuration(durationDays, activeTab),
-            durationDays: durationDays,
+            durationDays,
             startDate: null,
             endDate: null,
           };
@@ -194,91 +214,6 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
     }
   };
 
-  // Handle schedule change
-  const handleScheduleChange = (data) => {
-    setScheduleTableData(data);
-  };
-
-  // Handle schedule submission
-  const handleScheduleSubmit = async (e) => {
-    e.preventDefault();
-    console.log("Inside handleScheduleSubmit");
-
-    if (!projectData?.id) {
-      toast.error("Project ID is missing");
-      return;
-    }
-
-    // Validate that all phases have start and end dates
-    const invalidPhases = scheduleTableData.filter(
-      (phase) =>
-        !phase.startDate ||
-        !phase.endDate ||
-        phase.startDate === "N/A" ||
-        phase.endDate === "N/A"
-    );
-    if (invalidPhases.length > 0) {
-      toast.error(
-        "All phases must have valid start and end dates before updating the schedule."
-      );
-      return;
-    }
-
-    // Prepare the schedule payload for the backend
-    const schedulePayload = scheduleTableData.map((phase) => ({
-      phaseId: phase.phaseId,
-      durationDays: phase.durationDays,
-      startDate: phase.startDate
-        ? format(new Date(phase.startDate), "yyyy-MM-dd")
-        : null,
-      endDate: phase.endDate
-        ? format(new Date(phase.endDate), "yyyy-MM-dd")
-        : null,
-    }));
-    console.log("Schedule Update Payload:", schedulePayload);
-
-    try {
-      const response = await axiosInstance.post(
-        `/data-management/upsertSchedulePlan`,
-        {
-          projectId: projectData.id,
-          schedule: schedulePayload,
-        }
-      );
-
-      if (response.data.status === "success") {
-        toast.success("Schedule plan updated successfully");
-        if (onScheduleUpdate) {
-          onScheduleUpdate(scheduleTableData);
-        }
-      } else {
-        throw new Error(response.data.message || "Unknown error occurred");
-      }
-    } catch (error) {
-      console.error("Error updating schedule plan:", error);
-      toast.error(
-        "Failed to update schedule plan: " + (error.message || "Server error")
-      );
-    }
-  };
-
-  // Convert duration to days
-  const convertToDays = (durationStr) => {
-    const daysMatch = durationStr.match(/(\d+)\s*days?/i);
-    if (daysMatch) return parseInt(daysMatch[1], 10);
-    const weeksMatch = durationStr.match(/(\d+)\s*weeks?/i);
-    if (weeksMatch) return parseInt(weeksMatch[1], 10) * 7;
-    const monthsMatch = durationStr.match(/(\d+)\s*months?/i);
-    if (monthsMatch) return parseInt(monthsMatch[1], 10) * 30;
-    return 0;
-  };
-
-  // Add duration in days (backwards calculation from end date)
-  const addDuration = (date, durationDays) => {
-    if (!date || durationDays <= 0) return null;
-    return addDays(date, -durationDays);
-  };
-
   // Recalculate dates based on execution start date
   useEffect(() => {
     if (!executionStartDate || !scheduleTableData.length) {
@@ -320,114 +255,167 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
     }
 
     setScheduleTableData(updatedSchedule);
-  }, [executionStartDate]);
+  }, [executionStartDate, scheduleTableData, addDuration]);
 
   // Handle duration change
-  const handleDurationChange = (phaseId, newDuration, newType) => {
-    const durationDays = convertToDays(newDuration);
-    const updatedSchedule = scheduleTableData.map((phase) =>
-      phase.phaseId === phaseId
-        ? {
+  const handleDurationChange = useCallback(
+    (phaseId, newDuration, newType) => {
+      // Determine the current unit for this phase
+      const currentUnit = durationTypes[phaseId] || activeTab;
+
+      // Convert the new duration to days based on the current unit
+      const durationDays = convertToDays(newDuration);
+
+      // Update durationTypes with the new type (if provided)
+      const updatedType = newType || currentUnit;
+      setDurationTypes((prevTypes) => ({
+        ...prevTypes,
+        [phaseId]: updatedType,
+      }));
+
+      // Convert the durationDays to the new unit
+      const updatedDuration = convertDuration(durationDays, updatedType);
+
+      // Update the schedule table data
+      const updatedSchedule = scheduleTableData.map((phase) =>
+        phase.phaseId === phaseId
+          ? {
+              ...phase,
+              duration: updatedDuration,
+              durationDays,
+            }
+          : phase
+      );
+
+      if (executionStartDate) {
+        let currentEndDate = new Date(executionStartDate);
+        const tempSchedule = [...updatedSchedule];
+
+        for (let i = tempSchedule.length - 1; i >= 0; i--) {
+          const phase = tempSchedule[i];
+          const startDate = addDuration(currentEndDate, phase.durationDays);
+
+          tempSchedule[i] = {
             ...phase,
-            duration: convertDuration(durationDays, newType || activeTab),
-            durationDays,
+            endDate: format(currentEndDate, "dd-MMM-yyyy"),
+            startDate: startDate ? format(startDate, "dd-MMM-yyyy") : "N/A",
+          };
+
+          if (startDate) {
+            currentEndDate = new Date(startDate);
+          } else {
+            for (let j = i - 1; j >= 0; j--) {
+              tempSchedule[j] = {
+                ...tempSchedule[j],
+                startDate: "N/A",
+                endDate: "N/A",
+              };
+            }
+            break;
           }
-        : phase
-    );
-
-    setDurationTypes((prevTypes) => ({
-      ...prevTypes,
-      [phaseId]: newType,
-    }));
-
-    if (executionStartDate) {
-      let currentEndDate = new Date(executionStartDate);
-      const tempSchedule = [...updatedSchedule];
-
-      for (let i = tempSchedule.length - 1; i >= 0; i--) {
-        const phase = tempSchedule[i];
-        const startDate = addDuration(currentEndDate, phase.durationDays);
-
-        tempSchedule[i] = {
-          ...phase,
-          endDate: format(currentEndDate, "dd-MMM-yyyy"),
-          startDate: startDate ? format(startDate, "dd-MMM-yyyy") : "N/A",
-        };
-
-        if (startDate) {
-          currentEndDate = new Date(startDate);
-        } else {
-          for (let j = i - 1; j >= 0; j--) {
-            tempSchedule[j] = {
-              ...tempSchedule[j],
-              startDate: "N/A",
-              endDate: "N/A",
-            };
-          }
-          break;
         }
+        setScheduleTableData(tempSchedule);
+      } else {
+        setScheduleTableData(updatedSchedule);
       }
-      setScheduleTableData(tempSchedule);
-    } else {
-      setScheduleTableData(updatedSchedule);
-    }
-  };
-
-  // Convert duration for display
-  const convertDuration = (durationDays, targetUnit) => {
-    if (durationDays <= 0) return "0 days";
-    if (targetUnit === "B. Days") {
-      return `${durationDays} day${durationDays !== 1 ? "s" : ""}`;
-    } else if (targetUnit === "Weeks") {
-      const weeks = Math.floor(durationDays / 7);
-      const remainingDays = durationDays % 7;
-      if (remainingDays === 0) {
-        return `${weeks} week${weeks !== 1 ? "s" : ""}`;
-      }
-      return `${weeks} week${weeks !== 1 ? "s" : ""} ${remainingDays} day${
-        remainingDays !== 1 ? "s" : ""
-      }`;
-    } else if (targetUnit === "Months") {
-      const months = Math.floor(durationDays / 30);
-      const remainingDays = durationDays % 30;
-      if (remainingDays === 0) {
-        return `${months} month${months !== 1 ? "s" : ""}`;
-      }
-      return `${months} month${months !== 1 ? "s" : ""} ${remainingDays} day${
-        remainingDays !== 1 ? "s" : ""
-      }`;
-    }
-    return `${durationDays} days`;
-  };
+    },
+    [
+      convertToDays,
+      convertDuration,
+      activeTab,
+      executionStartDate,
+      scheduleTableData,
+      durationTypes,
+    ]
+  );
 
   // Duration options
-  const getDurationOptions = (type) => {
+  const getDurationOptions = useCallback((type) => {
     if (type === "B. Days") {
-      return Array.from({ length: 90 }, (_, i) => ({
-        value: `${i + 1} day${i + 1 > 1 ? "s" : ""}`,
-        label: `${i + 1} day${i + 1 > 1 ? "s" : ""}`,
-      }));
+      return Array.from({ length: 90 }, (_, i) => {
+        const days = i + 1;
+        return {
+          value: `${days} day${days > 1 ? "s" : ""}`,
+          label: `${days} day${days > 1 ? "s" : ""}`,
+        };
+      });
     } else if (type === "Weeks") {
       return Array.from({ length: 12 }, (_, i) => {
-        const days = (i + 1) * 7;
+        const weeks = i + 1;
         return {
-          value: `${days} days`,
-          label: `${i + 1} week${i + 1 > 1 ? "s" : ""}`,
+          value: `${weeks} week${weeks > 1 ? "s" : ""}`,
+          label: `${weeks} week${weeks > 1 ? "s" : ""}`,
         };
       });
     } else if (type === "Months") {
       return Array.from({ length: 12 }, (_, i) => {
-        const days = (i + 1) * 30;
+        const months = i + 1;
         return {
-          value: `${days} days`,
-          label: `${i + 1} month${i + 1 > 1 ? "s" : ""}`,
+          value: `${months} month${months > 1 ? "s" : ""}`,
+          label: `${months} month${months > 1 ? "s" : ""}`,
         };
       });
     }
-    return Array.from({ length: 90 }, (_, i) => ({
-      value: `${i + 1} day${i + 1 > 1 ? "s" : ""}`,
-      label: `${i + 1} day${i + 1 > 1 ? "s" : ""}`,
+    return [];
+  }, []);
+
+  // Handle schedule submission
+  const handleScheduleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!projectData?.id) {
+      toast.error("Project ID is missing");
+      return;
+    }
+
+    const invalidPhases = scheduleTableData.filter(
+      (phase) =>
+        !phase.startDate ||
+        !phase.endDate ||
+        phase.startDate === "N/A" ||
+        phase.endDate === "N/A"
+    );
+    if (invalidPhases.length > 0) {
+      toast.error(
+        "All phases must have valid start and end dates before updating the schedule."
+      );
+      return;
+    }
+
+    const schedulePayload = scheduleTableData.map((phase) => ({
+      phaseId: phase.phaseId,
+      durationDays: phase.durationDays,
+      startDate: phase.startDate
+        ? format(new Date(phase.startDate), "yyyy-MM-dd")
+        : null,
+      endDate: phase.endDate
+        ? format(new Date(phase.endDate), "yyyy-MM-dd")
+        : null,
     }));
+
+    try {
+      const response = await axiosInstance.post(
+        `/data-management/upsertSchedulePlan`,
+        {
+          projectId: projectData.id,
+          schedule: schedulePayload,
+        }
+      );
+
+      if (response.data.status === "success") {
+        toast.success("Schedule plan updated successfully");
+        if (onScheduleUpdate) {
+          onScheduleUpdate(scheduleTableData);
+        }
+      } else {
+        throw new Error(response.data.message || "Unknown error occurred");
+      }
+    } catch (error) {
+      console.error("Error updating schedule plan:", error);
+      toast.error(
+        "Failed to update schedule plan: " + (error.message || "Server error")
+      );
+    }
   };
 
   const getRowColor = (mainPhase) => {
@@ -461,6 +449,7 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
     <div className="mb-6 border-t pt-4">
       <div className="flex justify-between items-center mb-4">
         <h3 className="font-semibold">Update Schedule Plan</h3>
+        {/* Uncomment if you want to re-enable global tab switching */}
         {/* <div className="flex border border-gray-300 rounded">
           {["B. Days", "Weeks", "Months"].map((tab) => (
             <button
@@ -526,8 +515,8 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
                   } rounded appearance-none bg-white`}
                   {...field}
                 >
-                  {getDurationOptions(activeTab).map((option, idx) => (
-                    <option key={idx} value={option.value}>
+                  {getDurationOptions(activeTab).map((option) => (
+                    <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
                   ))}
@@ -593,8 +582,8 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
             </tr>
           </thead>
           <tbody>
-            {scheduleTableData.map((row, index) => (
-              <tr key={index} className={getRowColor(row.mainPhase)}>
+            {scheduleTableData.map((row) => (
+              <tr key={row.phaseId} className={getRowColor(row.mainPhase)}>
                 <td className="border border-gray-300 p-2">{row.mainPhase}</td>
                 <td className="border border-gray-300 p-2">{row.subPhase}</td>
                 <td className="border border-gray-300 p-2 text-center">
@@ -613,8 +602,8 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
                       >
                         {getDurationOptions(
                           durationTypes[row.phaseId] || activeTab
-                        ).map((option, idx) => (
-                          <option key={idx} value={option.value}>
+                        ).map((option) => (
+                          <option key={option.value} value={option.value}>
                             {option.label}
                           </option>
                         ))}
@@ -635,8 +624,8 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
                           )
                         }
                       >
-                        {["B. Days", "Weeks", "Months"].map((type, idx) => (
-                          <option key={idx} value={type}>
+                        {["B. Days", "Weeks", "Months"].map((type) => (
+                          <option key={type} value={type}>
                             {type}
                           </option>
                         ))}

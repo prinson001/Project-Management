@@ -39,14 +39,17 @@ const SchedulePlanSection = React.memo(
     const executionStartDate = watch("executionStartDate");
 
     // Utility functions (moved above useEffect)
-    const convertToDays = useCallback((durationStr) => {
+    const convertToDays = useCallback((durationStr, currentUnit) => {
       const daysMatch = durationStr.match(/(\d+)\s*days?/i);
       if (daysMatch) return parseInt(daysMatch[1], 10);
+
       const weeksMatch = durationStr.match(/(\d+)\s*weeks?/i);
       if (weeksMatch) return parseInt(weeksMatch[1], 10) * 7;
+
       const monthsMatch = durationStr.match(/(\d+)\s*months?/i);
       if (monthsMatch) return parseInt(monthsMatch[1], 10) * 30;
-      return 0;
+
+      return 0; // Fallback for invalid input
     }, []);
 
     const addDuration = useCallback((date, durationDays) => {
@@ -56,27 +59,17 @@ const SchedulePlanSection = React.memo(
 
     const convertDuration = useCallback((durationDays, targetUnit) => {
       if (durationDays <= 0) return "0 days";
-      if (targetUnit === "B. Days")
+
+      if (targetUnit === "B. Days") {
         return `${durationDays} day${durationDays !== 1 ? "s" : ""}`;
-      if (targetUnit === "Weeks") {
-        const weeks = Math.floor(durationDays / 7);
-        const remainingDays = durationDays % 7;
-        return remainingDays === 0
-          ? `${weeks} week${weeks !== 1 ? "s" : ""}`
-          : `${weeks} week${weeks !== 1 ? "s" : ""} ${remainingDays} day${
-              remainingDays !== 1 ? "s" : ""
-            }`;
+      } else if (targetUnit === "Weeks") {
+        const weeks = Math.round(durationDays / 7); // Round to nearest week
+        return `${weeks} week${weeks !== 1 ? "s" : ""}`;
+      } else if (targetUnit === "Months") {
+        const months = Math.round(durationDays / 30); // Round to nearest month
+        return `${months} month${months !== 1 ? "s" : ""}`;
       }
-      if (targetUnit === "Months") {
-        const months = Math.floor(durationDays / 30);
-        const remainingDays = durationDays % 30;
-        return remainingDays === 0
-          ? `${months} month${months !== 1 ? "s" : ""}`
-          : `${months} month${months !== 1 ? "s" : ""} ${remainingDays} day${
-              remainingDays !== 1 ? "s" : ""
-            }`;
-      }
-      return `${durationDays} days`;
+      return `${durationDays} days`; // Default fallback
     }, []);
 
     // Fetch phases with default durations based on budget
@@ -306,19 +299,34 @@ const SchedulePlanSection = React.memo(
 
     const handleDurationChange = useCallback(
       (phaseId, newDuration, newType) => {
-        const durationDays = convertToDays(newDuration);
+        // Determine the current unit for this phase
+        const currentUnit = durationTypes[phaseId] || activeTab;
+
+        // Convert the new duration to days based on the current unit
+        const durationDays = convertToDays(newDuration, currentUnit);
+
+        // Update durationTypes with the new type (if provided)
+        const updatedType = newType || currentUnit;
+        setDurationTypes((prevTypes) => ({
+          ...prevTypes,
+          [phaseId]: updatedType,
+        }));
+
+        // Convert the durationDays to the new unit
+        const updatedDuration = convertDuration(durationDays, updatedType);
+
+        // Update the schedule table data
         const updatedSchedule = scheduleTableData.map((phase) =>
           phase.phaseId === phaseId
             ? {
                 ...phase,
-                duration: convertDuration(durationDays, newType || activeTab),
+                duration: updatedDuration,
                 durationDays,
               }
             : phase
         );
 
-        setDurationTypes((prevTypes) => ({ ...prevTypes, [phaseId]: newType }));
-
+        // Recalculate dates if executionStartDate exists
         if (executionStartDate) {
           let currentEndDate = new Date(executionStartDate);
           const tempSchedule = [...updatedSchedule];
@@ -351,36 +359,43 @@ const SchedulePlanSection = React.memo(
           setScheduleTableData(updatedSchedule);
         }
       },
-      [convertToDays, convertDuration, activeTab, executionStartDate]
+      [
+        convertToDays,
+        convertDuration,
+        activeTab,
+        executionStartDate,
+        scheduleTableData,
+        durationTypes,
+      ]
     );
 
     const getDurationOptions = (type) => {
       if (type === "B. Days") {
-        return Array.from({ length: 90 }, (_, i) => ({
-          value: `${i + 1} day${i + 1 > 1 ? "s" : ""}`,
-          label: `${i + 1} day${i + 1 > 1 ? "s" : ""}`,
-        }));
+        return Array.from({ length: 90 }, (_, i) => {
+          const days = i + 1;
+          return {
+            value: `${days} day${days > 1 ? "s" : ""}`,
+            label: `${days} day${days > 1 ? "s" : ""}`,
+          };
+        });
       } else if (type === "Weeks") {
         return Array.from({ length: 12 }, (_, i) => {
-          const days = (i + 1) * 7;
+          const weeks = i + 1;
           return {
-            value: `${days} days`,
-            label: `${i + 1} week${i + 1 > 1 ? "s" : ""}`,
+            value: `${weeks} week${weeks > 1 ? "s" : ""}`,
+            label: `${weeks} week${weeks > 1 ? "s" : ""}`,
           };
         });
       } else if (type === "Months") {
         return Array.from({ length: 12 }, (_, i) => {
-          const days = (i + 1) * 30;
+          const months = i + 1;
           return {
-            value: `${days} days`,
-            label: `${i + 1} month${i + 1 > 1 ? "s" : ""}`,
+            value: `${months} month${months > 1 ? "s" : ""}`,
+            label: `${months} month${months > 1 ? "s" : ""}`,
           };
         });
       }
-      return Array.from({ length: 90 }, (_, i) => ({
-        value: `${i + 1} day${i + 1 > 1 ? "s" : ""}`,
-        label: `${i + 1} day${i + 1 > 1 ? "s" : ""}`,
-      }));
+      return [];
     };
 
     const getRowColor = (mainPhase) => {

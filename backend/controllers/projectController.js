@@ -31,14 +31,39 @@ const addProject = async (req, res) => {
   try {
     const { beneficiary_departments, objectives, ...projectData } = data;
 
-    // Rename budget fields for consistency with DB schema
-    if (projectData.planned_budget) {
-      projectData.project_budget = projectData.planned_budget;
-      delete projectData.planned_budget;
+    // Check if project is Internal (1) or Proof of Concept (4)
+    const isInternalOrPoC = [1, 4].includes(
+      Number(projectData.project_type_id)
+    );
+
+    // For Internal/PoC projects, ensure certain fields are null
+    if (isInternalOrPoC) {
+      projectData.vendor_id = null;
+      projectData.project_budget = null;
+      projectData.approved_project_budget = null;
+      projectData.category = null;
     }
-    if (projectData.approved_budget) {
-      projectData.approved_project_budget = projectData.approved_budget;
-      delete projectData.approved_budget;
+
+    // Convert empty strings to null for numeric fields
+    const numericFields = [
+      "vendor_id",
+      "program_id",
+      "portfolio_id",
+      "initiative_id",
+      "project_manager_id",
+      "alternative_project_manager_id",
+      "approved_project_budget",
+      "project_budget",
+    ];
+
+    for (const field of numericFields) {
+      if (projectData[field] === "") {
+        projectData[field] = null;
+      }
+      // Convert to number if it's a string
+      if (projectData[field] !== null && projectData[field] !== undefined) {
+        projectData[field] = Number(projectData[field]);
+      }
     }
 
     // Derive portfolio_id and initiative_id from program_id if provided
@@ -74,28 +99,11 @@ const addProject = async (req, res) => {
       }
     }
 
-    // Ensure vendor_id is included (no transformation needed, just verify it's in the data)
-    if (projectData.vendor_id && isNaN(projectData.vendor_id)) {
-      return res.status(400).json({
-        status: "failure",
-        message: "Invalid vendor_id: must be a number",
-        result: null,
-      });
-    }
-
-    const columns = Object.keys(projectData);
-    const values = Object.values(projectData);
-
-    // Validate column names
-    for (const column of columns) {
-      if (!/^[a-zA-Z0-9_]+$/.test(column)) {
-        return res.status(400).json({
-          status: "failure",
-          message: `Invalid column name: ${column}`,
-          result: null,
-        });
-      }
-    }
+    // Insert project data
+    const columns = Object.keys(projectData).filter(
+      (key) => projectData[key] !== undefined
+    );
+    const values = columns.map((col) => projectData[col]);
 
     const placeholders = columns.map((_, index) => `$${index + 1}`);
     const queryText = `
@@ -145,7 +153,7 @@ const addProject = async (req, res) => {
 
     return res.status(201).json({
       status: "success",
-      message: "Project and beneficiary departments added successfully",
+      message: "Project added successfully",
       result: { id: projectId },
     });
   } catch (error) {
