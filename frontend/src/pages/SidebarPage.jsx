@@ -18,7 +18,7 @@ const SIDEBAR_ITEMS = [
     name: "tasks",
     icon: ListChecks,
     href: "/tasks",
-    roles: ["PM", "PMO"],
+    roles: ["PM", "PMO", "DEPUTY"],
   },
   {
     name: "dashboard",
@@ -36,7 +36,7 @@ const SIDEBAR_ITEMS = [
     name: "admin",
     icon: Settings,
     href: "/admin",
-    roles: ["DEPUTY", "ADMIN"],
+    roles: ["ADMIN"],
   },
 ];
 
