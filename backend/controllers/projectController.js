@@ -366,39 +366,45 @@ const deleteProject = async (req, res) => {
 
   try {
     const result = await sql.begin(async (sql) => {
-      // 1. Delete deliverables linked to objectives
+      // 1. Delete deliverables linked to items associated with the project
       await sql`
         DELETE FROM deliverable
-        WHERE objective_id IN (
-          SELECT id FROM objective WHERE project_id = ${id}
+        WHERE item_id IN (
+          SELECT id FROM item WHERE project_id = ${id}
         )
       `;
 
-      // 2. Delete objectives linked to the project
+      // 2. Delete items linked to the project
+      await sql`
+        DELETE FROM item
+        WHERE project_id = ${id}
+      `;
+
+      // 3. Delete objectives linked to the project
       await sql`
         DELETE FROM objective
         WHERE project_id = ${id}
       `;
 
-      // 3. Delete from beneficiary_departments
+      // 4. Delete from beneficiary_departments
       await sql`
         DELETE FROM beneficiary_departments
         WHERE project_id = ${id}
       `;
 
-      // 4. Delete from schedule_plan (if exists)
+      // 5. Delete from schedule_plan (if exists)
       await sql`
         DELETE FROM schedule_plan_new
         WHERE project_id = ${id}
       `;
 
-      // 5. Delete project documents (if exists)
+      // 6. Delete project documents (if exists)
       await sql`
         DELETE FROM project_documents
         WHERE project_id = ${id}
       `;
 
-      // 6. Finally delete the project
+      // 7. Finally delete the project
       const [deletedProject] = await sql`
         DELETE FROM project
         WHERE id = ${id}
