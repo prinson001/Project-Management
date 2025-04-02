@@ -774,13 +774,17 @@ const getData = async (req, res) => {
 
 // @Description retrieve filtered Table data (sorting, ordering, filtering table records)
 // @Route site.com/data-management/filtereddata
+// @Description retrieve filtered Table data (sorting, ordering, filtering table records)
+// @Route site.com/data-management/filtereddata
+// @Description retrieve filtered Table data (sorting, ordering, filtering table records)
+// @Route site.com/data-management/filtereddata
 const getFilteredData = async (req, res) => {
   let {
     tableName,
-    filters = {},
+    filters = {}, // Default to empty object if not provided
     page = 1,
-    limit = 7,
-    sort = {},
+    limit = 7, // Updated to match your query log (LIMIT 7)
+    sort = {}, // Default to empty object if not provided
     dateFilter,
     customDateRangeOption,
   } = req.body;
@@ -1044,6 +1048,7 @@ const getFilteredData = async (req, res) => {
       const sortParts = [];
 
       Object.entries(sort).forEach(([column, direction]) => {
+        // Ensure column is defined and valid, and direction is valid
         if (
           column &&
           column !== "undefined" &&
@@ -1074,29 +1079,11 @@ const getFilteredData = async (req, res) => {
 
       if (sortParts.length > 0) {
         orderByClause = `ORDER BY ${sortParts.join(", ")}`;
+      } else {
+        console.log("No valid sort parameters provided; skipping ORDER BY");
       }
-    }
-
-    // Build the base query with custom fields for specific tables
-    let queryText = "";
-    if (tableName === "project") {
-      queryText = `SELECT p.*, u.first_name AS project_manager_name 
-                  FROM "${tableName}" p
-                  LEFT JOIN users u ON p.project_manager_id = u.id`;
-    } else if (tableName === "portfolio") {
-      queryText = `SELECT p.*, u.first_name AS portfolio_manager_name 
-                  FROM "${tableName}" p
-                  LEFT JOIN users u ON p.portfolio_manager = u.id`;
-    } else if (tableName === "program") {
-      queryText = `SELECT p.*, u.first_name AS program_manager_name 
-                  FROM "${tableName}" p
-                  LEFT JOIN users u ON p.program_manager = u.id`;
-    } else if (tableName === "objective") {
-      queryText = `SELECT o.*, p.name AS belongs_to 
-                  FROM "${tableName}" o
-                  LEFT JOIN project p ON o.project_id = p.id`;
     } else {
-      queryText = `SELECT * FROM "${tableName}"`;
+      console.log("Sort parameter is empty or invalid; skipping ORDER BY");
     }
 
     // Build the base query with joins for specific tables
