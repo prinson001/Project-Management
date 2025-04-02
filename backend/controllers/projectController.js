@@ -31,6 +31,17 @@ const addProject = async (req, res) => {
   try {
     const { beneficiary_departments, objectives, ...projectData } = data;
 
+    // Fix execution_duration format if it contains "weeks days"
+    if (
+      projectData.execution_duration &&
+      projectData.execution_duration.includes("weeks days")
+    ) {
+      projectData.execution_duration = projectData.execution_duration.replace(
+        "weeks days",
+        "weeks"
+      );
+    }
+
     // Check if project is Internal (1) or Proof of Concept (4)
     const isInternalOrPoC = [1, 4].includes(
       Number(projectData.project_type_id)

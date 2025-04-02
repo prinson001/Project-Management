@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { ChevronUp } from "lucide-react";
 import { Controller, useForm } from "react-hook-form";
-import { addDays, format } from "date-fns";
+import { addDays, format, isValid, parseISO } from "date-fns";
 import { toast } from "sonner";
 import axiosInstance from "../axiosInstance";
 import DatePicker from "react-datepicker";
@@ -31,14 +31,16 @@ const SchedulePlanSection = React.memo(
     } = useForm({
       defaultValues: {
         executionStartDate: null,
-        executionDuration: "28 days",
-        maintenanceDate: null,
+        executionDuration: "4", // Number of weeks
+        maintenanceDate: null, // Date object
       },
     });
 
     const executionStartDate = watch("executionStartDate");
+    const executionDuration = watch("executionDuration");
+    const maintenanceDate = watch("maintenanceDate");
 
-    // Utility functions (moved above useEffect)
+    // Utility functions
     const convertToDays = useCallback((durationStr, currentUnit) => {
       const daysMatch = durationStr.match(/(\d+)\s*days?/i);
       if (daysMatch) return parseInt(daysMatch[1], 10);
@@ -49,34 +51,32 @@ const SchedulePlanSection = React.memo(
       const monthsMatch = durationStr.match(/(\d+)\s*months?/i);
       if (monthsMatch) return parseInt(monthsMatch[1], 10) * 30;
 
-      return 0; // Fallback for invalid input
+      return 0;
     }, []);
 
     const addDuration = useCallback((date, durationDays) => {
-      if (!date || durationDays <= 0) return null;
+      if (!date || !isValid(date) || durationDays <= 0) return null;
       return addDays(date, -durationDays);
     }, []);
 
     const convertDuration = useCallback((durationDays, targetUnit) => {
       if (durationDays <= 0) return "0 days";
-
       if (targetUnit === "B. Days") {
         return `${durationDays} day${durationDays !== 1 ? "s" : ""}`;
       } else if (targetUnit === "Weeks") {
-        const weeks = Math.round(durationDays / 7); // Round to nearest week
+        const weeks = Math.round(durationDays / 7);
         return `${weeks} week${weeks !== 1 ? "s" : ""}`;
       } else if (targetUnit === "Months") {
-        const months = Math.round(durationDays / 30); // Round to nearest month
+        const months = Math.round(durationDays / 30);
         return `${months} month${months !== 1 ? "s" : ""}`;
       }
-      return `${durationDays} days`; // Default fallback
+      return `${durationDays} days`;
     }, []);
 
     // Fetch phases with default durations based on budget
     useEffect(() => {
       const fetchPhases = async () => {
         if (!budget) return;
-
         try {
           const response = await axiosInstance.post(
             `/data-management/getSchedulePhases`,
@@ -200,7 +200,7 @@ const SchedulePlanSection = React.memo(
         }
       };
       fetchPhases();
-    }, [budget, activeTab]);
+    }, [budget, activeTab, convertDuration]);
 
     // Fetch existing schedule plan for the project
     useEffect(() => {
@@ -216,24 +216,35 @@ const SchedulePlanSection = React.memo(
             response.data.status === "success" &&
             response.data.result.length > 0
           ) {
-            const fetchedSchedule = response.data.result.map((plan) => ({
-              phaseId: plan.phase_id,
-              mainPhase: plan.main_phase,
-              subPhase: plan.phase_name,
-              duration: convertDuration(plan.duration_days, activeTab),
-              durationDays: plan.duration_days,
-              startDate: plan.start_date
-                ? format(new Date(plan.start_date), "dd-MMM-yyyy")
-                : null,
-              endDate: plan.end_date
-                ? format(new Date(plan.end_date), "dd-MMM-yyyy")
-                : null,
-            }));
+            const fetchedSchedule = response.data.result.map((plan) => {
+              const startDate = plan.start_date
+                ? parseISO(plan.start_date)
+                : null;
+              const endDate = plan.end_date ? parseISO(plan.end_date) : null;
+              return {
+                phaseId: plan.phase_id,
+                mainPhase: plan.main_phase,
+                subPhase: plan.phase_name,
+                duration: convertDuration(plan.duration_days, activeTab),
+                durationDays: plan.duration_days,
+                startDate:
+                  startDate && isValid(startDate)
+                    ? format(startDate, "dd-MMM-yyyy")
+                    : null,
+                endDate:
+                  endDate && isValid(endDate)
+                    ? format(endDate, "dd-MMM-yyyy")
+                    : null,
+              };
+            });
             setScheduleTableData(fetchedSchedule);
 
             const lastPhase = fetchedSchedule[fetchedSchedule.length - 1];
             if (lastPhase.endDate) {
-              setValue("executionStartDate", new Date(lastPhase.endDate));
+              const parsedEndDate = parseISO(lastPhase.endDate);
+              if (isValid(parsedEndDate)) {
+                setValue("executionStartDate", parsedEndDate);
+              }
             }
           }
         } catch (error) {
@@ -243,11 +254,11 @@ const SchedulePlanSection = React.memo(
       };
 
       fetchSchedulePlan();
-    }, [projectId, setValue, activeTab]);
+    }, [projectId, setValue, activeTab, convertDuration]);
 
     // Calculate dates based on execution start date
     useEffect(() => {
-      if (!executionStartDate) {
+      if (!executionStartDate || !isValid(executionStartDate)) {
         setScheduleTableData((prev) =>
           prev.map((phase) => ({
             ...phase,
@@ -268,11 +279,16 @@ const SchedulePlanSection = React.memo(
 
           updatedSchedule[i] = {
             ...phase,
-            endDate: format(currentEndDate, "dd-MMM-yyyy"),
-            startDate: startDate ? format(startDate, "dd-MMM-yyyy") : "N/A",
+            endDate: isValid(currentEndDate)
+              ? format(currentEndDate, "dd-MMM-yyyy")
+              : "N/A",
+            startDate:
+              startDate && isValid(startDate)
+                ? format(startDate, "dd-MMM-yyyy")
+                : "N/A",
           };
 
-          if (startDate) {
+          if (startDate && isValid(startDate)) {
             currentEndDate = new Date(startDate);
           } else {
             for (let j = i - 1; j >= 0; j--) {
@@ -293,41 +309,55 @@ const SchedulePlanSection = React.memo(
     // Notify parent component of schedule changes
     useEffect(() => {
       if (onScheduleChange && !isInternalSchedule) {
-        onScheduleChange(scheduleTableData);
+        const totalWeeks = parseInt(executionDuration || "0", 10);
+        const executionDays = totalWeeks * 7; // Convert weeks to days for potential maintenance date calculation
+        const executionEndDate =
+          executionStartDate && isValid(executionStartDate)
+            ? addDays(executionStartDate, executionDays)
+            : null;
+
+        onScheduleChange({
+          executionStartDate:
+            executionStartDate && isValid(executionStartDate)
+              ? format(executionStartDate, "yyyy-MM-dd")
+              : null,
+          executionDuration: `${totalWeeks} weeks`, // Interval format for DB
+          maintenanceDate:
+            maintenanceDate && isValid(maintenanceDate)
+              ? format(maintenanceDate, "yyyy-MM-dd")
+              : executionEndDate && isValid(executionEndDate)
+              ? format(executionEndDate, "yyyy-MM-dd")
+              : null, // Fallback to execution end date if maintenance not set
+          schedule: scheduleTableData,
+        });
       }
-    }, [scheduleTableData, onScheduleChange, isInternalSchedule]);
+    }, [
+      scheduleTableData,
+      executionStartDate,
+      executionDuration,
+      maintenanceDate,
+      onScheduleChange,
+      isInternalSchedule,
+    ]);
 
     const handleDurationChange = useCallback(
       (phaseId, newDuration, newType) => {
-        // Determine the current unit for this phase
         const currentUnit = durationTypes[phaseId] || activeTab;
-
-        // Convert the new duration to days based on the current unit
         const durationDays = convertToDays(newDuration, currentUnit);
-
-        // Update durationTypes with the new type (if provided)
         const updatedType = newType || currentUnit;
         setDurationTypes((prevTypes) => ({
           ...prevTypes,
           [phaseId]: updatedType,
         }));
-
-        // Convert the durationDays to the new unit
         const updatedDuration = convertDuration(durationDays, updatedType);
 
-        // Update the schedule table data
         const updatedSchedule = scheduleTableData.map((phase) =>
           phase.phaseId === phaseId
-            ? {
-                ...phase,
-                duration: updatedDuration,
-                durationDays,
-              }
+            ? { ...phase, duration: updatedDuration, durationDays }
             : phase
         );
 
-        // Recalculate dates if executionStartDate exists
-        if (executionStartDate) {
+        if (executionStartDate && isValid(executionStartDate)) {
           let currentEndDate = new Date(executionStartDate);
           const tempSchedule = [...updatedSchedule];
 
@@ -337,11 +367,16 @@ const SchedulePlanSection = React.memo(
 
             tempSchedule[i] = {
               ...phase,
-              endDate: format(currentEndDate, "dd-MMM-yyyy"),
-              startDate: startDate ? format(startDate, "dd-MMM-yyyy") : "N/A",
+              endDate: isValid(currentEndDate)
+                ? format(currentEndDate, "dd-MMM-yyyy")
+                : "N/A",
+              startDate:
+                startDate && isValid(startDate)
+                  ? format(startDate, "dd-MMM-yyyy")
+                  : "N/A",
             };
 
-            if (startDate) {
+            if (startDate && isValid(startDate)) {
               currentEndDate = new Date(startDate);
             } else {
               for (let j = i - 1; j >= 0; j--) {
@@ -439,13 +474,7 @@ const SchedulePlanSection = React.memo(
               <button
                 key={tab}
                 type="button"
-                className={`${tabButtonStyle(tab)} ${
-                  tab === "B. Days"
-                    ? "rounded-l"
-                    : tab === "Months"
-                    ? "rounded-r"
-                    : ""
-                }`}
+                className={`${tabButtonStyle(tab)} ${tab === "B. Days" ? "rounded-l" : tab === "Months" ? "rounded-r" : ""}`}
                 onClick={() => handleTabChange(tab)}
               >
                 {tab}
@@ -464,7 +493,7 @@ const SchedulePlanSection = React.memo(
               render={({ field: { onChange, value } }) => (
                 <DatePicker
                   showIcon
-                  selected={value || null}
+                  selected={value && isValid(value) ? value : null}
                   onChange={onChange}
                   dateFormat="dd-MMM-yyyy"
                   placeholderText="Select date"
@@ -475,32 +504,31 @@ const SchedulePlanSection = React.memo(
           </div>
           <div>
             <label className="block text-sm font-semibold mb-1">
-              Execution Duration <span className="text-red-500">*</span>
+              Execution Duration (Weeks) <span className="text-red-500">*</span>
             </label>
             <Controller
               name="executionDuration"
               control={control}
-              rules={{ required: "Execution duration is required" }}
+              rules={{
+                required: "Execution duration is required",
+                min: { value: 1, message: "Duration must be at least 1 week" },
+                pattern: {
+                  value: /^[0-9]+$/,
+                  message: "Please enter a valid number of weeks",
+                },
+              }}
               render={({ field }) => (
-                <div className="relative">
-                  <select
-                    className={`w-full p-2 border ${
-                      errors.executionDuration
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    } rounded appearance-none bg-white`}
-                    {...field}
-                  >
-                    {getDurationOptions(activeTab).map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                    <ChevronUp size={16} />
-                  </div>
-                </div>
+                <input
+                  type="number"
+                  min="1"
+                  className={`w-full p-2 border ${
+                    errors.executionDuration
+                      ? "border-red-500"
+                      : "border-gray-300"
+                  } rounded`}
+                  placeholder="Enter weeks (e.g., 8)"
+                  {...field}
+                />
               )}
             />
             {errors.executionDuration && (
@@ -511,7 +539,7 @@ const SchedulePlanSection = React.memo(
           </div>
           <div>
             <label className="block text-sm font-semibold mb-1">
-              Maintenance & Operation Duration{" "}
+              Maintenance & Operation Date{" "}
               <span className="text-red-500">*</span>
             </label>
             <Controller
@@ -521,7 +549,7 @@ const SchedulePlanSection = React.memo(
               render={({ field: { onChange, value } }) => (
                 <DatePicker
                   showIcon
-                  selected={value || null}
+                  selected={value && isValid(value) ? value : null}
                   onChange={onChange}
                   dateFormat="dd-MMM-yyyy"
                   placeholderText="Select date"

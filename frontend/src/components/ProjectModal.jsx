@@ -35,7 +35,8 @@ const ProjectModal = ({
   const [localFiles, setLocalFiles] = useState([]);
   const [durationOptions, setDurationOptions] = useState([]);
   const [phaseDurations, setPhaseDurations] = useState([]);
-  const [selectedProgramDetails, setSelectedProgramDetails] = useState(null); // New state for program details
+  const [selectedProgramDetails, setSelectedProgramDetails] = useState(null);
+
   const {
     register,
     handleSubmit,
@@ -770,9 +771,11 @@ const ProjectModal = ({
           : null,
         execution_start_date: data.execution_start_date?.startDate || null,
         execution_duration: data.execution_duration
-          ? `${data.execution_duration} days`
+          ? `${data.execution_duration}`
+          : null, // Fixed to "weeks"
+        maintenance_duration: data.maintenance_duration
+          ? new Date(data.maintenance_duration)
           : null,
-        maintenance_duration: data.maintenance_duration ? `30 days` : null,
         approval_status: data.approval_status || "Not initiated",
       };
 
@@ -837,7 +840,7 @@ const ProjectModal = ({
         console.log("Documents uploaded successfully"); // Debug log
         console.log(
           "Schedule Plan ",
-          scheduleTableData.map((phase) => ({
+          scheduleTableData.schedule.map((phase) => ({
             phaseId: phase.phaseId,
             durationDays: phase.durationDays,
             startDate: phase.startDate,
@@ -879,12 +882,12 @@ const ProjectModal = ({
                 "Failed to save internal schedule plan"
             );
           }
-        } else if (scheduleTableData.length > 0) {
+        } else if (scheduleTableData.schedule.length > 0) {
           const schedulePlanResponse = await axiosInstance.post(
             `/data-management/upsertSchedulePlan`,
             {
               projectId,
-              schedule: scheduleTableData.map((phase) => ({
+              schedule: scheduleTableData.schedule.map((phase) => ({
                 phaseId: phase.phaseId,
                 durationDays: phase.durationDays,
                 startDate: phase.startDate,

@@ -18,13 +18,17 @@ const InternalSchedulePlanSection = ({
 
   const { control, watch, setValue } = useForm({
     defaultValues: {
-      executionTargetDate: null, // Changed from executionStartDate to executionTargetDate
+      executionTargetDate: null,
+      executionDuration: "4", // weeks (numeric)
+      maintenanceDate: null, // date field
     },
   });
 
-  const executionTargetDate = watch("executionTargetDate"); // Changed variable name
+  const executionTargetDate = watch("executionTargetDate");
+  const executionDuration = watch("executionDuration");
+  const maintenanceDate = watch("maintenanceDate");
 
-  // Utility functions (unchanged)
+  // Utility functions
   const convertToDays = useCallback((durationStr) => {
     if (!durationStr) return 0;
     const daysMatch = durationStr.match(/(\d+)\s*days?/i);
@@ -41,7 +45,6 @@ const InternalSchedulePlanSection = ({
     return `${durationDays} day${durationDays !== 1 ? "s" : ""}`;
   }, []);
 
-  // Default internal schedule data (unchanged)
   const defaultInternalSchedule = useCallback(
     () => [
       {
@@ -66,7 +69,6 @@ const InternalSchedulePlanSection = ({
     []
   );
 
-  // Calculate dates in reverse order (modified)
   const calculateDates = useCallback(() => {
     if (!executionTargetDate) {
       setInternalSchedule((prev) =>
@@ -85,11 +87,8 @@ const InternalSchedulePlanSection = ({
 
       if (!planningPhase || !executionPhase) return prev;
 
-      // Treat executionTargetDate as the END date of execution
       const executionEnd = new Date(executionTargetDate);
       const executionStart = subDays(executionEnd, executionPhase.durationDays);
-
-      // Planning ends when execution starts
       const planningEnd = new Date(executionStart);
       const planningStart = subDays(planningEnd, planningPhase.durationDays);
 
@@ -107,7 +106,7 @@ const InternalSchedulePlanSection = ({
           return {
             ...phase,
             startDate: formatDate(executionStart),
-            endDate: formatDate(executionEnd), // This is now the target date
+            endDate: formatDate(executionEnd),
           };
         }
         return phase;
@@ -117,7 +116,6 @@ const InternalSchedulePlanSection = ({
     });
   }, [executionTargetDate]);
 
-  // Fetch internal schedule data (modified to use execution end date)
   useEffect(() => {
     const fetchInternalSchedule = async () => {
       if (!projectId) {
@@ -164,10 +162,27 @@ const InternalSchedulePlanSection = ({
           setInternalSchedule(mergedSchedule);
           prevScheduleRef.current = mergedSchedule;
 
-          // Set the execution target date (end date) if available
-          const executionPhase = fetchedData.find((p) => p.id === 4);
-          if (executionPhase?.endDate) {
-            setValue("executionTargetDate", executionPhase.endDate);
+          if (fetchedData.length > 0) {
+            const executionPhase = fetchedData.find((p) => p.id === 4);
+            if (executionPhase?.endDate) {
+              setValue("executionTargetDate", executionPhase.endDate);
+            }
+
+            // Set maintenance date if available
+            if (response.data.maintenance_date) {
+              setValue(
+                "maintenanceDate",
+                parseISO(response.data.maintenance_date)
+              );
+            }
+
+            // Set execution duration if available
+            if (response.data.execution_duration) {
+              const weeks = parseInt(response.data.execution_duration, 10);
+              if (!isNaN(weeks)) {
+                setValue("executionDuration", weeks.toString());
+              }
+            }
           }
         } else {
           const defaultSchedule = defaultInternalSchedule();
@@ -186,19 +201,24 @@ const InternalSchedulePlanSection = ({
     fetchInternalSchedule();
   }, [projectId, defaultInternalSchedule, setValue]);
 
-  // Handle date calculations when execution target date changes
   useEffect(() => {
     calculateDates();
   }, [executionTargetDate, calculateDates]);
 
-  // Notify parent of changes (unchanged)
   useEffect(() => {
     if (onScheduleChange) {
-      onScheduleChange(internalSchedule);
+      onScheduleChange({
+        schedule: internalSchedule,
+        executionDuration: executionDuration
+          ? `${executionDuration} weeks`
+          : null,
+        maintenanceDate: maintenanceDate
+          ? format(maintenanceDate, "yyyy-MM-dd")
+          : null,
+      });
     }
-  }, [internalSchedule, onScheduleChange]);
+  }, [internalSchedule, executionDuration, maintenanceDate, onScheduleChange]);
 
-  // Handle duration change (unchanged)
   const handleInternalDurationChange = useCallback(
     (id, newDuration) => {
       const durationDays = convertToDays(newDuration);
@@ -216,7 +236,6 @@ const InternalSchedulePlanSection = ({
         return updatedSchedule;
       });
 
-      // Trigger date recalculation after state update
       setTimeout(() => {
         calculateDates();
       }, 0);
@@ -224,7 +243,6 @@ const InternalSchedulePlanSection = ({
     [convertToDays, convertDuration, calculateDates]
   );
 
-  // Get duration options (unchanged)
   const getDurationOptions = () => {
     return Array.from({ length: 90 }, (_, i) => ({
       value: `${i + 1} days`,
@@ -241,7 +259,7 @@ const InternalSchedulePlanSection = ({
             Execution Target Date (End Date)
           </label>
           <Controller
-            name="executionTargetDate" // Changed from executionStartDate
+            name="executionTargetDate"
             control={control}
             render={({ field: { onChange, value } }) => (
               <DatePicker
@@ -252,6 +270,53 @@ const InternalSchedulePlanSection = ({
                 placeholderText="Select target date"
                 className="w-full p-2 border border-gray-300 rounded"
                 isClearable
+              />
+            )}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold mb-1">
+            Execution Duration (Weeks) <span className="text-red-500">*</span>
+          </label>
+          <Controller
+            name="executionDuration"
+            control={control}
+            rules={{
+              required: "Execution duration is required",
+              min: { value: 1, message: "Duration must be at least 1 week" },
+              pattern: {
+                value: /^[0-9]+$/,
+                message: "Please enter a valid number of weeks",
+              },
+            }}
+            render={({ field }) => (
+              <input
+                type="number"
+                min="1"
+                className={`w-full p-2 border border-gray-300 rounded`}
+                placeholder="Enter weeks (e.g., 4)"
+                {...field}
+              />
+            )}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold mb-1">
+            Maintenance & Operation Date <span className="text-red-500">*</span>
+          </label>
+          <Controller
+            name="maintenanceDate"
+            control={control}
+            rules={{ required: "Maintenance date is required" }}
+            render={({ field: { onChange, value } }) => (
+              <DatePicker
+                showIcon
+                selected={value}
+                onChange={onChange}
+                minDate={executionTargetDate} // Ensure it's after execution
+                dateFormat="dd-MMM-yyyy"
+                placeholderText="Select date"
+                className="w-full p-2 border border-gray-300 rounded"
               />
             )}
           />

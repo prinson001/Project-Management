@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { ChevronUp } from "lucide-react";
-import Datepicker from "react-tailwindcss-datepicker";
+import DatePicker from "react-datepicker";
 import { Controller, useForm } from "react-hook-form";
 import { addDays, format } from "date-fns";
 import { toast } from "sonner";
@@ -62,6 +62,8 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
   useEffect(() => {
     if (!projectData) return;
 
+    console.log("projectData", projectData);
+
     const {
       id,
       project_budget,
@@ -75,7 +77,7 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
       setValue("executionStartDate", startDate);
     }
     if (execution_duration) {
-      setValue("executionDuration", execution_duration || "28 days");
+      setValue("executionDuration", execution_duration || "4 weeks");
     }
     if (maintenance_duration) {
       setValue("maintenanceDate", new Date(maintenance_duration));
@@ -468,15 +470,13 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
             control={control}
             rules={{ required: "Execution start date is required" }}
             render={({ field: { onChange, value } }) => (
-              <Datepicker
-                value={value ? { startDate: value, endDate: value } : null}
-                onChange={(newValue) =>
-                  onChange(newValue ? newValue.startDate : null)
-                }
-                useRange={false}
-                asSingle={true}
-                displayFormat="DD-MMM-YYYY"
-                placeholder="Select date"
+              <DatePicker
+                showIcon
+                selected={value || null}
+                onChange={onChange}
+                dateFormat="dd-MMM-yyyy"
+                placeholderText="Select date"
+                className="w-full p-2 border border-gray-300 rounded"
               />
             )}
           />
@@ -488,34 +488,33 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
         </div>
         <div>
           <label className="block text-sm font-semibold mb-1">
-            Execution duration <span className="text-red-500">*</span>
+            Execution Duration (Weeks) <span className="text-red-500">*</span>
           </label>
-          <div className="relative">
-            <Controller
-              name="executionDuration"
-              control={control}
-              rules={{ required: "Execution duration is required" }}
-              render={({ field }) => (
-                <select
-                  className={`w-full p-2 border ${
-                    errors.executionDuration
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  } rounded appearance-none bg-white`}
-                  {...field}
-                >
-                  {getDurationOptions(activeTab).map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              )}
-            />
-            <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-              <ChevronUp size={16} />
-            </div>
-          </div>
+          <Controller
+            name="executionDuration"
+            control={control}
+            rules={{
+              required: "Execution duration is required",
+              min: { value: 1, message: "Duration must be at least 1 week" },
+              pattern: {
+                value: /^[0-9]+$/,
+                message: "Please enter a valid number of weeks",
+              },
+            }}
+            render={({ field }) => (
+              <input
+                type="number"
+                min="1"
+                className={`w-full p-2 border ${
+                  errors.executionDuration
+                    ? "border-red-500"
+                    : "border-gray-300"
+                } rounded`}
+                placeholder="Enter weeks (e.g., 8)"
+                {...field}
+              />
+            )}
+          />
           {errors.executionDuration && (
             <p className="text-red-500 text-xs mt-1">
               {errors.executionDuration.message}
@@ -524,23 +523,21 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
         </div>
         <div>
           <label className="block text-sm font-semibold mb-1">
-            Maintenance & operation duration{" "}
-            <span className="text-red-500">*</span>
+            Maintenance & operation date <span className="text-red-500">*</span>
           </label>
           <Controller
             name="maintenanceDate"
             control={control}
             rules={{ required: "Maintenance date is required" }}
             render={({ field: { onChange, value } }) => (
-              <Datepicker
-                value={value ? { startDate: value, endDate: value } : null}
-                onChange={(newValue) =>
-                  onChange(newValue ? newValue.startDate : null)
-                }
-                useRange={false}
-                asSingle={true}
-                displayFormat="DD-MMM-YYYY"
-                placeholder="Select date"
+              <DatePicker
+                showIcon
+                selected={value || null}
+                onChange={onChange}
+                minDate={executionStartDate} // Ensure it's after execution start
+                dateFormat="dd-MMM-yyyy"
+                placeholderText="Select date"
+                className="w-full p-2 border border-gray-300 rounded"
               />
             )}
           />
