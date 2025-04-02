@@ -6,7 +6,7 @@ import UpdateProjectDocumentSection from "./UpdateProjectDocumentSection";
 import { toast } from "sonner";
 import useAuthStore from "../store/authStore";
 import UpdateSchedulePlanSection from "./UpdateSchedulePlanSection";
-import InternalSchedulePlanSection from "./InternalSchedulePlanSection"; // Import InternalSchedulePlanSection
+import InternalSchedulePlanSection from "./InternalSchedulePlanSection";
 import axiosInstance from "../axiosInstance";
 
 const UpdateProjectModal = ({
@@ -21,7 +21,7 @@ const UpdateProjectModal = ({
   const [scheduleTableData, setScheduleTableData] = useState([]);
   const [internalScheduleDataState, setInternalScheduleDataState] = useState(
     []
-  ); // For internal schedules
+  );
   const [departments, setDepartments] = useState([]);
   const [initiatives, setInitiatives] = useState([]);
   const [portfolios, setPortfolios] = useState([]);
@@ -64,20 +64,25 @@ const UpdateProjectModal = ({
       execution_start_date: {
         startDate: projectData?.execution_start_date
           ? new Date(projectData.execution_start_date)
-          : new Date(),
+          : null,
         endDate: projectData?.execution_start_date
           ? new Date(projectData.execution_start_date)
-          : new Date(),
+          : null,
       },
-      execution_duration: projectData?.execution_duration || "4 weeks", // String, not Datepicker
-      maintenance_duration: projectData?.maintenance_duration || "1 month",
+      execution_duration: projectData?.execution_duration || "28 days",
+      maintenance_duration: projectData?.maintenance_duration
+        ? {
+            startDate: new Date(projectData.maintenance_duration),
+            endDate: new Date(projectData.maintenance_duration),
+          }
+        : null,
       internal_start_date: {
         startDate: projectData?.execution_start_date
           ? new Date(projectData.execution_start_date)
-          : new Date(),
+          : null,
         endDate: projectData?.execution_start_date
           ? new Date(projectData.execution_start_date)
-          : new Date(),
+          : null,
       },
       documents: projectData?.documents || [],
     },
@@ -91,16 +96,22 @@ const UpdateProjectModal = ({
   const internalScheduleData = useMemo(
     () => [
       {
-        id: 1, // Planning phase
+        id: 1,
         mainPhase: "Planning",
         subPhase: "Prepare scope",
         duration: "28 days",
+        durationDays: 28,
+        startDate: null,
+        endDate: null,
       },
       {
-        id: 4, // Execution phase
+        id: 4,
         mainPhase: "Execution",
         subPhase: "Execute phase",
         duration: "28 days",
+        durationDays: 28,
+        startDate: null,
+        endDate: null,
       },
     ],
     []
@@ -126,6 +137,33 @@ const UpdateProjectModal = ({
     return restrictedTypes.includes(currentType?.name || "");
   }, [projectType, projectTypes]);
 
+  const isCategoryDisabled = useMemo(() => {
+    const restrictedTypes = ["Internal Project", "Proof of Concept"];
+    const currentType = projectTypes.find(
+      (type) => type.id.toString() === projectType?.toString()
+    );
+    return restrictedTypes.includes(currentType?.name || "");
+  }, [projectType, projectTypes]);
+
+  // Reset schedule data when project type changes
+  useEffect(() => {
+    const isInternal = ["1", "4"].includes(projectType);
+    if (isInternal) {
+      // Reset external schedule data and set internal schedule data
+      setScheduleTableData([]);
+      if (!internalScheduleDataState.length) {
+        setInternalScheduleDataState(internalScheduleData);
+      }
+    } else {
+      // Reset internal schedule data; UpdateSchedulePlanSection will fetch its own data
+      setInternalScheduleDataState([]);
+      if (!scheduleTableData.length && projectData?.id) {
+        // Trigger fetch in UpdateSchedulePlanSection via projectData
+        setScheduleTableData([]); // Reset to trigger re-fetch
+      }
+    }
+  }, [projectType, internalScheduleData, projectData?.id]);
+
   // Fetch departments and beneficiary departments
   useEffect(() => {
     const fetchDepartmentsAndBeneficiaries = async () => {
@@ -133,19 +171,12 @@ const UpdateProjectModal = ({
         const deptResponse = await axiosInstance.post(
           `/data-management/getDepartments`
         );
-        if (deptResponse.data.status !== "success") {
-          throw new Error("Failed to fetch departments");
-        }
-
         const beneficiaryResponse = await axiosInstance.post(
           `/data-management/getBeneficiaryDepartments`,
           { projectId: projectData.id }
         );
-        if (beneficiaryResponse.data.status !== "success") {
-          throw new Error("Failed to fetch beneficiary departments");
-        }
 
-        const beneficiaryDeptIds = beneficiaryResponse.data.result;
+        const beneficiaryDeptIds = beneficiaryResponse.data.result || [];
         const fetchedDepartments = deptResponse.data.result.map((dept) => ({
           id: dept.id,
           name: dept.name,
@@ -158,7 +189,8 @@ const UpdateProjectModal = ({
           "beneficiaryDepartments",
           fetchedDepartments
             .filter((dept) => dept.checked)
-            .map((dept) => dept.id)
+            .map((dept) => dept.id),
+          { shouldDirty: false }
         );
       } catch (error) {
         console.error("Error fetching departments or beneficiaries:", error);
@@ -171,126 +203,72 @@ const UpdateProjectModal = ({
     }
   }, [projectData?.id, setValue]);
 
-  // Fetch initiatives, portfolios, programs, vendors, objectives (unchanged)
+  // Fetch other dropdown data
   useEffect(() => {
     const fetchInitiatives = async () => {
-      try {
-        const response = await axiosInstance.post(
-          `/data-management/getInitiatives`
-        );
-        if (response.data.status === "success") {
-          setInitiatives(response.data.result);
-        }
-      } catch (error) {
-        console.error("Error fetching initiatives:", error);
-        toast.error("Failed to load initiatives");
-      }
+      const response = await axiosInstance.post(
+        `/data-management/getInitiatives`
+      );
+      if (response.data.status === "success")
+        setInitiatives(response.data.result);
     };
     fetchInitiatives();
   }, []);
 
   useEffect(() => {
     const fetchPortfolios = async () => {
-      try {
-        const response = await axiosInstance.post(
-          `/data-management/getPortfolios`
-        );
-        if (response.data.status === "success") {
-          setPortfolios(response.data.result);
-        }
-      } catch (error) {
-        console.error("Error fetching portfolios:", error);
-        toast.error("Failed to load portfolios");
-      }
+      const response = await axiosInstance.post(
+        `/data-management/getPortfolios`
+      );
+      if (response.data.status === "success")
+        setPortfolios(response.data.result);
     };
     fetchPortfolios();
   }, []);
 
   useEffect(() => {
     const fetchPrograms = async () => {
-      try {
-        const response = await axiosInstance.post(
-          `/data-management/getPrograms`
-        );
-        if (response.data.status === "success") {
-          setPrograms(response.data.result);
-        }
-      } catch (error) {
-        console.error("Error fetching programs:", error);
-        toast.error("Failed to load programs");
-      }
+      const response = await axiosInstance.post(`/data-management/getPrograms`);
+      if (response.data.status === "success") setPrograms(response.data.result);
     };
     fetchPrograms();
   }, []);
 
   useEffect(() => {
     const fetchVendors = async () => {
-      try {
-        const response = await axiosInstance.post(
-          `/data-management/getVendors`
-        );
-        if (response.data.status === "success") {
-          setVendors(response.data.result);
-        }
-      } catch (error) {
-        console.error("Error fetching vendors:", error);
-        toast.error("Failed to load vendors");
-      }
+      const response = await axiosInstance.post(`/data-management/getVendors`);
+      if (response.data.status === "success") setVendors(response.data.result);
     };
     fetchVendors();
   }, []);
 
   useEffect(() => {
     const fetchObjectives = async () => {
-      try {
-        const response = await axiosInstance.post(
-          `/data-management/getObjectives`
-        );
-        if (response.data.status === "success") {
-          const fetchedObjectives = response.data.result.map((obj) => ({
-            id: obj.id,
-            text: obj.name,
-            arabic_text: obj.arabic_name,
-            checked:
-              projectData?.objectives?.some((o) => o.id === obj.id) || false,
-          }));
-          setObjectives(fetchedObjectives);
-          setValue("objectives", fetchedObjectives);
-        }
-      } catch (error) {
-        console.error("Error fetching objectives:", error);
-        toast.error("Failed to load objectives");
-      }
-    };
-    fetchObjectives();
-  }, [projectData?.objectives, setValue]);
-  useEffect(() => {
-    const fetchProjectObjectives = async () => {
-      try {
-        const response = await axiosInstance.post(
+      const response = await axiosInstance.post(
+        `/data-management/getObjectives`
+      );
+      if (response.data.status === "success") {
+        const projectObjectivesResponse = await axiosInstance.post(
           `/data-management/getProjectObjectives`,
           { projectId: projectData.id }
         );
-
-        if (response.data.status === "success") {
-          // Mark objectives as checked if they exist for this project
-          setObjectives((prev) =>
-            prev.map((obj) => ({
-              ...obj,
-              checked: response.data.result.some((o) => o.id === obj.id),
-            }))
-          );
-        }
-      } catch (error) {
-        console.error("Error fetching project objectives:", error);
-        toast.error("Failed to load project objectives");
+        const projectObjectiveIds =
+          projectObjectivesResponse.data.status === "success"
+            ? projectObjectivesResponse.data.result.map((o) => o.id)
+            : [];
+        const fetchedObjectives = response.data.result.map((obj) => ({
+          id: obj.id,
+          text: obj.name,
+          arabic_text: obj.arabic_name,
+          checked: projectObjectiveIds.includes(obj.id),
+        }));
+        setObjectives(fetchedObjectives);
+        setValue("objectives", fetchedObjectives, { shouldDirty: false });
       }
     };
+    if (projectData?.id) fetchObjectives();
+  }, [projectData?.id, setValue]);
 
-    if (projectData?.id) {
-      fetchProjectObjectives();
-    }
-  }, [projectData?.id]);
   // Fetch program details
   const fetchProgramDetails = async (programId) => {
     if (!programId) {
@@ -342,15 +320,7 @@ const UpdateProjectModal = ({
     }
   };
 
-  // Determine if category should be disabled
-  const isCategoryDisabled = useMemo(() => {
-    const restrictedTypes = ["Internal Project", "Proof of Concept"];
-    const currentType = projectTypes.find(
-      (type) => type.id.toString() === projectType?.toString()
-    );
-    return restrictedTypes.includes(currentType?.name || "");
-  }, [projectType, projectTypes]);
-  // Handle schedule changes for both internal and non-internal projects
+  // Handle schedule changes
   const handleScheduleChange = useCallback(
     (data) => {
       const isInternal = ["1", "4"].includes(projectType);
@@ -469,67 +439,34 @@ const UpdateProjectModal = ({
         );
         onUpdate(updatedProjectData);
         onClose();
-        return response; // Return the response for chaining
+        return response;
       } else {
         throw new Error(response.data.message || "Failed to update project");
       }
     } catch (error) {
       console.error("Update error:", error);
       toast.error(error.message || "Failed to update project");
-      throw error; // Re-throw to allow catching in handleSaveAndSendForApproval
+      throw error;
     }
   };
 
-  const shouldShowSection = (section) => {
-    if (activeSection === "all") return true;
-    switch (section) {
-      case "category":
-        return !["1", "4"].includes(projectType); // Internal (1), PoC (4)
-      case "vendor":
-        return ["2", "3", "4"].includes(projectType); // External (2), Strategic (3), PoC (4)
-      case "budget":
-        if (projectType === "1") return false; // Internal
-        if (["1", "2"].includes(currentPhase)) return false; // Planning, Bidding
-        return ["2", "3"].includes(projectType); // External, Strategic
-      case "schedule":
-        return ["2", "3"].includes(projectType); // External, Strategic
-      case "internalSchedule":
-        return ["1", "4"].includes(projectType); // Internal, PoC
-      default:
-        return true;
-    }
-  };
   const handleSaveAndSendForApproval = async (data) => {
     try {
-      console.log("Starting save and send for approval process");
-      // Save the project with updated approval_status
-      await onSubmit(data, true); // Pass true to set approval_status to "Waiting on deputy"
-
-      // Use the existing projectId from projectData since this is an update
+      await onSubmit(data, true);
       const projectId = projectData.id;
-      console.log("Project ID for deputy task:", projectId);
-
-      // Create the approval task
       const taskResponse = await axiosInstance.post(
         "/data-management/createProjectCreationTaskForDeputy",
         { projectId }
       );
-      console.log("Task creation response:", taskResponse.data);
-
       if (taskResponse.data.status === "success") {
         toast.success("Project saved and sent for approval successfully!");
-        // onUpdate is already called in onSubmit, no need to repeat
         onClose();
       } else {
-        throw new Error(
-          taskResponse.data?.message || "Failed to create approval task"
-        );
+        throw new Error("Failed to create approval task");
       }
     } catch (error) {
       console.error("Error saving and sending for approval:", error);
-      toast.error(
-        "Failed to save and send project for approval: " + error.message
-      );
+      toast.error("Failed to save and send project for approval");
     }
   };
 
@@ -578,6 +515,26 @@ const UpdateProjectModal = ({
       if (response.data.status !== "success") {
         throw new Error(`Failed to upload document: ${response.data.message}`);
       }
+    }
+  };
+
+  const shouldShowSection = (section) => {
+    if (activeSection === "all") return true;
+    switch (section) {
+      case "category":
+        return !["1", "4"].includes(projectType);
+      case "vendor":
+        return ["2", "3", "4"].includes(projectType);
+      case "budget":
+        if (projectType === "1") return false;
+        if (["1", "2"].includes(currentPhase)) return false;
+        return ["2", "3"].includes(projectType);
+      case "schedule":
+        return ["2", "3"].includes(projectType);
+      case "internalSchedule":
+        return ["1", "4"].includes(projectType);
+      default:
+        return true;
     }
   };
 
@@ -1096,16 +1053,17 @@ const UpdateProjectModal = ({
               {["1", "4"].includes(projectType) ? (
                 <InternalSchedulePlanSection
                   onScheduleChange={handleScheduleChange}
-                  internalScheduleData={internalScheduleData}
-                  projectId={projectData.id} // Pass projectId for fetching existing data if needed
+                  internalScheduleData={
+                    internalScheduleDataState.length
+                      ? internalScheduleDataState
+                      : internalScheduleData
+                  }
+                  projectId={projectData.id}
                 />
               ) : (
                 <UpdateSchedulePlanSection
-                  projectId={projectData.id}
-                  budget={watch("approved_budget")}
-                  onScheduleChange={handleScheduleChange}
                   projectData={projectData}
-                  projectType={projectType}
+                  onScheduleUpdate={handleScheduleChange}
                 />
               )}
             </div>

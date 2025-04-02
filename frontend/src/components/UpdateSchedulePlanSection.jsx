@@ -1,12 +1,10 @@
-import React, { useState, useEffect, useCallback } from "react"; // Added useCallback
+import React, { useState, useEffect, useCallback } from "react";
 import { ChevronUp } from "lucide-react";
 import Datepicker from "react-tailwindcss-datepicker";
 import { Controller, useForm } from "react-hook-form";
 import { addDays, format } from "date-fns";
 import { toast } from "sonner";
 import axiosInstance from "../axiosInstance";
-
-const PORT = import.meta.env.VITE_PORT;
 
 const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
   const [activeTab, setActiveTab] = useState("B. Days");
@@ -45,10 +43,10 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
     if (targetUnit === "B. Days") {
       return `${durationDays} day${durationDays !== 1 ? "s" : ""}`;
     } else if (targetUnit === "Weeks") {
-      const weeks = Math.round(durationDays / 7); // Round to nearest week
+      const weeks = Math.round(durationDays / 7);
       return `${weeks} week${weeks !== 1 ? "s" : ""}`;
     } else if (targetUnit === "Months") {
-      const months = Math.round(durationDays / 30); // Round to nearest month
+      const months = Math.round(durationDays / 30);
       return `${months} month${months !== 1 ? "s" : ""}`;
     }
     return `${durationDays} days`;
@@ -73,26 +71,18 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
     } = projectData;
 
     if (execution_start_date) {
-      setValue("executionStartDate", new Date(execution_start_date));
+      const startDate = new Date(execution_start_date);
+      setValue("executionStartDate", startDate);
     }
     if (execution_duration) {
-      setValue(
-        "executionDuration",
-        convertDuration(execution_duration, activeTab)
-      );
+      setValue("executionDuration", execution_duration || "28 days");
     }
-    if (maintenance_duration && execution_start_date) {
-      const days = parseInt(maintenance_duration) || 0;
-      setValue(
-        "maintenanceDate",
-        new Date(
-          new Date(execution_start_date).getTime() + days * 24 * 60 * 60 * 1000
-        )
-      );
+    if (maintenance_duration) {
+      setValue("maintenanceDate", new Date(maintenance_duration));
     }
 
     fetchSchedulePlan(id, project_budget);
-  }, [projectData, setValue, activeTab, convertDuration]);
+  }, [projectData, setValue]);
 
   // Fetch existing schedule plan or phases if none exists
   const fetchSchedulePlan = async (projectId, budget) => {
@@ -119,6 +109,10 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
             : null,
         }));
         setScheduleTableData(fetchedSchedule);
+        // Notify parent of initial data
+        if (onScheduleUpdate) {
+          onScheduleUpdate(fetchedSchedule);
+        }
       } else {
         fetchPhases(budget, projectId);
       }
@@ -149,6 +143,9 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
           };
         });
         setScheduleTableData(initialSchedule);
+        if (onScheduleUpdate) {
+          onScheduleUpdate(initialSchedule);
+        }
       } else {
         throw new Error("Failed to fetch phases");
       }
@@ -211,19 +208,24 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
           endDate: null,
         },
       ]);
+      if (onScheduleUpdate) {
+        onScheduleUpdate(scheduleTableData);
+      }
     }
   };
 
   // Recalculate dates based on execution start date
   useEffect(() => {
     if (!executionStartDate || !scheduleTableData.length) {
-      setScheduleTableData((prev) =>
-        prev.map((phase) => ({
-          ...phase,
-          startDate: null,
-          endDate: null,
-        }))
-      );
+      const resetSchedule = scheduleTableData.map((phase) => ({
+        ...phase,
+        startDate: null,
+        endDate: null,
+      }));
+      setScheduleTableData(resetSchedule);
+      if (onScheduleUpdate) {
+        onScheduleUpdate(resetSchedule);
+      }
       return;
     }
 
@@ -255,35 +257,31 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
     }
 
     setScheduleTableData(updatedSchedule);
-  }, [executionStartDate, scheduleTableData, addDuration]);
+    if (onScheduleUpdate) {
+      onScheduleUpdate(updatedSchedule);
+    }
+  }, [
+    executionStartDate,
+    scheduleTableData.length,
+    addDuration,
+    onScheduleUpdate,
+  ]);
 
   // Handle duration change
   const handleDurationChange = useCallback(
     (phaseId, newDuration, newType) => {
-      // Determine the current unit for this phase
       const currentUnit = durationTypes[phaseId] || activeTab;
-
-      // Convert the new duration to days based on the current unit
       const durationDays = convertToDays(newDuration);
-
-      // Update durationTypes with the new type (if provided)
       const updatedType = newType || currentUnit;
       setDurationTypes((prevTypes) => ({
         ...prevTypes,
         [phaseId]: updatedType,
       }));
 
-      // Convert the durationDays to the new unit
       const updatedDuration = convertDuration(durationDays, updatedType);
-
-      // Update the schedule table data
       const updatedSchedule = scheduleTableData.map((phase) =>
         phase.phaseId === phaseId
-          ? {
-              ...phase,
-              duration: updatedDuration,
-              durationDays,
-            }
+          ? { ...phase, duration: updatedDuration, durationDays }
           : phase
       );
 
@@ -315,8 +313,14 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
           }
         }
         setScheduleTableData(tempSchedule);
+        if (onScheduleUpdate) {
+          onScheduleUpdate(tempSchedule);
+        }
       } else {
         setScheduleTableData(updatedSchedule);
+        if (onScheduleUpdate) {
+          onScheduleUpdate(updatedSchedule);
+        }
       }
     },
     [
@@ -326,6 +330,7 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
       executionStartDate,
       scheduleTableData,
       durationTypes,
+      onScheduleUpdate,
     ]
   );
 
@@ -443,31 +448,15 @@ const UpdateSchedulePlanSection = ({ projectData, onScheduleUpdate }) => {
       duration: convertDuration(phase.durationDays, tab),
     }));
     setScheduleTableData(updatedSchedule);
+    if (onScheduleUpdate) {
+      onScheduleUpdate(updatedSchedule);
+    }
   };
 
   return (
     <div className="mb-6 border-t pt-4">
       <div className="flex justify-between items-center mb-4">
         <h3 className="font-semibold">Update Schedule Plan</h3>
-        {/* Uncomment if you want to re-enable global tab switching */}
-        {/* <div className="flex border border-gray-300 rounded">
-          {["B. Days", "Weeks", "Months"].map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              className={`${tabButtonStyle(tab)} ${
-                tab === "B. Days"
-                  ? "rounded-l"
-                  : tab === "Months"
-                  ? "rounded-r"
-                  : ""
-              }`}
-              onClick={() => handleTabChange(tab)}
-            >
-              {tab}
-            </button>
-          ))}
-        </div> */}
       </div>
       <div className="grid grid-cols-3 gap-6 mb-4">
         <div>

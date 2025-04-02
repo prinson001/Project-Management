@@ -64,7 +64,7 @@ const ProjectModal = ({
         { id: 3, text: "Objective Three", checked: true },
         { id: 4, text: "Objective Four", checked: true },
       ],
-      planned_budget: "",
+      project_budget: "",
       approved_budget: "",
       execution_start_date: {
         startDate: new Date("2025-01-21"),
@@ -132,7 +132,7 @@ const ProjectModal = ({
     },
   });
 
-  console.log("Project Modal Users:", users);
+  // console.log("Project Modal Users:", users);
 
   // Watch for changes in projectType and currentPhase
   const projectType = watch("projectType");
@@ -655,7 +655,7 @@ const ProjectModal = ({
         { id: 3, text: "Objective Three", checked: true },
         { id: 4, text: "Objective Four", checked: true },
       ],
-      planned_budget: "",
+      project_budget: "",
       approved_budget: "",
       execution_start_date: {
         startDate: new Date("2025-01-21"),
@@ -762,8 +762,8 @@ const ProjectModal = ({
         vendor_id: parseInt(data.vendor_id) || null,
         beneficiary_departments: selectedDepartmentIds,
         objectives: selectedObjectiveIds,
-        project_budget: data.planned_budget
-          ? parseFloat(data.planned_budget)
+        project_budget: data.project_budget
+          ? parseFloat(data.project_budget)
           : null,
         approved_project_budget: data.approved_budget
           ? parseFloat(data.approved_budget)
@@ -784,7 +784,7 @@ const ProjectModal = ({
         {
           data: {
             ...projectData,
-            planned_budget: data.planned_budget,
+            project_budget: data.project_budget,
           },
           userId: 1,
         },
@@ -929,15 +929,8 @@ const ProjectModal = ({
   // Helper function to determine which sections should be visible based on project type
   const shouldShowSection = useCallback(
     (section) => {
-      // Debug header - collapsed group for cleaner console
-      console.groupCollapsed(
-        `[Visibility Check] Section: ${section}, ProjectType: ${projectType}`
-      );
-
       // Early return if showing all sections
       if (activeSection === "all") {
-        console.log("Showing all sections (activeSection='all')");
-        console.groupEnd();
         return true;
       }
 
@@ -946,12 +939,6 @@ const ProjectModal = ({
         (type) => type.id.toString() === projectType?.toString()
       );
       const projectTypeName = currentProjectType?.name;
-
-      console.log("Resolved project type:", {
-        id: projectType,
-        name: projectTypeName,
-        typeObject: currentProjectType,
-      });
 
       // Define restricted categories (using both ID and name checks for redundancy)
       const isInternalOrPoC =
@@ -1598,7 +1585,7 @@ const ProjectModal = ({
                         isBudgetDisabled ? "bg-gray-100 cursor-not-allowed" : ""
                       }`}
                       placeholder=""
-                      {...register("planned_budget")}
+                      {...register("project_budget")}
                       disabled={isBudgetDisabled}
                     />
                   </div>
@@ -1637,7 +1624,7 @@ const ProjectModal = ({
               />
             ) : (
               <SchedulePlanSection
-                budget={watch("planned_budget")}
+                budget={watch("project_budget")}
                 onScheduleChange={handleScheduleChange}
                 projectType={watch("projectType")}
               />
