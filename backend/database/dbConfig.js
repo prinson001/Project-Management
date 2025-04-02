@@ -1148,6 +1148,35 @@ const alterdocumentTemplatedatetoAutoFill = async (req, res) => {
   }
 };
 
+const alterColumnsToDateType = async (req, res) => {
+  try {
+    // Alter document_template table
+    const resultDocumentTemplate = await sql`
+      ALTER TABLE project 
+      ALTER COLUMN created_date TYPE DATE,
+      ALTER COLUMN created_date SET DEFAULT CURRENT_DATE;
+    `;
+
+    // Alter initiative_object table
+    const resultInitiativeObject = await sql`
+      ALTER TABLE initiative 
+      ALTER COLUMN created_at TYPE DATE,
+      ALTER COLUMN created_at SET DEFAULT CURRENT_DATE;
+    `;
+
+    res.status(200).json({
+      status: "success",
+      message: "Changed columns to DATE type with CURRENT_DATE default",
+      results: {
+        document_template: resultDocumentTemplate,
+        initiative_object: resultInitiativeObject,
+      },
+    });
+  } catch (e) {
+    res.status(500).json({ status: "failure", message: e.message });
+  }
+};
+
 module.exports = {
   createUsersTable,
   createInitiativeTable,
@@ -1186,4 +1215,5 @@ module.exports = {
   setupAllForeignKeys,
   addBoqApprovalStatusColumnToProject,
   alterObjectivedatetoAutoFill,
+  alterColumnsToDateType,
 };
