@@ -547,25 +547,20 @@ const ProjectModal = ({
     return restrictedTypes.includes(currentType?.name || "");
   }, [projectType, projectTypes]);
 
-  // Determine if budget is required (align with visibility logic)
+  // isBudgetRequired: Required for External/Strategic projects in all phases
   const isBudgetRequired = useMemo(() => {
     const restrictedTypes = ["Internal Project", "Proof of Concept"];
     const currentType = projectTypes.find(
       (type) => type.id.toString() === projectType?.toString()
     );
     const typeName = currentType?.name || "";
-    const currentPhaseObj = projectPhases.find(
-      (phase) => phase.id.toString() === currentPhase?.toString()
-    );
-    const phaseName = currentPhaseObj?.name || "";
 
-    // Required for External/Strategic projects, not in Planning/Bidding phases
+    // Required for External Project or Strategic Project, not disabled by type
     return (
       !restrictedTypes.includes(typeName) &&
-      !["Planning", "Bidding"].includes(phaseName) &&
       ["External Project", "Strategic Project"].includes(typeName)
     );
-  }, [projectType, projectTypes, currentPhase, projectPhases]);
+  }, [projectType, projectTypes]);
 
   const getCurrentPhaseDocumentTemplates = async (phase) => {
     try {
@@ -1017,7 +1012,6 @@ const ProjectModal = ({
         case "budget":
           isVisible =
             !isInternalOrPoC &&
-            !["Planning", "Bidding"].includes(currentPhase) &&
             ["External Project", "Strategic Project"].includes(
               projectTypeName || ""
             );
