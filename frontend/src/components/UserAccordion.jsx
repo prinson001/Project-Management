@@ -10,8 +10,11 @@ function UserAccordion({
   closeAccordion,
   index,
 }) {
+  console.log("************************************");
+  console.log(userPersonalData);
   const [userData, setUserData] = useState({ ...userPersonalData });
   const [roles, setRoles] = useState([]);
+  const [selectedRole, setSelectedRole] = useState(null);
   const [changedUserData, setChangedUserData] = useState({});
 
   // const getRoles = async () => {
@@ -46,8 +49,14 @@ function UserAccordion({
   }, [userPersonalData]);
 
   const handleInputChange = (e) => {
-    const { value } = e.target;
     const columnName = e.target.dataset.dbname;
+    let value;
+
+    if (columnName === "is_program_manager") {
+      value = e.target.checked; // Get the checked state directly
+    } else {
+      value = e.target.value;
+    }
 
     setUserData((prev) => ({ ...prev, [columnName]: value }));
     setChangedUserData((prev) => ({ ...prev, [columnName]: value }));
@@ -56,7 +65,7 @@ function UserAccordion({
   const handleRoleChange = (e) => {
     const selectedRoleId = parseInt(e.target.value, 10);
     const selectedRole = roles.find((role) => role.id === selectedRoleId);
-
+    setSelectedRole(selectedRole);
     setUserData((prev) => ({
       ...prev,
       role_id: selectedRoleId,
@@ -65,6 +74,16 @@ function UserAccordion({
 
     setChangedUserData((prev) => ({ ...prev, role_id: selectedRoleId }));
   };
+
+  useEffect(() => {
+    console.log("selectedRole has been changed");
+    console.log(selectedRole);
+  }, [selectedRole]);
+
+  useEffect(() => {
+    console.log("the changed user data is");
+    console.log(changedUserData);
+  }, [changedUserData]);
 
   const handleSave = async () => {
     if (Object.keys(changedUserData).length === 0) {
@@ -123,7 +142,12 @@ function UserAccordion({
     <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 w-full border-gray-200 dark:border-gray-700">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
         <div>
-          <label htmlFor="englishName" className="text-gray-700 dark:text-gray-300">First Name In English</label>
+          <label
+            htmlFor="englishName"
+            className="text-gray-700 dark:text-gray-300"
+          >
+            First Name In English
+          </label>
           <input
             name="englishName"
             type="text"
@@ -135,7 +159,12 @@ function UserAccordion({
           />
         </div>
         <div>
-          <label htmlFor="arabicFirstName" className="text-gray-700 dark:text-gray-300">الاسم الأول للمستخدم بالعربي</label>
+          <label
+            htmlFor="arabicFirstName"
+            className="text-gray-700 dark:text-gray-300"
+          >
+            الاسم الأول للمستخدم بالعربي
+          </label>
           <input
             name="arabicFirstName"
             data-dbname="arabic_first_name"
@@ -184,7 +213,9 @@ function UserAccordion({
         </div>
 
         <div>
-          <label htmlFor="role" className="text-gray-700 dark:text-gray-300">Role</label>
+          <label htmlFor="role" className="text-gray-700 dark:text-gray-300">
+            Role
+          </label>
           <select
             name="role"
             value={userData.role_id || ""}
@@ -205,15 +236,35 @@ function UserAccordion({
                 {role.name} ({role.user_count} users)
               </option>
             ))}
-            <option value="" className="bg-white dark:bg-gray-700">Select a role</option>
+            <option value="" className="bg-white dark:bg-gray-700">
+              Select a role
+            </option>
           </select>
         </div>
+        {selectedRole && selectedRole.name === "PM" && (
+          <div className="mt-1">
+            <label className="inline-flex items-center w-full cursor-pointer">
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                name="is_program_manager"
+                data-dbname="is_program_manager"
+                value={userData.is_program_manager}
+                onChange={handleInputChange}
+              />
+              <div className="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-500 peer-checked:bg-blue-600 dark:peer-checked:bg-blue-600"></div>
+              <span className="ms-3 text-sm font-medium text-gray-900 dark:text-gray-300">
+                set as program manager
+              </span>
+            </label>
+          </div>
+        )}
         <div>
           <label htmlFor="password">Password</label>
           <input
             name="password"
             data-dbname="password"
-            value={userData.password || ""}
+            checked={userData.password || ""}
             onChange={handleInputChange}
             type="password"
             placeholder="Field 1"

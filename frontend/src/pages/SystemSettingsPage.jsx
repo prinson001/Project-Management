@@ -14,7 +14,21 @@ const SystemSettingsPage = () => {
   // const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false); // State for modal
   const [departments, setDepartments] = useState([]);
   const [roles, setRoles] = useState([]);
+  const [users, setUsers] = useState([]);
   const [showForm, setShowForm] = useState(false);
+  const fetchUsers = async () => {
+    try {
+      const response = await axiosInstance.get(`/data-management/users`);
+      if (response.data.status === "success") {
+        setUsers(response.data.result);
+        console.log(response.data.result);
+      }
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      toast.error("Failed to load users");
+    }
+  };
+
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
@@ -29,6 +43,7 @@ const SystemSettingsPage = () => {
       }
     };
     fetchDepartments();
+    fetchUsers();
   }, []);
   useEffect(() => {
     const fetchRoles = async () => {
@@ -119,10 +134,23 @@ const SystemSettingsPage = () => {
         columnSpan: 1,
         options:
           roles && roles.length > 0
-            ? roles.map((role) => ({
-                value: role.id.toString(),
-                label: role.name,
-              }))
+            ? roles
+                .filter((role) => {
+                  // List of roles with maximum 1 allowed user
+                  const singleInstanceRoles = ["DEPUTY", "PMO", "ADMIN"];
+
+                  // Check if this role is restricted AND already exists in users
+                  if (singleInstanceRoles.includes(role.name)) {
+                    return !users.some((user) => user.role_name === role.name);
+                  }
+
+                  // Always show non-restricted roles
+                  return true;
+                })
+                .map((role) => ({
+                  value: role.id.toString(),
+                  label: role.name,
+                }))
             : [],
       },
       {
