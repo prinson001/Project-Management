@@ -310,10 +310,9 @@ const SchedulePlanSection = React.memo(
     useEffect(() => {
       if (onScheduleChange && !isInternalSchedule) {
         const totalWeeks = parseInt(executionDuration || "0", 10);
-        const executionDays = totalWeeks * 7; // Convert weeks to days for potential maintenance date calculation
         const executionEndDate =
           executionStartDate && isValid(executionStartDate)
-            ? addDays(executionStartDate, executionDays)
+            ? addDays(executionStartDate, totalWeeks * 7)
             : null;
 
         onScheduleChange({
@@ -321,13 +320,13 @@ const SchedulePlanSection = React.memo(
             executionStartDate && isValid(executionStartDate)
               ? format(executionStartDate, "yyyy-MM-dd")
               : null,
-          executionDuration: `${totalWeeks} weeks`, // Interval format for DB
+          executionDuration: totalWeeks, // Just the number
           maintenanceDate:
             maintenanceDate && isValid(maintenanceDate)
               ? format(maintenanceDate, "yyyy-MM-dd")
               : executionEndDate && isValid(executionEndDate)
               ? format(executionEndDate, "yyyy-MM-dd")
-              : null, // Fallback to execution end date if maintenance not set
+              : null,
           schedule: scheduleTableData,
         });
       }

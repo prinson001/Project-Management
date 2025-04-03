@@ -563,7 +563,11 @@ const ProjectModal = ({
       if (isInternal) {
         setInternalScheduleDataState(data);
       } else {
+        console.log("Project data received in handleScheduleChange:", data);
         setScheduleTableData(data);
+        setValue("execution_duration", data.executionDuration);
+        setValue("maintenance_duration", data.maintenanceDate);
+        setValue("execution_start_date", data.executionStartDate);
       }
     },
     [projectType]
@@ -883,10 +887,18 @@ const ProjectModal = ({
             );
           }
         } else if (scheduleTableData.schedule.length > 0) {
+          console.log("schedule data", {
+            projectId,
+            execution_duration: `${scheduleTableData.executionDuration} weeks`, // Format as interval string
+            maintenance_duration: scheduleTableData.maintenanceDate,
+          });
           const schedulePlanResponse = await axiosInstance.post(
             `/data-management/upsertSchedulePlan`,
             {
               projectId,
+              execution_start_date: scheduleTableData.executionStartDate,
+              execution_duration: `${scheduleTableData.executionDuration}`,
+              maintenance_duration: scheduleTableData.maintenanceDate, // Already formatted as YYYY-MM-DD
               schedule: scheduleTableData.schedule.map((phase) => ({
                 phaseId: phase.phaseId,
                 durationDays: phase.durationDays,

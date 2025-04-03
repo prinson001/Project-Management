@@ -4,13 +4,40 @@ const sql = require("../database/db");
 // @Route site.com/data-management/upsertSchedulePlan
 const upsertSchedulePlan = async (req, res) => {
   console.log("schedule plan body:", req.body);
-  const { projectId, schedule } = req.body;
-
+  const {
+    projectId,
+    schedule,
+    execution_duration,
+    maintenance_duration,
+    execution_start_date,
+  } = req.body;
+  console.log("type of execution_duration", typeof execution_duration);
   if (!projectId || !schedule || !Array.isArray(schedule)) {
     return res.status(400).json({
       status: "failure",
       message:
         "Invalid data provided: projectId and schedule array are required",
+      result: null,
+    });
+  }
+
+  // Validate execution_duration and maintenance_duration
+  if (!execution_duration) {
+    return res.status(400).json({
+      status: "failure",
+      message:
+        "Invalid data provided: execution_duration must be a string (e.g., '4 weeks')",
+      result: null,
+    });
+  }
+  if (
+    !maintenance_duration ||
+    isNaN(new Date(maintenance_duration).getTime())
+  ) {
+    return res.status(400).json({
+      status: "failure",
+      message:
+        "Invalid data provided: maintenance_duration must be a valid date",
       result: null,
     });
   }
@@ -43,6 +70,20 @@ const upsertSchedulePlan = async (req, res) => {
 
     const result = await sql.begin(async (sql) => {
       try {
+        // Update project table with execution_duration, maintenance_duration, and execution_start_date
+        await sql`
+        UPDATE project
+        SET 
+          execution_duration = ${execution_duration + " weeks"}::interval,
+          maintenance_duration = ${
+            new Date(maintenance_duration).toISOString().split("T")[0]
+          }::date,
+          execution_start_date = ${
+            new Date(execution_start_date).toISOString().split("T")[0]
+          }::date
+        WHERE id = ${projectId};
+      `;
+
         // Delete existing schedule plan for the project
         await sql`
           DELETE FROM schedule_plan_new
@@ -74,7 +115,6 @@ const upsertSchedulePlan = async (req, res) => {
           `;
         });
 
-        // Execute inserts sequentially to avoid prepared statement conflicts
         const results = [];
         for (const query of insertQueries) {
           const result = await query;
@@ -83,7 +123,6 @@ const upsertSchedulePlan = async (req, res) => {
 
         return results;
       } catch (error) {
-        // Ensure the transaction is rolled back if any query fails
         throw error;
       }
     });
@@ -95,7 +134,6 @@ const upsertSchedulePlan = async (req, res) => {
     });
   } catch (error) {
     console.error("Error upserting schedule plan:", error);
-
     if (error.code === "23503") {
       return res.status(409).json({
         status: "failure",
@@ -103,7 +141,6 @@ const upsertSchedulePlan = async (req, res) => {
         result: error.detail || error,
       });
     }
-
     return res.status(500).json({
       status: "failure",
       message: "Error upserting schedule plan",

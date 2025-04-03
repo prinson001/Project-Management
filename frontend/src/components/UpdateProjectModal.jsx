@@ -69,12 +69,11 @@ const UpdateProjectModal = ({
           ? new Date(projectData.execution_start_date)
           : null,
       },
-      execution_duration: projectData?.execution_duration || "28 days",
+      execution_duration: projectData?.execution_duration
+        ? parseInt(projectData.execution_duration.split(" ")[0])
+        : "4", // Just the number
       maintenance_duration: projectData?.maintenance_duration
-        ? {
-            startDate: new Date(projectData.maintenance_duration),
-            endDate: new Date(projectData.maintenance_duration),
-          }
+        ? new Date(projectData.maintenance_duration)
         : null,
       internal_start_date: {
         startDate: projectData?.execution_start_date
@@ -87,6 +86,8 @@ const UpdateProjectModal = ({
       documents: projectData?.documents || [],
     },
   });
+
+  console.log("Project data:", projectData);
 
   const projectType = watch("project_type_id");
   const currentPhase = watch("current_phase_id");
@@ -328,6 +329,13 @@ const UpdateProjectModal = ({
         setInternalScheduleDataState(data);
       } else {
         setScheduleTableData(data);
+        setValue("execution_duration", data.executionDuration);
+        if (data.executionStartDate) {
+          setValue("execution_start_date", new Date(data.executionStartDate));
+        }
+        if (data.maintenanceDate) {
+          setValue("maintenance_duration", new Date(data.maintenanceDate));
+        }
       }
     },
     [projectType]
@@ -419,7 +427,9 @@ const UpdateProjectModal = ({
             `/data-management/upsertSchedulePlan`,
             {
               projectId: projectData.id,
-              schedule: scheduleTableData.map((phase) => ({
+              execution_duration: `${scheduleData.executionDuration} weeks`,
+              maintenance_duration: scheduleData.maintenanceDate,
+              schedule: scheduleTableData.schedule.map((phase) => ({
                 phaseId: phase.phaseId,
                 durationDays: phase.durationDays,
                 startDate: phase.startDate,
