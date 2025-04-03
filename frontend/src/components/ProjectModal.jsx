@@ -207,8 +207,18 @@ const ProjectModal = ({
     const currentType = projectTypes.find(
       (type) => type.id.toString() === projectType?.toString()
     );
-    return restrictedTypes.includes(currentType?.name || "");
-  }, [projectType, projectTypes]);
+    const typeName = currentType?.name || "";
+
+    const currentPhaseObj = projectPhases.find(
+      (phase) => phase.id.toString() === currentPhase?.toString()
+    );
+    const phaseName = currentPhaseObj?.name || "";
+    const restrictedPhases = ["Planning", "Bidding"];
+
+    return (
+      restrictedTypes.includes(typeName) || restrictedPhases.includes(phaseName)
+    );
+  }, [projectType, projectTypes, currentPhase, projectPhases]);
 
   useEffect(() => {
     if (isVendorDisabled) {
@@ -1438,7 +1448,7 @@ const ProjectModal = ({
               </label>
               <div className="border border-gray-300 rounded p-2">
                 <div className="mb-4">
-                  <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">
+                  <label className="block text-gray-700 text-sm font-bold mb-2">
                     Beneficiary Departments
                   </label>
                   <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto p-2 border rounded">
@@ -1454,7 +1464,7 @@ const ProjectModal = ({
                           />
                           <label
                             htmlFor={`dept-${dept.id}`}
-                            className="text-sm text-gray-700 dark:text-gray-300"
+                            className="text-sm text-gray-700"
                           >
                             {dept.name}{" "}
                             {dept.arabic_name ? `(${dept.arabic_name})` : ""}
@@ -1509,7 +1519,21 @@ const ProjectModal = ({
                   }`}
                 >
                   Vendor Name
-                  {isVendorDisabled && " (Disabled for this project type)"}
+                  {isVendorDisabled && (
+                    <span>
+                      {" "}
+                      (Disabled for{" "}
+                      {projectTypes.find(
+                        (type) => type.id.toString() === projectType?.toString()
+                      )?.name === "Internal Project" ||
+                      projectTypes.find(
+                        (type) => type.id.toString() === projectType?.toString()
+                      )?.name === "Proof of Concept"
+                        ? "this project type"
+                        : "Planning/Bidding phase"}
+                      )
+                    </span>
+                  )}
                 </label>
                 <div className="relative">
                   <Controller
