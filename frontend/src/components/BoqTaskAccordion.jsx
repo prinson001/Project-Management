@@ -202,6 +202,11 @@ const BoqTaskAccordion = ({
   const handleSave = async () => {
     if (isReadable) return;
     try {
+      if (totalProjectCost > projectBudget) {
+        console.log("the project cost exceeds project budget");
+        toast.error("Total cost exceeds project budget");
+        return;
+      }
       let newItems = items.filter((item) =>
         item.id.toString().startsWith("temp-")
       );

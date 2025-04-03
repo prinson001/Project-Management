@@ -11,6 +11,7 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
   // Initialize items as empty array instead of undefined
   const [items, setItems] = useState([]);
   const [projectDocuments, setProjectDocuments] = useState([]);
+  const [projectDetails, setProjectDetails] = useState({});
   const [openIndex, setOpenIndex] = useState(-1);
   const [changes, setChanges] = useState({
     newDeliverables: [],
@@ -18,6 +19,23 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
     deletedDeliverables: [],
   });
 
+  const fetchProjectandVendorDetails = async () => {
+    try {
+      const { data } = await axiosInstance.post(
+        `/pm/getProjectDetailsWithVendor`,
+        {
+          projectId: projectId,
+        }
+      );
+      console.log("project details");
+      console.log(data.result.result);
+      setProjectDetails(data.result);
+      // setDocuments(data.data);
+    } catch (err) {
+      setError(err.message);
+      console.error("Fetch error:", err);
+    }
+  };
   useEffect(() => {
     console.log("the project id is ", projectId);
     // console.log("the project phase is ", projectPhase);
@@ -38,7 +56,59 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
     };
 
     fetchItemsWithDeliverables();
+    fetchProjectandVendorDetails();
   }, [projectId]);
+
+  // Calculate total duration for an item's deliverables
+  const calculateItemTotalDuration = (deliverables) => {
+    if (!deliverables || deliverables.length === 0) return 0;
+
+    return deliverables
+      .reduce((total, deliverable) => {
+        // Parse the duration (remove " months " suffix if present)
+        const durationValue =
+          parseFloat(
+            deliverable.duration?.toString().replace(" months ", "")
+          ) || 0;
+        return total + durationValue;
+      }, 0)
+      .toFixed(1);
+  };
+
+  // Calculate total duration across all items
+  const calculateTotalProjectDuration = () => {
+    if (!items || items.length === 0) return 0;
+
+    let totalDuration = 0;
+    items.forEach((item) => {
+      if (item.deliverables && item.deliverables.length > 0) {
+        item.deliverables.forEach((deliverable) => {
+          const durationValue =
+            parseFloat(
+              deliverable.duration?.toString().replace(" months ", "")
+            ) || 0;
+          totalDuration += durationValue;
+        });
+      }
+    });
+
+    return totalDuration.toFixed(1);
+  };
+
+  const convertToMonths = (duration) => {
+    if (!duration) return 0;
+
+    const durationStr = duration.toLowerCase(); // Normalize input
+    let totalDays = 0;
+
+    if (durationStr.includes("day")) {
+      totalDays = parseInt(durationStr); // Extract number of days
+    } else if (durationStr.includes("week")) {
+      totalDays = parseInt(durationStr) * 7; // Convert weeks to days
+    }
+
+    return (totalDays / 30).toFixed(1); // Convert to months (approx)
+  };
 
   const handleDeliverableChange = (
     itemIndex,
@@ -176,8 +246,26 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
     }
   };
 
+  const validateDurations = () => {
+    const totalDuration = calculateTotalProjectDuration();
+    const projectDuration = projectDetails.execution_duration;
+
+    if (totalDuration !== projectDuration) {
+      toast.error(
+        `Total deliverable duration (${totalDuration} months) doesn't match project execution duration (${projectDuration} months)`
+      );
+      return false;
+    }
+    return true;
+  };
+
   const handleSave = async () => {
     try {
+      // Validate durations before saving
+      if (!validateDurations()) {
+        return;
+      }
+
       const payload = {
         newDeliverables: items.flatMap((item) =>
           item.deliverables
@@ -228,6 +316,11 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
 
   const handleSaveandMarkComplete = async () => {
     try {
+      // Validate durations before saving
+      if (!validateDurations()) {
+        return;
+      }
+
       const payload = {
         newDeliverables: items.flatMap((item) =>
           item.deliverables
@@ -290,6 +383,124 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
 
   return (
     <div className="w-full  mx-auto p-4 bg-white rounded-lg shadow-lg">
+      <div className="mb-8 bg-white p-6 rounded-lg shadow-md">
+        <h2 className="text-xl font-semibold mb-4 border-b pb-2">
+          Project Details
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          {/* Project Name */}
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-gray-500">Project Name</p>
+            <p className="font-semibold">{projectDetails.name}</p>
+          </div>
+
+          {/* Vendor Name */}
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-gray-500">Vendor Name</p>
+            <p className="font-semibold">
+              {projectDetails.vendor_name || "N/A"}
+            </p>
+          </div>
+
+          {/* Execution Start Date */}
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-gray-500">Execution Start</p>
+            <p className="font-semibold">
+              {projectDetails.execution_start_date
+                ? new Date(
+                    projectDetails.execution_start_date
+                  ).toLocaleDateString()
+                : "N/A"}
+            </p>
+          </div>
+
+          {/* Execution End Date - Needs calculation */}
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-gray-500">Execution End</p>
+            <p className="font-semibold">
+              {projectDetails.execution_start_date &&
+              projectDetails.execution_duration
+                ? new Date(
+                    new Date(projectDetails.execution_start_date).getTime() +
+                      parseInt(projectDetails.execution_duration) *
+                        24 *
+                        60 *
+                        60 *
+                        1000
+                  ).toLocaleDateString()
+                : "N/A"}
+            </p>
+          </div>
+
+          {/* Execution Duration */}
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-gray-500">
+              Execution Duration
+            </p>
+            <p className="font-semibold">
+              {projectDetails.execution_duration || "N/A"}
+            </p>
+          </div>
+
+          {/* Project Type */}
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-gray-500">Project Type</p>
+            <p className="font-semibold">
+              {projectDetails.project_type_id || "N/A"}
+            </p>
+          </div>
+
+          {/* Approved Budget */}
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-gray-500">Approved Budget</p>
+            <p className="font-semibold">
+              ${projectDetails.approved_project_budget || "0"}
+            </p>
+          </div>
+
+          {/* Operation Start Date - Add your actual field name if different */}
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-gray-500">Operation Start</p>
+            <p className="font-semibold">
+              {/* Add your actual operation start date field here */}
+              {projectDetails.operation_start_date
+                ? new Date(
+                    projectDetails.operation_start_date
+                  ).toLocaleDateString()
+                : "N/A"}
+            </p>
+          </div>
+
+          {/* Operation End Date - Needs calculation */}
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-gray-500">Operation End</p>
+            <p className="font-semibold">
+              {/* Add your actual operation duration field here */}
+              {projectDetails.operation_start_date &&
+              projectDetails.operation_duration
+                ? new Date(
+                    new Date(projectDetails.operation_start_date).getTime() +
+                      parseInt(projectDetails.operation_duration) *
+                        24 *
+                        60 *
+                        60 *
+                        1000
+                  ).toLocaleDateString()
+                : "N/A"}
+            </p>
+          </div>
+
+          {/* Operation Duration - Add your actual field name if different */}
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-gray-500">
+              Operation Duration
+            </p>
+            <p className="font-semibold">
+              {projectDetails.operation_duration || "N/A"}
+            </p>
+          </div>
+        </div>
+      </div>
       <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-3">
         Project Deliverables
       </h2>
@@ -491,6 +702,19 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
                           Add Deliverable
                         </button>
                       )}
+
+                      {/* Display total duration for this item */}
+                      {item.deliverables && item.deliverables.length > 0 && (
+                        <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                          <p className="font-medium text-blue-800">
+                            Total Duration for {item.name}:{" "}
+                            <span className="font-bold">
+                              {calculateItemTotalDuration(item.deliverables)}{" "}
+                              months
+                            </span>
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </Disclosure.Panel>
                 </Transition>
@@ -499,6 +723,23 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
           </Disclosure>
         ))}
       </div>
+
+      {/* Display total project duration */}
+      {projectDetails.execution_duration && (
+        <span className="ml-2">
+          {calculateTotalProjectDuration() ==
+          convertToMonths(projectDetails.execution_duration) ? (
+            <span className="text-green-600">
+              (Matches project execution duration)
+            </span>
+          ) : (
+            <span className="text-red-600">
+              (Doesn't match project execution duration:{" "}
+              {convertToMonths(projectDetails.execution_duration)} months)
+            </span>
+          )}
+        </span>
+      )}
 
       <div className="mt-8 flex justify-end">
         <button
@@ -514,7 +755,7 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
         </button>
         <button
           onClick={handleSaveandMarkComplete}
-          className={`px-6 py-2 rounded-md text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500  bg-green-600 hover:bg-green-700`}
+          className={`ml-4 px-6 py-2 rounded-md text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500  bg-green-600 hover:bg-green-700`}
         >
           Save and Mark as Completed
         </button>
