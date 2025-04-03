@@ -547,6 +547,26 @@ const ProjectModal = ({
     return restrictedTypes.includes(currentType?.name || "");
   }, [projectType, projectTypes]);
 
+  // Determine if budget is required (align with visibility logic)
+  const isBudgetRequired = useMemo(() => {
+    const restrictedTypes = ["Internal Project", "Proof of Concept"];
+    const currentType = projectTypes.find(
+      (type) => type.id.toString() === projectType?.toString()
+    );
+    const typeName = currentType?.name || "";
+    const currentPhaseObj = projectPhases.find(
+      (phase) => phase.id.toString() === currentPhase?.toString()
+    );
+    const phaseName = currentPhaseObj?.name || "";
+
+    // Required for External/Strategic projects, not in Planning/Bidding phases
+    return (
+      !restrictedTypes.includes(typeName) &&
+      !["Planning", "Bidding"].includes(phaseName) &&
+      ["External Project", "Strategic Project"].includes(typeName)
+    );
+  }, [projectType, projectTypes, currentPhase, projectPhases]);
+
   const getCurrentPhaseDocumentTemplates = async (phase) => {
     try {
       const result = await axiosInstance.post(
@@ -1615,18 +1635,40 @@ const ProjectModal = ({
                       }`}
                     >
                       Project Planned Budget (In Millions)
+                      {isBudgetRequired && !isBudgetDisabled && (
+                        <span className="text-red-500"> *</span>
+                      )}
                       {isBudgetDisabled && " (Disabled for this project type)"}
                     </label>
                     <input
                       readOnly={readOnly || isBudgetDisabled}
                       type="text"
-                      className={`w-full p-2 border border-gray-300 rounded ${
+                      className={`w-full p-2 border ${
+                        errors.project_budget
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      } rounded ${
                         isBudgetDisabled ? "bg-gray-100 cursor-not-allowed" : ""
                       }`}
                       placeholder=""
-                      {...register("project_budget")}
+                      {...register("project_budget", {
+                        required:
+                          isBudgetRequired &&
+                          !isBudgetDisabled &&
+                          "Project planned budget is required",
+                        pattern: {
+                          value: /^\d+(\.\d+)?$/,
+                          message:
+                            "Please enter a valid number (e.g., 10 or 10.5)",
+                        },
+                      })}
                       disabled={isBudgetDisabled}
                     />
+                    {errors.project_budget && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.project_budget.message}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label
