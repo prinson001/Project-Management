@@ -30,6 +30,7 @@ const UpdateProjectModal = ({
   const [objectives, setObjectives] = useState([]);
   const [localFiles, setLocalFiles] = useState([]);
   const [selectedProgramDetails, setSelectedProgramDetails] = useState(null);
+  const [scheduleData, setScheduleData] = useState({ schedule: [] });
 
   const { users, projectTypes, projectPhases, setDocuments, documents } =
     useAuthStore();
@@ -70,8 +71,8 @@ const UpdateProjectModal = ({
           : null,
       },
       execution_duration: projectData?.execution_duration
-        ? parseInt(projectData.execution_duration.split(" ")[0])
-        : "4", // Just the number
+        ? parseInt(String(projectData.execution_duration).split(" ")[0])
+        : "4", // Ensure execution_duration is treated as a string before split
       maintenance_duration: projectData?.maintenance_duration
         ? new Date(projectData.maintenance_duration)
         : null,
@@ -320,6 +321,20 @@ const UpdateProjectModal = ({
       return [];
     }
   };
+  const handleScheduleUpdate = useCallback(
+    (newData) => {
+      setScheduleData((prev) => {
+        // Deep comparison to prevent unnecessary updates
+        const isSame =
+          prev.executionStartDate === newData.executionStartDate &&
+          prev.executionDuration === newData.executionDuration &&
+          prev.maintenanceDate === newData.maintenanceDate &&
+          JSON.stringify(prev.schedule) === JSON.stringify(newData.schedule);
+        return isSame ? prev : { ...newData };
+      });
+    },
+    [] // Empty dependency array since it only uses setScheduleData
+  );
 
   // Handle schedule changes
   const handleScheduleChange = useCallback(
@@ -377,9 +392,9 @@ const UpdateProjectModal = ({
         approved_project_budget: data.approved_budget
           ? parseFloat(data.approved_budget)
           : null,
-        execution_start_date: data.execution_start_date?.startDate || null,
-        execution_duration: data.execution_duration || null,
-        maintenance_duration: data.maintenance_duration?.startDate || null,
+        execution_start_date: scheduleData.executionStartDate || null, // Use scheduleData
+        execution_duration: scheduleData.executionDuration || null, // Already formatted as "X weeks"
+        maintenance_duration: scheduleData.maintenanceDate || null,
         approval_status: sendForApproval
           ? "Waiting on deputy"
           : projectData.approval_status,
@@ -414,7 +429,7 @@ const UpdateProjectModal = ({
               schedule: internalScheduleDataState.map((phase) => ({
                 phaseId: phase.id,
                 durationDays: phase.durationDays,
-                startDate: phase.startDate,
+                startDate: phase.startDate, // Assuming this is already "yyyy-MM-dd"
                 endDate: phase.endDate,
               })),
             }
@@ -422,19 +437,29 @@ const UpdateProjectModal = ({
           if (internalScheduleResponse.data.status !== "success") {
             throw new Error("Failed to save internal schedule plan");
           }
-        } else if (scheduleTableData.length > 0) {
+        } else if (scheduleData.schedule?.length > 0) {
+          // Use scheduleData.schedule
+          const formattedSchedule = scheduleData.schedule.map((phase) => ({
+            phaseId: phase.phaseId,
+            durationDays: phase.durationDays,
+            startDate:
+              phase.startDate && isValid(parseISO(phase.startDate))
+                ? format(parseISO(phase.startDate), "yyyy-MM-dd")
+                : null,
+            endDate:
+              phase.endDate && isValid(parseISO(phase.endDate))
+                ? format(parseISO(phase.endDate), "yyyy-MM-dd")
+                : null,
+          }));
+
           const schedulePlanResponse = await axiosInstance.post(
             `/data-management/upsertSchedulePlan`,
             {
               projectId: projectData.id,
-              execution_duration: `${scheduleData.executionDuration} weeks`,
+              execution_duration: scheduleData.executionDuration, // "X weeks"
               maintenance_duration: scheduleData.maintenanceDate,
-              schedule: scheduleTableData.schedule.map((phase) => ({
-                phaseId: phase.phaseId,
-                durationDays: phase.durationDays,
-                startDate: phase.startDate,
-                endDate: phase.endDate,
-              })),
+              execution_start_date: scheduleData.executionStartDate,
+              schedule: formattedSchedule,
             }
           );
           if (schedulePlanResponse.data.status !== "success") {
@@ -527,6 +552,18 @@ const UpdateProjectModal = ({
       }
     }
   };
+
+  const memoizedUpdateSchedulePlanSection = useMemo(
+    () => (
+      <UpdateSchedulePlanSection
+        projectData={projectData}
+        onScheduleUpdate={handleScheduleUpdate}
+        budget={projectData.project_budget}
+        projectType={projectType}
+      />
+    ),
+    [projectData, handleScheduleUpdate, projectType] // Only re-render if these change
+  );
 
   const shouldShowSection = (section) => {
     if (activeSection === "all") return true;
@@ -1073,7 +1110,7 @@ const UpdateProjectModal = ({
               ) : (
                 <UpdateSchedulePlanSection
                   projectData={projectData}
-                  onScheduleUpdate={handleScheduleChange}
+                  onScheduleUpdate={handleScheduleUpdate}
                 />
               )}
             </div>

@@ -62,7 +62,7 @@ const SidebarPage = ({ isSidebarOpen, toggleSidebar }) => {
   return (
     // Remove the fixed positioning and top value to prevent overlap
     <div className="h-full ">
-      <div className="absolute top-2 left-2 p-2 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 z-50">
+      <div className="absolute top-2 left-2 p-2 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
         <button
           onClick={handleToggleSidebar}
           className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
