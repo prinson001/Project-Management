@@ -581,12 +581,13 @@ const ProjectModal = ({
       return [];
     }
   };
-
   const handleScheduleChange = useCallback(
     (data) => {
       const isInternal = ["1", "4"].includes(projectType);
       if (isInternal) {
-        setInternalScheduleDataState(data);
+        setInternalScheduleDataState(data.schedule); // Store the full schedule array
+        setValue("execution_duration", data.executionDuration); // e.g., "4 weeks"
+        setValue("maintenance_duration", data.maintenanceDate); // e.g., "2025-04-04"
       } else {
         console.log("Project data received in handleScheduleChange:", data);
         setScheduleTableData(data);
@@ -595,7 +596,7 @@ const ProjectModal = ({
         setValue("execution_start_date", data.executionStartDate);
       }
     },
-    [projectType]
+    [projectType, setValue]
   );
 
   const handleSaveDraft = async () => {
@@ -767,10 +768,9 @@ const ProjectModal = ({
 
     try {
       const selectedDepartmentIds = getSelectedDepartmentIds();
-      // Validate beneficiary departments
       if (selectedDepartmentIds.length === 0) {
         toast.error("At least one beneficiary department must be selected");
-        return; // Stop the submission
+        return;
       }
       const selectedObjectiveIds = objectives
         .filter((obj) => obj.checked)
@@ -801,16 +801,13 @@ const ProjectModal = ({
         execution_start_date: data.execution_start_date?.startDate || null,
         execution_duration: data.execution_duration
           ? `${data.execution_duration}`
-          : null, // Fixed to "weeks"
-        maintenance_duration: data.maintenance_duration
-          ? new Date(data.maintenance_duration)
           : null,
+        maintenance_duration: data.maintenance_duration || null,
         approval_status: data.approval_status || "Not initiated",
       };
 
-      console.log("Sending project data:", projectData); // Debug log
+      console.log("Sending project data:", projectData);
 
-      // Step 1: Save the project
       const projectResponse = await axiosInstance.post(
         `/data-management/addProject`,
         {
@@ -827,8 +824,6 @@ const ProjectModal = ({
         }
       );
 
-      console.log("Raw project response:", projectResponse); // Debug log
-
       if (projectResponse.data && projectResponse.data.status === "success") {
         const projectId = projectResponse.data.result.id;
 
@@ -840,9 +835,9 @@ const ProjectModal = ({
           throw new Error("Project ID missing from successful response");
         }
 
-        console.log("Project saved with ID:", projectId); // Debug log
+        console.log("Project saved with ID:", projectId);
 
-        // Step 2: Save beneficiary departments
+        // Save beneficiary departments
         const beneficiaryResponse = await axiosInstance.post(
           `/data-management/addBeneficiaryDepartments`,
           {
@@ -858,29 +853,20 @@ const ProjectModal = ({
           );
         }
 
-        //  Save project objectives
+        // Save project objectives
         await axiosInstance.post(`/data-management/addProjectObjectives`, {
           projectId,
           objectiveIds: selectedObjectiveIds,
         });
 
-        // Step 2: Upload documents
+        // Upload documents
         await uploadDocuments(projectId, localFiles);
-        console.log("Documents uploaded successfully"); // Debug log
-        console.log(
-          "Schedule Plan ",
-          scheduleTableData.schedule.map((phase) => ({
-            phaseId: phase.phaseId,
-            durationDays: phase.durationDays,
-            startDate: phase.startDate,
-            endDate: phase.endDate,
-          }))
-        );
+        console.log("Documents uploaded successfully");
 
         // Save schedule plan based on project type
         const isInternal = ["1", "4"].includes(projectType);
         if (isInternal && internalScheduleDataState.length > 0) {
-          console.log({
+          console.log("Saving internal schedule:", {
             projectId,
             schedule: internalScheduleDataState.map((phase) => ({
               phaseId: phase.id,
@@ -888,7 +874,10 @@ const ProjectModal = ({
               startDate: phase.startDate,
               endDate: phase.endDate,
             })),
+            executionDuration: data.execution_duration,
+            maintenanceDate: data.maintenance_duration,
           });
+
           const internalScheduleResponse = await axiosInstance.post(
             `/data-management/upsertInternalSchedulePlan`,
             {
@@ -899,6 +888,8 @@ const ProjectModal = ({
                 startDate: phase.startDate,
                 endDate: phase.endDate,
               })),
+              executionDuration: data.execution_duration,
+              maintenanceDate: data.maintenance_duration,
             }
           );
 
@@ -911,19 +902,27 @@ const ProjectModal = ({
                 "Failed to save internal schedule plan"
             );
           }
-        } else if (scheduleTableData.schedule.length > 0) {
-          console.log("schedule data", {
+        } else if (scheduleTableData.schedule?.length > 0) {
+          console.log("Saving regular schedule:", {
             projectId,
-            execution_duration: `${scheduleTableData.executionDuration} weeks`, // Format as interval string
+            execution_start_date: scheduleTableData.executionStartDate,
+            execution_duration: `${scheduleTableData.executionDuration} weeks`,
             maintenance_duration: scheduleTableData.maintenanceDate,
+            schedule: scheduleTableData.schedule.map((phase) => ({
+              phaseId: phase.phaseId,
+              durationDays: phase.durationDays,
+              startDate: phase.startDate,
+              endDate: phase.endDate,
+            })),
           });
+
           const schedulePlanResponse = await axiosInstance.post(
             `/data-management/upsertSchedulePlan`,
             {
               projectId,
               execution_start_date: scheduleTableData.executionStartDate,
               execution_duration: `${scheduleTableData.executionDuration}`,
-              maintenance_duration: scheduleTableData.maintenanceDate, // Already formatted as YYYY-MM-DD
+              maintenance_duration: scheduleTableData.maintenanceDate,
               schedule: scheduleTableData.schedule.map((phase) => ({
                 phaseId: phase.phaseId,
                 durationDays: phase.durationDays,

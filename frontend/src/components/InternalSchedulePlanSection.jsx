@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { ChevronDown } from "lucide-react";
 import { Controller, useForm } from "react-hook-form";
-import { subDays, format, parseISO } from "date-fns";
+import { subDays, format, parseISO, isValid } from "date-fns";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import axiosInstance from "../axiosInstance";
@@ -13,14 +13,19 @@ const InternalSchedulePlanSection = ({
   projectId,
 }) => {
   const [internalSchedule, setInternalSchedule] = useState([]);
-  const [activeTab] = useState("B. Days");
+  const [activeTab] = useState("B. Days"); // Fixed to Business Days for consistency
   const prevScheduleRef = useRef([]);
 
-  const { control, watch, setValue } = useForm({
+  const {
+    control,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm({
     defaultValues: {
       executionTargetDate: null,
-      executionDuration: "4", // weeks (numeric)
-      maintenanceDate: null, // date field
+      executionDuration: "4", // Number of weeks as string
+      maintenanceDate: null,
     },
   });
 
@@ -28,15 +33,23 @@ const InternalSchedulePlanSection = ({
   const executionDuration = watch("executionDuration");
   const maintenanceDate = watch("maintenanceDate");
 
-  // Utility functions
+  // Utility functions inspired by UpdateSchedulePlanSection
   const convertToDays = useCallback((durationStr) => {
-    if (!durationStr) return 0;
+    if (typeof durationStr === "number") return durationStr;
+    if (typeof durationStr !== "string") return 0;
+
     const daysMatch = durationStr.match(/(\d+)\s*days?/i);
     if (daysMatch) return parseInt(daysMatch[1], 10);
+
     const weeksMatch = durationStr.match(/(\d+)\s*weeks?/i);
     if (weeksMatch) return parseInt(weeksMatch[1], 10) * 7;
+
     const monthsMatch = durationStr.match(/(\d+)\s*months?/i);
     if (monthsMatch) return parseInt(monthsMatch[1], 10) * 30;
+
+    const numMatch = durationStr.match(/^\d+$/);
+    if (numMatch) return parseInt(numMatch[0], 10) * 7; // Assume weeks for numeric input
+
     return 0;
   }, []);
 
@@ -60,17 +73,17 @@ const InternalSchedulePlanSection = ({
         id: 4,
         mainPhase: "Execution",
         subPhase: "Execute phase",
-        duration: "28 days",
-        durationDays: 28,
+        duration: convertDuration(convertToDays("4")), // Default to 4 weeks
+        durationDays: convertToDays("4"), // 28 days
         startDate: null,
         endDate: null,
       },
     ],
-    []
+    [convertDuration, convertToDays]
   );
 
   const calculateDates = useCallback(() => {
-    if (!executionTargetDate) {
+    if (!executionTargetDate || !isValid(executionTargetDate)) {
       setInternalSchedule((prev) =>
         prev.map((phase) => ({
           ...phase,
@@ -92,9 +105,9 @@ const InternalSchedulePlanSection = ({
       const planningEnd = new Date(executionStart);
       const planningStart = subDays(planningEnd, planningPhase.durationDays);
 
-      const formatDate = (date) => format(date, "dd-MMM-yyyy");
+      const formatDate = (date) => format(date, "yyyy-MM-dd");
 
-      const newSchedule = prev.map((phase) => {
+      return prev.map((phase) => {
         if (phase.id === 1) {
           return {
             ...phase,
@@ -111,10 +124,27 @@ const InternalSchedulePlanSection = ({
         }
         return phase;
       });
-
-      return newSchedule;
     });
   }, [executionTargetDate]);
+
+  // Sync executionDuration with the Execution phase, similar to UpdateSchedulePlanSection
+  useEffect(() => {
+    const durationInWeeks = parseInt(executionDuration, 10);
+    if (!isNaN(durationInWeeks)) {
+      const durationDays = convertToDays(executionDuration);
+      setInternalSchedule((prev) =>
+        prev.map((phase) =>
+          phase.id === 4
+            ? {
+                ...phase,
+                duration: convertDuration(durationDays),
+                durationDays,
+              }
+            : phase
+        )
+      );
+    }
+  }, [executionDuration, convertToDays, convertDuration]);
 
   useEffect(() => {
     const fetchInternalSchedule = async () => {
@@ -127,7 +157,7 @@ const InternalSchedulePlanSection = ({
 
       try {
         const response = await axiosInstance.post(
-          `/data-management/getSchedulePlan`,
+          `/data-management/getInternalSchedulePlan`,
           { projectId }
         );
 
@@ -138,10 +168,10 @@ const InternalSchedulePlanSection = ({
               id: phase.phase_id,
               mainPhase: phase.main_phase,
               subPhase: phase.phase_name,
-              duration: `${phase.duration_days} days`,
+              duration: convertDuration(phase.duration_days),
               durationDays: phase.duration_days,
-              startDate: phase.start_date ? parseISO(phase.start_date) : null,
-              endDate: phase.end_date ? parseISO(phase.end_date) : null,
+              startDate: phase.start_date,
+              endDate: phase.end_date,
             }));
 
           const mergedSchedule = defaultInternalSchedule().map(
@@ -149,13 +179,7 @@ const InternalSchedulePlanSection = ({
               const fetchedPhase = fetchedData.find(
                 (p) => p.id === defaultPhase.id
               );
-              return (
-                fetchedPhase || {
-                  ...defaultPhase,
-                  startDate: null,
-                  endDate: null,
-                }
-              );
+              return fetchedPhase || { ...defaultPhase };
             }
           );
 
@@ -165,22 +189,32 @@ const InternalSchedulePlanSection = ({
           if (fetchedData.length > 0) {
             const executionPhase = fetchedData.find((p) => p.id === 4);
             if (executionPhase?.endDate) {
-              setValue("executionTargetDate", executionPhase.endDate);
+              const parsedEndDate = parseISO(executionPhase.endDate);
+              if (isValid(parsedEndDate)) {
+                setValue("executionTargetDate", parsedEndDate);
+              }
             }
-
-            // Set maintenance date if available
-            if (response.data.maintenance_date) {
-              setValue(
-                "maintenanceDate",
-                parseISO(response.data.maintenance_date)
-              );
-            }
-
-            // Set execution duration if available
             if (response.data.execution_duration) {
-              const weeks = parseInt(response.data.execution_duration, 10);
-              if (!isNaN(weeks)) {
-                setValue("executionDuration", weeks.toString());
+              let weeks = 4;
+              if (typeof response.data.execution_duration === "string") {
+                const daysMatch =
+                  response.data.execution_duration.match(/(\d+)\s*days?/i);
+                const weeksMatch =
+                  response.data.execution_duration.match(/(\d+)\s*weeks?/i);
+                if (daysMatch) {
+                  weeks = Math.round(parseInt(daysMatch[1], 10) / 7);
+                } else if (weeksMatch) {
+                  weeks = parseInt(weeksMatch[1], 10);
+                } else {
+                  weeks = parseInt(response.data.execution_duration, 10) || 4;
+                }
+              }
+              setValue("executionDuration", String(weeks));
+            }
+            if (response.data.maintenance_date) {
+              const parsedMaintDate = parseISO(response.data.maintenance_date);
+              if (isValid(parsedMaintDate)) {
+                setValue("maintenanceDate", parsedMaintDate);
               }
             }
           }
@@ -199,7 +233,7 @@ const InternalSchedulePlanSection = ({
     };
 
     fetchInternalSchedule();
-  }, [projectId, defaultInternalSchedule, setValue]);
+  }, [projectId, defaultInternalSchedule, setValue, convertDuration]);
 
   useEffect(() => {
     calculateDates();
@@ -264,7 +298,7 @@ const InternalSchedulePlanSection = ({
             render={({ field: { onChange, value } }) => (
               <DatePicker
                 showIcon
-                selected={value}
+                selected={value && isValid(value) ? value : null}
                 onChange={onChange}
                 dateFormat="dd-MMM-yyyy"
                 placeholderText="Select target date"
@@ -293,12 +327,21 @@ const InternalSchedulePlanSection = ({
               <input
                 type="number"
                 min="1"
-                className={`w-full p-2 border border-gray-300 rounded`}
+                className={`w-full p-2 border ${
+                  errors.executionDuration
+                    ? "border-red-500"
+                    : "border-gray-300"
+                } rounded`}
                 placeholder="Enter weeks (e.g., 4)"
                 {...field}
               />
             )}
           />
+          {errors.executionDuration && (
+            <p className="text-red-500 text-xs mt-1">
+              {errors.executionDuration.message}
+            </p>
+          )}
         </div>
         <div>
           <label className="block text-sm font-semibold mb-1">
@@ -311,15 +354,20 @@ const InternalSchedulePlanSection = ({
             render={({ field: { onChange, value } }) => (
               <DatePicker
                 showIcon
-                selected={value}
+                selected={value && isValid(value) ? value : null}
                 onChange={onChange}
-                minDate={executionTargetDate} // Ensure it's after execution
+                minDate={executionTargetDate}
                 dateFormat="dd-MMM-yyyy"
                 placeholderText="Select date"
                 className="w-full p-2 border border-gray-300 rounded"
               />
             )}
           />
+          {errors.maintenanceDate && (
+            <p className="text-red-500 text-xs mt-1">
+              {errors.maintenanceDate.message}
+            </p>
+          )}
         </div>
       </div>
       <div className="overflow-x-auto mb-4">
@@ -372,12 +420,12 @@ const InternalSchedulePlanSection = ({
                   </div>
                 </td>
                 <td className="border border-gray-300 p-2">
-                  {row.startDate
+                  {row.startDate && isValid(new Date(row.startDate))
                     ? format(new Date(row.startDate), "dd-MMM-yyyy")
                     : "N/A"}
                 </td>
                 <td className="border border-gray-300 p-2">
-                  {row.endDate
+                  {row.endDate && isValid(new Date(row.endDate))
                     ? format(new Date(row.endDate), "dd-MMM-yyyy")
                     : "N/A"}
                 </td>

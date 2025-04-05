@@ -257,7 +257,7 @@ const getSchedulePlan = async (req, res) => {
 // @Route site.com/data-management/upsertInternalSchedulePlan
 const upsertInternalSchedulePlan = async (req, res) => {
   console.log("internal schedule plan body:", req.body);
-  const { projectId, schedule } = req.body;
+  const { projectId, schedule, executionDuration, maintenanceDate } = req.body;
 
   // Validate input
   if (!projectId || !schedule || !Array.isArray(schedule)) {
@@ -269,7 +269,23 @@ const upsertInternalSchedulePlan = async (req, res) => {
     });
   }
 
-  // Updated to reflect Planning (1) and Execution (4)
+  // Validate executionDuration and maintenanceDate
+  if (!executionDuration || !executionDuration.match(/^\d+\s*weeks?$/i)) {
+    return res.status(400).json({
+      status: "failure",
+      message:
+        "Invalid data provided: executionDuration must be in the format 'X weeks'",
+      result: null,
+    });
+  }
+  if (!maintenanceDate || isNaN(new Date(maintenanceDate).getTime())) {
+    return res.status(400).json({
+      status: "failure",
+      message: "Invalid data provided: maintenanceDate must be a valid date",
+      result: null,
+    });
+  }
+
   const validPhaseIds = [1, 4];
   for (const plan of schedule) {
     if (
@@ -301,6 +317,15 @@ const upsertInternalSchedulePlan = async (req, res) => {
   try {
     const result = await sql.begin(async (sql) => {
       try {
+        // Update project table with execution_duration and maintenance_date
+        await sql`
+          UPDATE project
+          SET 
+            execution_duration = ${executionDuration}::interval,
+            maintenance_duration = ${maintenanceDate}::date
+          WHERE id = ${projectId};
+        `;
+
         // Delete existing internal schedule plan for the project (only for phase_id 1 and 4)
         await sql`
           DELETE FROM schedule_plan_new
@@ -371,8 +396,8 @@ const upsertInternalSchedulePlan = async (req, res) => {
   }
 };
 
-// @Description Get schedule plan for a project
-// @Route site.com/data-management/getSchedulePlan
+// @Description Get internal schedule plan for a project
+// @Route site.com/data-management/getInternalSchedulePlan
 const getInternalSchedulePlan = async (req, res) => {
   const { projectId } = req.body;
 
@@ -394,8 +419,8 @@ const getInternalSchedulePlan = async (req, res) => {
   }
 
   try {
-    // Query schedule_plan_new joined with phase table
-    const result = await sql`
+    // Query schedule_plan_new joined with phase table for phases 1 and 4
+    const scheduleResult = await sql`
       SELECT 
         sp.phase_id,
         p.main_phase,
@@ -406,31 +431,47 @@ const getInternalSchedulePlan = async (req, res) => {
       FROM schedule_plan_new sp
       JOIN phase p ON sp.phase_id = p.id
       WHERE sp.project_id = ${projectId}
+      AND sp.phase_id IN (1, 4)
       ORDER BY sp.phase_id ASC;
     `;
 
-    // Format result to match frontend expectations
-    const formattedResult = result.map((row) => ({
-      phase_id: row.phase_id,
-      main_phase: row.main_phase,
-      phase_name: row.phase_name,
-      duration_days: row.duration_days || 0,
-      start_date: row.start_date
-        ? row.start_date.toISOString().split("T")[0]
-        : null, // YYYY-MM-DD
-      end_date: row.end_date ? row.end_date.toISOString().split("T")[0] : null, // YYYY-MM-DD
-    }));
+    // Fetch execution_duration and maintenance_duration from project table
+    const projectResult = await sql`
+      SELECT execution_duration, maintenance_duration
+      FROM project
+      WHERE id = ${projectId};
+    `;
 
-    return res.status(200).json({
+    const response = {
       status: "success",
-      message: "Schedule plan retrieved successfully",
-      result: formattedResult,
-    });
+      message: "Internal schedule plan retrieved successfully",
+      result: scheduleResult.map((row) => ({
+        phase_id: row.phase_id,
+        main_phase: row.main_phase,
+        phase_name: row.phase_name,
+        duration_days: row.duration_days || 0,
+        start_date: row.start_date
+          ? row.start_date.toISOString().split("T")[0]
+          : null,
+        end_date: row.end_date
+          ? row.end_date.toISOString().split("T")[0]
+          : null,
+      })),
+    };
+
+    if (projectResult.length > 0) {
+      response.execution_duration = projectResult[0].execution_duration; // e.g., "4 weeks"
+      response.maintenance_date = projectResult[0].maintenance_duration
+        ? projectResult[0].maintenance_duration.toISOString().split("T")[0]
+        : null;
+    }
+
+    return res.status(200).json(response);
   } catch (error) {
-    console.error("Error retrieving schedule plan:", error);
+    console.error("Error retrieving internal schedule plan:", error);
     return res.status(500).json({
       status: "failure",
-      message: "Error retrieving schedule plan",
+      message: "Error retrieving internal schedule plan",
       result: error.message || error,
     });
   }
