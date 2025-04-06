@@ -1378,29 +1378,57 @@ const addUser = async (req, res) => {
     let result = null;
     // Insert user into the database
     if (is_program_manager) {
-      result = await sql`
-      INSERT INTO users (
-        first_name, arabic_first_name, family_name, arabic_family_name, 
-        email, password, department_id, role_id , is_program_manager
-      ) 
-      VALUES (
-        ${first_name}, ${arabic_first_name}, ${family_name}, ${arabic_family_name}, 
-        ${email}, ${password}, ${department}, ${role} , ${is_program_manager}
-      ) 
-      RETURNING id, first_name, family_name, email, department_id, role_id , is_program_manager
-    `;
+      if (department) {
+        result = await sql`
+          INSERT INTO users (
+            first_name, arabic_first_name, family_name, arabic_family_name, 
+            email, password, department_id, role_id , is_program_manager
+          ) 
+          VALUES (
+            ${first_name}, ${arabic_first_name}, ${family_name}, ${arabic_family_name}, 
+            ${email}, ${password}, ${department}, ${role} , ${is_program_manager}
+          ) 
+          RETURNING id, first_name, family_name, email, department_id, role_id , is_program_manager
+        `;
+      } else {
+        result = await sql`
+          INSERT INTO users (
+            first_name, arabic_first_name, family_name, arabic_family_name, 
+            email, password, role_id , is_program_manager
+          ) 
+          VALUES (
+            ${first_name}, ${arabic_first_name}, ${family_name}, ${arabic_family_name}, 
+            ${email}, ${password}, ${role} , ${is_program_manager}
+          ) 
+          RETURNING id, first_name, family_name, email, department_id, role_id , is_program_manager
+        `;
+      }
     } else {
-      result = await sql`
-      INSERT INTO users (
-        first_name, arabic_first_name, family_name, arabic_family_name, 
-        email, password, department_id, role_id
-      ) 
-      VALUES (
-        ${first_name}, ${arabic_first_name}, ${family_name}, ${arabic_family_name}, 
-        ${email}, ${password}, ${department}, ${role}
-      ) 
-      RETURNING id, first_name, family_name, email, department_id, role_id
-    `;
+      if (department) {
+        result = await sql`
+          INSERT INTO users (
+            first_name, arabic_first_name, family_name, arabic_family_name, 
+            email, password, department_id, role_id
+          ) 
+          VALUES (
+            ${first_name}, ${arabic_first_name}, ${family_name}, ${arabic_family_name}, 
+            ${email}, ${password}, ${department}, ${role}
+          ) 
+          RETURNING id, first_name, family_name, email, department_id, role_id
+        `;
+      } else {
+        result = await sql`
+          INSERT INTO users (
+            first_name, arabic_first_name, family_name, arabic_family_name, 
+            email, password,  role_id
+          ) 
+          VALUES (
+            ${first_name}, ${arabic_first_name}, ${family_name}, ${arabic_family_name}, 
+            ${email}, ${password},  ${role}
+          ) 
+          RETURNING id, first_name, family_name, email, department_id, role_id
+        `;
+      }
     }
 
     res.status(201).json({
