@@ -28,6 +28,7 @@ const UpdateDynamicForm = ({
     portfolios: storePortfolios,
     departments,
     roles,
+    initiatives,
   } = useAuthStore();
   const finalUsers = users.length > 0 ? users : storeUsers;
   const finalPortfolios = portfolios.length > 0 ? portfolios : storePortfolios;
