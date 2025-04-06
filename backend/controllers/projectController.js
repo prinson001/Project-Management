@@ -377,6 +377,31 @@ const deleteProject = async (req, res) => {
 
   try {
     const result = await sql.begin(async (sql) => {
+      // First, get all document URLs associated with this project
+      const projectDocuments = await sql`
+        SELECT document_url FROM project_documents
+        WHERE project_id = ${id}
+      `;
+
+      // Delete from Supabase storage
+      if (projectDocuments && projectDocuments.length > 0) {
+        const filePaths = projectDocuments.map((doc) => {
+          // Extract the file path from the URL
+          const url = new URL(doc.document_url);
+          return url.pathname.split("/storage/v1/object/public/")[1];
+        });
+
+        // Delete files from storage
+        const { error: storageError } = await supabase.storage
+          .from("documents") // Replace with your bucket name
+          .remove(filePaths);
+
+        if (storageError) {
+          console.error("Error deleting files from storage:", storageError);
+          // You might choose to continue even if storage deletion fails
+        }
+      }
+
       // 1. Delete deliverables linked to items associated with the project
       await sql`
         DELETE FROM deliverable
@@ -431,7 +456,7 @@ const deleteProject = async (req, res) => {
 
     return res.status(200).json({
       status: "success",
-      message: "Project deleted successfully",
+      message: "Project and associated documents deleted successfully",
       result: { id: result.id },
     });
   } catch (error) {

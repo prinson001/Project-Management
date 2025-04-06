@@ -40,6 +40,8 @@ const DataManagementPage = () => {
     setProjectPhases,
     setDepartments,
     setRoles,
+    setInitiatives, // Add setInitiatives from store
+    initiatives,
   } = useAuthStore();
   const [activeTab, setActiveTab] = useState("initiatives");
   const processedCategory = useMemo(
@@ -54,7 +56,6 @@ const DataManagementPage = () => {
   const [showForm, setShowForm] = useState(false);
   const [showDocumentForm, setShowDocumentForm] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
-  const [initiatives, setInitiatives] = useState([]);
   const [portfolios, setPortfolios] = useState([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   // Get users from auth store
@@ -255,6 +256,22 @@ const DataManagementPage = () => {
                   value: user.id.toString(),
                   label: `${user.first_name} ${user.family_name || ""}`,
                 }))
+            : [],
+      },
+      {
+        name: "initiative_id",
+        label: "Initiative",
+        type: "select",
+        required: true,
+        columnSpan: 1,
+        options:
+          initiatives && initiatives.length > 0
+            ? initiatives.map((initiative) => ({
+                value: initiative.id.toString(),
+                label: `${initiative.name} ${
+                  initiative.arabic_name ? `(${initiative.arabic_name})` : ""
+                }`,
+              }))
             : [],
       },
       {
@@ -565,7 +582,12 @@ const DataManagementPage = () => {
         endpoint = `add${getSingularTabName()}`;
       }
       if (activeTab === "portfolios" && data.portfolioManager) {
-        data.portfolioManager = parseInt(data.portfolioManager, 10);
+        if (data.portfolio_manager) {
+          data.portfolio_manager = parseInt(data.portfolio_manager, 10);
+        }
+        if (data.initiative_id) {
+          data.initiative_id = parseInt(data.initiative_id, 10);
+        }
       }
       const result = await axiosInstance.post(`/data-management/${endpoint}`, {
         data: { ...data },
