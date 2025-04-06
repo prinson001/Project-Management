@@ -311,6 +311,24 @@ const UpdateDynamicForm = ({
         className: "text-right",
       },
     ],
+    objective: [
+      {
+        name: "name",
+        label: "vendor name",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+        className: "text-left",
+      },
+      {
+        name: "arabic_name",
+        label: "arabic name",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+        className: "text-left",
+      },
+    ],
   });
 
   useEffect(() => {
