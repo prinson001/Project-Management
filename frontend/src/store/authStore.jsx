@@ -7,9 +7,10 @@ const useAuthStore = create((set) => ({
   users: [],
   projectTypes: [],
   projectPhases: [],
-  documents: [], // Add documents state
-  departments: [], // Added departments state
-  roles: [], // Added roles state
+  documents: [],
+  departments: [],
+  roles: [],
+  initiatives: [],
   setToken: (token) => {
     set({ token });
     localStorage.setItem("token", token);
@@ -45,6 +46,9 @@ const useAuthStore = create((set) => ({
   },
   setRoles: (roles) => {
     set({ roles });
+  },
+  setInitiatives: (initiatives) => {
+    set({ initiatives });
   },
 }));
 

@@ -77,7 +77,7 @@ const UpdateDynamicForm = ({
       {
         dbName: "arabic_name",
         name: "arabic_name",
-        label: "اسم المبادرة بالعربي",
+        label: "اسم المحفظة بالعربي",
         type: "text",
         required: true,
         columnSpan: 1,
@@ -100,6 +100,22 @@ const UpdateDynamicForm = ({
                   value: user.id.toString(),
                   label: `${user.first_name} ${user.family_name || ""}`,
                 }))
+            : [],
+      },
+      {
+        name: "initiative_id",
+        label: "Initiative",
+        type: "select",
+        required: true,
+        columnSpan: 1,
+        options:
+          initiatives && initiatives.length > 0
+            ? initiatives.map((initiative) => ({
+                value: initiative.id.toString(),
+                label: `${initiative.name} ${
+                  initiative.arabic_name ? `(${initiative.arabic_name})` : ""
+                }`,
+              }))
             : [],
       },
       {
@@ -335,44 +351,64 @@ const UpdateDynamicForm = ({
       // Do something with the value
     }
   };
-  const handleFormSubmit = (formData) => {
-    const { rewritePassword, ...submitData } = formData; // Fix destructuring
-
-    if (tableName === "users") {
-      if (formData.password !== rewritePassword) {
-        alert("Passwords do not match!");
-        return;
+  const handleFormSubmit = async (data, isUpdate = false) => {
+    console.log(
+      `${isUpdate ? "Update" : "Add"} ${getSingularTabName()} Data:`,
+      data
+    );
+    try {
+      let endpoint = "";
+      if (activeTab === "portfolios") {
+        endpoint = isUpdate ? "updateportfolio" : "addportfolio";
+      } else if (activeTab === "initiatives") {
+        endpoint = isUpdate ? "updateInitiative" : "addInitiative";
+      } else if (activeTab === "team") {
+        endpoint = isUpdate ? "updateUser" : "addUser";
+      } else {
+        endpoint = `${isUpdate ? "update" : "add"}${getSingularTabName()}`;
       }
 
-      // Create clean payload object
-      const payload = {
-        ...submitData,
-        // Only add department_id if value exists and is valid
-        ...(submitData.department && {
-          department_id: Number(submitData.department),
-        }),
-        // Only add role_id if value exists and is valid
-        ...(submitData.role && {
-          role_id: Number(submitData.role),
-        }),
-      };
+      if (activeTab === "portfolios") {
+        if (data.portfolio_manager) {
+          data.portfolio_manager = parseInt(data.portfolio_manager, 10);
+        }
+        if (data.initiative_id) {
+          data.initiative_id = parseInt(data.initiative_id, 10);
+        }
+      }
 
-      // Remove original select field values
-      delete payload.department;
-      delete payload.role;
-
-      onSubmit(payload);
-    } else {
-      const fields = getFormFields()[tableName] || [];
-      const fieldNames = fields.map((field) => field.name);
-      const filteredSubmitData = { id: submitData.id };
-
-      fieldNames.forEach((name) => {
-        filteredSubmitData[name] = submitData[name];
+      const result = await axiosInstance.post(`/data-management/${endpoint}`, {
+        data: { ...data },
+        userId: 1,
       });
+      console.log("Form submission result:", result);
 
-      onSubmit(filteredSubmitData);
+      if (result.data.status === "success") {
+        toast.success(
+          `${getSingularTabName()} ${
+            isUpdate ? "updated" : "added"
+          } successfully!`
+        );
+        if (activeTab === "initiatives" && !isUpdate && result.data.result) {
+          const newInitiative = result.data.result;
+          setInitiatives([...initiatives, newInitiative]);
+        }
+        await getData();
+        setRefreshTrigger((prev) => prev + 1);
+        setShowForm(false);
+        if (isUpdate) setShowEditForm(false); // Close edit form if updating
+      }
+    } catch (e) {
+      console.log("Error submitting form:", e);
+      toast.error(
+        `Failed to ${isUpdate ? "update" : "add"} ${getSingularTabName()}: ${
+          e.response?.data?.message || e.message
+        }`
+      );
     }
+  };
+  const handleEditFormSubmit = async (data) => {
+    await handleFormSubmit(data, true); // Pass true to indicate an update
   };
   const renderInput = (field, index) => {
     const { name, label, type, required, className, options, columnSpan } =
