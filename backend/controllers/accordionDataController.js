@@ -231,7 +231,7 @@ const getProjectWithAllRelatedData = async (req, res) => {
   try {
     // Get project details
     const project = await sql`
-        SELECT * FROM projects WHERE id = ${projectId}`;
+        SELECT * FROM project WHERE id = ${projectId}`;
 
     if (project.length === 0) {
       return res.status(404).json({
@@ -243,7 +243,7 @@ const getProjectWithAllRelatedData = async (req, res) => {
 
     // Get parent program
     const program = await sql`
-        SELECT * FROM programs WHERE id = ${project[0].program_id}`;
+        SELECT * FROM program WHERE id = ${project[0].program_id}`;
 
     // Get parent portfolio (if program exists)
     let portfolio = null;

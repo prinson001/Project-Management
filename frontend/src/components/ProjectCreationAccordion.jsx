@@ -5,65 +5,82 @@ import ProjectModal from "./ProjectModal";
 import UpdateProjectModal from "./UpdateProjectModal";
 import { toast } from "sonner";
 import { constructNow } from "date-fns";
+import useAuthStore from "../store/authStore";
 
 function ProjectCreationAccordion({ project, closeAccordion }) {
   const [projectData, setProjectData] = useState(null);
   const [projectApproval, setProjectApproval] = useState("null");
-  const fetchProjectApprovalStatus = async () => {
+  const [isDataReady, setIsDataReady] = useState(false);
+  const { users, projectTypes, projectPhases, setDocuments, documents } =
+    useAuthStore();
+
+  const fetchFullProjectData = async () => {
     try {
+      setIsDataReady(false);
+
+      // Fetch approval status if needed
       if (project.status === "Done") {
         const result = await axiosInstance.post(
           "/deputy/getProjectApprovalStatus",
-          {
-            projectId: project.related_entity_id,
-          }
+          { projectId: project.related_entity_id }
         );
-        console.log(result.data.approval_status);
         setProjectApproval(result.data.approval_status);
-        project = { ...project, approval_status: result.data.approval_status };
       }
-      if (project) {
-        console.log("the project details in if block");
-        console.log(structuredClone(project));
-        const modifiedProjectData = {
-          id: project.related_entity_id, // Use related_entity_id as id
-          name: project.project_name, // Map project_name to name
-          arabic_name: project.arabic_first_name, // Map arabic_first_name to arabic_name
-          description: project.description,
-          project_type_id: project?.project_type_id,
-          current_phase_id: project?.current_phase_id,
-          category: project?.category,
-          project_manager_id: project?.assigned_to, // Assuming assigned_to is the project manager
-          alternative_project_manager_id:
-            project?.alternative_project_manager_id,
-          execution_start_date: project?.execution_start_date,
-          execution_duration: project?.execution_duration,
-          maintenance_duration: project?.maintenance_duration,
-          project_budget: project?.project_budget,
-          approved_project_budget: project?.approved_project_budget,
-          created_date: project?.created_date,
-          updated_at: project?.updated_at,
-          program_id: project?.program_id,
-          initiative_id: project?.initiative_id,
-          portfolio_id: project?.portfolio_id,
-          vendor_id: project?.vendor_id,
-        };
 
-        setProjectData(modifiedProjectData);
-        console.log("modifiedProjectData", modifiedProjectData);
-      } else {
-        console.log("error");
-      }
-    } catch (e) {
-      console.log("there was an errror fetching project approval status");
-      console.log(e);
-      console.log(e.message);
+      // Fetch complete project details
+      const response = await axiosInstance.post(
+        "/tasks/getProjectWithAllRelatedData",
+        {
+          projectId: project.related_entity_id,
+        }
+      );
+
+      const fullData = response.data.result;
+      const fullProject = fullData.project;
+
+      const modifiedProjectData = {
+        id: fullProject.id,
+        name: fullProject.name,
+        arabic_name: fullProject.arabic_name,
+        description: fullProject.description,
+        project_type_id: fullProject.project_type_id?.toString() || "",
+        current_phase_id: fullProject.current_phase_id?.toString() || "",
+        category: fullProject.category,
+        project_manager_id: fullProject.project_manager_id?.toString() || "",
+        alternative_project_manager_id:
+          fullProject.alternative_project_manager_id?.toString() || "",
+        execution_start_date: fullProject.execution_start_date,
+        execution_duration: fullProject.execution_duration,
+        maintenance_duration: fullProject.maintenance_duration,
+        project_budget: fullProject.project_budget,
+        approved_project_budget: fullProject.approved_project_budget,
+        approval_status: projectApproval || fullProject.approval_status,
+        program_id: fullProject.program_id?.toString() || "",
+        initiative_id: fullProject.initiative_id?.toString() || "",
+        portfolio_id: fullProject.portfolio_id?.toString() || "",
+        vendor_id: fullProject.vendor_id?.toString() || "",
+        beneficiary_departments: fullProject.beneficiary_departments || [],
+        objectives: fullProject.objectives || [],
+        documents: fullProject.documents || [],
+
+        // Optionally include related program, portfolio, initiative info if needed:
+        program: fullData.program || {},
+        portfolio: fullData.portfolio || {},
+        initiative: fullData.initiative || {},
+      };
+
+      setProjectData(modifiedProjectData);
+      setIsDataReady(true);
+    } catch (error) {
+      console.error("Error fetching project data:", error);
+      setIsDataReady(false);
     }
   };
+
   useEffect(() => {
-    console.log("the project details");
-    console.log(structuredClone(project));
-    fetchProjectApprovalStatus();
+    if (project) {
+      fetchFullProjectData();
+    }
   }, [project]);
 
   const updateApprovalStatus = async ({ status, projectData }) => {
@@ -116,7 +133,7 @@ function ProjectCreationAccordion({ project, closeAccordion }) {
 
   return (
     <>
-      {projectData && (
+      {isDataReady && projectData && (
         <UpdateProjectModal
           showButtons={false}
           title="Project details"

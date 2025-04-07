@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { getTasks, filterTasks } = require("../controllers/tasksController");
 const {
-  getProgramWithAllRelatedData,
+  getProjectWithAllRelatedData,
 } = require("../controllers/accordionDataController");
 const {
   createSchedulePlanTaskForPM,
@@ -11,7 +11,7 @@ const {
 
 router.post("/getTasks", getTasks);
 router.post("/filterTasks", filterTasks);
-router.post("/getProjectWithAllRelatedData", getProgramWithAllRelatedData);
+router.post("/getProjectWithAllRelatedData", getProjectWithAllRelatedData);
 router.post("/createSchedulePlanTaskForPM", createSchedulePlanTaskForPM);
 router.post("/createBoqApprovalTaskForPMO", createBoqApprovalTaskForPMO);
 module.exports = router;
