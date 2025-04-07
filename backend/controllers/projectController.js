@@ -1,4 +1,5 @@
 const sql = require("../database/db");
+const supabase = require("../database/supabase");
 const {
   createProjectCreationTaskForDeputy,
   createBoqTaskForPM,
@@ -379,16 +380,20 @@ const deleteProject = async (req, res) => {
     const result = await sql.begin(async (sql) => {
       // First, get all document URLs associated with this project
       const projectDocuments = await sql`
-        SELECT document_url FROM project_documents
+        SELECT file_url FROM project_documents
         WHERE project_id = ${id}
       `;
 
       // Delete from Supabase storage
       if (projectDocuments && projectDocuments.length > 0) {
         const filePaths = projectDocuments.map((doc) => {
-          // Extract the file path from the URL
-          const url = new URL(doc.file_url);
-          return url.pathname.split("/storage/v1/object/public/")[1];
+          const fullPath = doc.file_url;
+
+          if (fullPath.includes("/storage/v1/object/public/")) {
+            return fullPath.split("/storage/v1/object/public/")[1];
+          }
+
+          return fullPath;
         });
 
         // Delete files from storage
