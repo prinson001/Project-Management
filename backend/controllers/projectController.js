@@ -387,7 +387,7 @@ const deleteProject = async (req, res) => {
       if (projectDocuments && projectDocuments.length > 0) {
         const filePaths = projectDocuments.map((doc) => {
           // Extract the file path from the URL
-          const url = new URL(doc.document_url);
+          const url = new URL(doc.file_url);
           return url.pathname.split("/storage/v1/object/public/")[1];
         });
 
