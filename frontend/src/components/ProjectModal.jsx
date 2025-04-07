@@ -487,6 +487,15 @@ const ProjectModal = ({
   useEffect(() => {
     fetchProgramDetails(selectedProgramId); // Fetch details whenever programName changes
   }, [selectedProgramId]);
+  useEffect(() => {
+    if (selectedProgramDetails) {
+      setValue("portfolioName", selectedProgramDetails.portfolio_name || "");
+      setValue("initiativeName", selectedProgramDetails.initiative_name || "");
+    } else {
+      setValue("portfolioName", "");
+      setValue("initiativeName", "");
+    }
+  }, [selectedProgramDetails, setValue]);
 
   useEffect(() => {
     const currentPhase = watch("currentPhase");
@@ -600,68 +609,94 @@ const ProjectModal = ({
   );
 
   const handleSaveDraft = async () => {
-    await handleSubmit(async (data) => {
-      try {
-        const projectData = await onSubmit({
-          ...data,
-          approval_status: "Not initiated", // Using enum value for draft
-        });
+    await handleSubmit(
+      async (data) => {
+        const selectedDepartmentIds = getSelectedDepartmentIds();
+        const selectedObjectiveIds = objectives
+          .filter((obj) => obj.checked)
+          .map((obj) => obj.id);
 
-        toast.success("Project saved as draft successfully!");
-        onProjectAdded();
-        if (onClose) onClose();
-      } catch (error) {
-        console.error("Error saving draft:", error);
-        toast.error("Failed to save project as draft");
-      }
-    })();
-  };
-
-  // Modified handleSaveAndSendForApproval
-  const handleSaveAndSendForApproval = async () => {
-    await handleSubmit(async (data) => {
-      try {
-        console.log("Starting save and send for approval process");
-        const projectResponse = await onSubmit({
-          ...data,
-          approval_status: "Waiting on deputy",
-        });
-
-        console.log("Project response:", projectResponse);
-
-        const projectId = projectResponse?.data?.result?.id;
-        console.log("Project Id for deputy", projectId);
-        if (!projectId) {
-          console.error("Project response structure:", projectResponse);
-          throw new Error("Project ID not found in response");
+        if (selectedDepartmentIds.length === 0) {
+          toast.error("At least one beneficiary department must be selected");
+          return;
+        }
+        if (selectedObjectiveIds.length === 0) {
+          toast.error("At least one objective must be selected");
+          return;
         }
 
-        console.log("Project ID obtained:", projectId);
-
-        // Make API call to backend instead of direct function call
-        const taskResponse = await axiosInstance.post(
-          "/data-management/createProjectCreationTaskForDeputy",
-          { projectId }
-        );
-        console.log("Task response:", taskResponse);
-        console.log("Task creation response:", taskResponse.data);
-
-        if (taskResponse.data && taskResponse.data.status === "success") {
-          toast.success("Project saved and sent for approval successfully!");
+        try {
+          const projectData = await onSubmit({
+            ...data,
+            approval_status: "Not initiated",
+          });
+          toast.success("Project saved as draft successfully!");
           onProjectAdded();
           if (onClose) onClose();
-        } else {
-          throw new Error(
-            taskResponse.data?.message || "Failed to create approval task"
+        } catch (error) {
+          console.error("Error saving draft:", error);
+          toast.error("Failed to save project as draft");
+        }
+      },
+      (errors) => {
+        if (errors.programName) toast.error(errors.programName.message);
+        if (errors.portfolioName) toast.error(errors.portfolioName.message);
+        if (errors.initiativeName) toast.error(errors.initiativeName.message);
+      }
+    )();
+  };
+
+  const handleSaveAndSendForApproval = async () => {
+    await handleSubmit(
+      async (data) => {
+        const selectedDepartmentIds = getSelectedDepartmentIds();
+        const selectedObjectiveIds = objectives
+          .filter((obj) => obj.checked)
+          .map((obj) => obj.id);
+
+        if (selectedDepartmentIds.length === 0) {
+          toast.error("At least one beneficiary department must be selected");
+          return;
+        }
+        if (selectedObjectiveIds.length === 0) {
+          toast.error("At least one objective must be selected");
+          return;
+        }
+
+        try {
+          const projectResponse = await onSubmit({
+            ...data,
+            approval_status: "Waiting on deputy",
+          });
+          const projectId = projectResponse?.data?.result?.id;
+          if (!projectId) throw new Error("Project ID not found in response");
+
+          const taskResponse = await axiosInstance.post(
+            "/data-management/createProjectCreationTaskForDeputy",
+            { projectId }
+          );
+          if (taskResponse.data && taskResponse.data.status === "success") {
+            toast.success("Project saved and sent for approval successfully!");
+            onProjectAdded();
+            if (onClose) onClose();
+          } else {
+            throw new Error(
+              taskResponse.data?.message || "Failed to create approval task"
+            );
+          }
+        } catch (error) {
+          console.error("Error saving and sending for approval:", error);
+          toast.error(
+            "Failed to save and send project for approval: " + error.message
           );
         }
-      } catch (error) {
-        console.error("Error saving and sending for approval:", error);
-        toast.error(
-          "Failed to save and send project for approval: " + error.message
-        );
+      },
+      (errors) => {
+        if (errors.programName) toast.error(errors.programName.message);
+        if (errors.portfolioName) toast.error(errors.portfolioName.message);
+        if (errors.initiativeName) toast.error(errors.initiativeName.message);
       }
-    })();
+    )();
   };
 
   const handleClearFields = () => {
@@ -675,6 +710,9 @@ const ProjectModal = ({
       initiative_id: "",
       portfolio_id: "",
       program_id: "",
+      programName: "",
+      portfolioName: "",
+      initiativeName: "",
       category: "",
       project_manager_id: "",
       alternative_project_manager_id: "",
@@ -768,13 +806,18 @@ const ProjectModal = ({
 
     try {
       const selectedDepartmentIds = getSelectedDepartmentIds();
+      const selectedObjectiveIds = objectives
+        .filter((obj) => obj.checked)
+        .map((obj) => obj.id);
+
       if (selectedDepartmentIds.length === 0) {
         toast.error("At least one beneficiary department must be selected");
         return;
       }
-      const selectedObjectiveIds = objectives
-        .filter((obj) => obj.checked)
-        .map((obj) => obj.id);
+      if (selectedObjectiveIds.length === 0) {
+        toast.error("At least one objective must be selected");
+        return;
+      }
 
       const projectData = {
         name: data.name,
@@ -1283,15 +1326,20 @@ const ProjectModal = ({
               <div className="grid grid-cols-3 gap-6 mb-4">
                 <div>
                   <label className="block text-sm font-semibold mb-1">
-                    Program Name
+                    Program Name <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <Controller
                       name="programName"
                       control={control}
+                      rules={{ required: "Program name is required" }}
                       render={({ field }) => (
                         <select
-                          className="w-full p-2 border border-gray-300 rounded appearance-none bg-white"
+                          className={`w-full p-2 border ${
+                            errors.programName
+                              ? "border-red-500"
+                              : "border-gray-300"
+                          } rounded appearance-none bg-white`}
                           {...field}
                           onChange={(e) => {
                             field.onChange(e);
@@ -1311,30 +1359,50 @@ const ProjectModal = ({
                       <ChevronDown size={16} />
                     </div>
                   </div>
+                  {errors.programName && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.programName.message}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-semibold mb-1">
                     Portfolio Name
                   </label>
-                  <input
-                    type="text"
-                    className="w-full p-2 border border-gray-300 rounded bg-gray-100"
-                    value={selectedProgramDetails?.portfolio_name || ""}
-                    readOnly
+                  <Controller
+                    name="portfolioName"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        type="text"
+                        className="w-full p-2 border border-gray-300 rounded bg-gray-100"
+                        {...field}
+                        value={field.value || ""} // Controlled by form state
+                        readOnly
+                      />
+                    )}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold mb-1">
                     Initiative Name
                   </label>
-                  <input
-                    type="text"
-                    className="w-full p-2 border border-gray-300 rounded bg-gray-100"
-                    value={selectedProgramDetails?.initiative_name || ""}
-                    readOnly
+                  <Controller
+                    name="initiativeName"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        type="text"
+                        className="w-full p-2 border border-gray-300 rounded bg-gray-100"
+                        {...field}
+                        value={field.value || ""} // Controlled by form state
+                        readOnly
+                      />
+                    )}
                   />
                 </div>
               </div>
+              {/* Rest of the category section (e.g., Project Category radio buttons) */}
               <div className="grid grid-cols-2 gap-6 mb-4">
                 <div>
                   <label
@@ -1587,7 +1655,7 @@ const ProjectModal = ({
             <div className="grid grid-cols-2 gap-6 mb-4">
               <div>
                 <label className="block text-sm font-semibold mb-1">
-                  Objectives
+                  Objectives <span className="text-red-500">*</span>
                 </label>
                 <div className="border border-gray-300 rounded p-2 max-h-40 overflow-y-auto">
                   {objectives.length > 0 ? (
