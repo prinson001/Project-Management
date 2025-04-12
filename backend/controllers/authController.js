@@ -29,11 +29,10 @@ const login = asyncHandler(async (req, res) => {
   }
   const jwtToken = generatejsonWebToken(user[0]);
   console.log("User Login", user[0]);
-  res.status(200);
-  res.send({
+  res.status(200).send({
     status: "success",
     token: jwtToken,
-    role: user[0].role, // Include the role in the response
+    role: user[0].role,
     userId: user[0].id,
   });
 });
