@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { X, ChevronDown, ChevronUp } from "lucide-react";
-import Datepicker from "react-tailwindcss-datepicker";
 import UpdateProjectDocumentSection from "./UpdateProjectDocumentSection";
 import { toast } from "sonner";
 import useAuthStore from "../store/authStore";
@@ -1056,7 +1055,7 @@ const UpdateProjectModal = ({
                         isBudgetDisabled ? "opacity-50" : ""
                       }`}
                     >
-                      Project Planned Budget (In Millions)
+                      Project Planned Budget (In AED)
                       {isBudgetDisabled && " (Disabled for this project type)"}
                     </label>
                     <input
@@ -1075,7 +1074,7 @@ const UpdateProjectModal = ({
                         isBudgetDisabled ? "opacity-50" : ""
                       }`}
                     >
-                      Project Approved Budget (In Millions)
+                      Project Approved Budget (In AED)
                       {isBudgetDisabled && " (Disabled for this project type)"}
                     </label>
                     <input

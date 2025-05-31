@@ -22,23 +22,59 @@ const SchedulePlanSection = React.memo(
     const [phases, setPhases] = useState([]);
     const [scheduleTableData, setScheduleTableData] = useState([]);
     const [durationTypes, setDurationTypes] = useState({});
+    const [totalDurationUnit, setTotalDurationUnit] = useState("days");
 
     const {
       control,
       formState: { errors },
       watch,
       setValue,
+      register,
     } = useForm({
       defaultValues: {
         executionStartDate: null,
         executionDuration: "4", // Number of weeks
         maintenanceDate: null, // Date object
+        execution_duration_type: "weeks",
       },
     });
 
     const executionStartDate = watch("executionStartDate");
     const executionDuration = watch("executionDuration");
     const maintenanceDate = watch("maintenanceDate");
+
+    // Calculate total duration in days
+    const totalDurationDays = React.useMemo(() => {
+      if (
+        executionStartDate &&
+        maintenanceDate &&
+        isValid(executionStartDate) &&
+        isValid(maintenanceDate)
+      ) {
+        const diff = Math.abs(
+          Math.ceil(
+            (maintenanceDate - executionStartDate) / (1000 * 60 * 60 * 24)
+          )
+        );
+        return diff;
+      }
+      return 0;
+    }, [executionStartDate, maintenanceDate]);
+
+    // Convert total duration to selected unit
+    const getTotalDurationDisplay = () => {
+      if (totalDurationUnit === "days")
+        return `${totalDurationDays} day${totalDurationDays !== 1 ? "s" : ""}`;
+      if (totalDurationUnit === "weeks") {
+        const weeks = Math.round(totalDurationDays / 7);
+        return `${weeks} week${weeks !== 1 ? "s" : ""}`;
+      }
+      if (totalDurationUnit === "months") {
+        const months = Math.round(totalDurationDays / 30);
+        return `${months} month${months !== 1 ? "s" : ""}`;
+      }
+      return `${totalDurationDays} days`;
+    };
 
     // Utility functions
     const convertToDays = useCallback((durationStr, currentUnit) => {
@@ -309,10 +345,19 @@ const SchedulePlanSection = React.memo(
     // Notify parent component of schedule changes
     useEffect(() => {
       if (onScheduleChange && !isInternalSchedule) {
-        const totalWeeks = parseInt(executionDuration || "0", 10);
+        const durationType = watch("execution_duration_type") || "weeks";
+        const durationValue = watch("execution_duration") || executionDuration;
+        const total = parseInt(durationValue || "0", 10);
         const executionEndDate =
           executionStartDate && isValid(executionStartDate)
-            ? addDays(executionStartDate, totalWeeks * 7)
+            ? addDays(
+                executionStartDate,
+                durationType === "weeks"
+                  ? total * 7
+                  : durationType === "months"
+                  ? total * 30
+                  : total
+              )
             : null;
 
         onScheduleChange({
@@ -320,7 +365,8 @@ const SchedulePlanSection = React.memo(
             executionStartDate && isValid(executionStartDate)
               ? format(executionStartDate, "yyyy-MM-dd")
               : null,
-          executionDuration: totalWeeks, // Just the number
+          executionDuration: durationValue,
+          executionDurationType: durationType,
           maintenanceDate:
             maintenanceDate && isValid(maintenanceDate)
               ? format(maintenanceDate, "yyyy-MM-dd")
@@ -337,6 +383,7 @@ const SchedulePlanSection = React.memo(
       maintenanceDate,
       onScheduleChange,
       isInternalSchedule,
+      watch,
     ]);
 
     const handleDurationChange = useCallback(
@@ -481,7 +528,7 @@ const SchedulePlanSection = React.memo(
             ))}
           </div> */}
         </div>
-        <div className="grid grid-cols-3 gap-6 mb-4">
+        <div className="grid grid-cols-4 gap-6 mb-4">
           <div>
             <label className="block text-sm font-semibold mb-1">
               Execution Targeted Start Date
@@ -505,34 +552,33 @@ const SchedulePlanSection = React.memo(
             <label className="block text-sm font-semibold mb-1">
               Execution Duration (Weeks) <span className="text-red-500">*</span>
             </label>
-            <Controller
-              name="executionDuration"
-              control={control}
-              rules={{
-                required: "Execution duration is required",
-                min: { value: 1, message: "Duration must be at least 1 week" },
-                pattern: {
-                  value: /^[0-9]+$/,
-                  message: "Please enter a valid number of weeks",
-                },
-              }}
-              render={({ field }) => (
-                <input
-                  type="number"
-                  min="1"
-                  className={`w-full p-2 border ${
-                    errors.executionDuration
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  } rounded`}
-                  placeholder="Enter weeks (e.g., 8)"
-                  {...field}
-                />
-              )}
-            />
-            {errors.executionDuration && (
+            <div className="flex gap-2">
+              <input
+                type="number"
+                min="1"
+                className={`w-full p-2 border ${
+                  errors.execution_duration
+                    ? "border-red-500"
+                    : "border-gray-300"
+                } rounded`}
+                placeholder="Enter duration"
+                {...register("execution_duration", {
+                  required: "Execution duration is required",
+                })}
+              />
+              <select
+                className="p-2 border border-gray-300 rounded"
+                {...register("execution_duration_type")}
+                defaultValue="weeks"
+              >
+                <option value="days">Days</option>
+                <option value="weeks">Weeks</option>
+                <option value="months">Months</option>
+              </select>
+            </div>
+            {errors.execution_duration && (
               <p className="text-red-500 text-xs mt-1">
-                {errors.executionDuration.message}
+                {errors.execution_duration.message}
               </p>
             )}
           </div>
@@ -561,6 +607,29 @@ const SchedulePlanSection = React.memo(
                 {errors.maintenanceDate.message}
               </p>
             )}
+          </div>
+          <div>
+            <label className="block text-sm font-semibold mb-1">
+              Total Completion Duration
+            </label>
+            <div className="flex gap-2 items-center">
+              <input
+                type="text"
+                className="w-full p-2 border border-gray-300 rounded bg-gray-100"
+                value={getTotalDurationDisplay()}
+                readOnly
+                tabIndex={-1}
+              />
+              <select
+                className="p-2 border border-gray-300 rounded"
+                value={totalDurationUnit}
+                onChange={(e) => setTotalDurationUnit(e.target.value)}
+              >
+                <option value="days">Days</option>
+                <option value="weeks">Weeks</option>
+                <option value="months">Months</option>
+              </select>
+            </div>
           </div>
         </div>
         <div className="overflow-x-auto mb-4">
