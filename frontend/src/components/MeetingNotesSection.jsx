@@ -39,7 +39,7 @@ const MeetingNotesSection = () => {
       {/* Disaster Recovery Project */}
       <div className="mb-6">
         <h4 className="font-medium text-gray-700 mb-3">
-          Disaster recovery project:
+          Current Meeting Notes
         </h4>
         <div className="space-y-3">
           {meetingNotes.disasterRecovery.map((note) => (
@@ -62,7 +62,7 @@ const MeetingNotesSection = () => {
 
       {/* Big Data Project */}
       <div>
-        <h4 className="font-medium text-gray-700 mb-3">Big Data project</h4>
+        <h4 className="font-medium text-gray-700 mb-3">Previous meeting Notes</h4>
         <div className="space-y-3">
           {meetingNotes.bigData.map((note) => (
             <div key={note.id} className="flex items-center justify-between">
@@ -70,15 +70,15 @@ const MeetingNotesSection = () => {
                 <Flag className="w-4 h-4 text-green-500" />
                 <span className="text-sm text-gray-700">{note.text}</span>
               </div>
-              <button className="p-1 hover:bg-gray-100 rounded">
+              {/* <button className="p-1 hover:bg-gray-100 rounded">
                 <MoreHorizontal className="w-4 h-4 text-gray-400" />
-              </button>
+              </button> */}
             </div>
           ))}
-          <button className="flex items-center space-x-2 text-sm text-gray-500 hover:text-gray-700">
+          {/* <button className="flex items-center space-x-2 text-sm text-gray-500 hover:text-gray-700">
             <Plus className="w-4 h-4" />
             <span className="underline">New to do note</span>
-          </button>
+          </button> */}
         </div>
       </div>
     </div>

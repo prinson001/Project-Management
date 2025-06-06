@@ -3,19 +3,10 @@ import { BarChart3, Menu } from "lucide-react";
 
 export default function ProjectMeetingHeader({
   toggleSidebar,
-  currentCategory,
-  activeOption,
-  handleOptionClick,
-  filterCategories, // Assuming filterCategories is needed here for the horizontal tabs
+  subFilters ,
+  activeSubFilter,
+  handleSubOptionClick
 }) {
-  // State and handlers for horizontal tabs might still be needed here
-  const [activeOptionState, setActiveOptionState] = useState(activeOption);
-
-  // Keep the horizontal tabs logic if it's part of the header
-  const currentCategoryData = filterCategories.find(
-    (cat) => cat.id === currentCategory?.id // Find category by id
-  );
-
   return (
     <header className="bg-white border-b border-gray-200">
       <div className="flex h-16 items-center gap-4 px-6">
@@ -37,23 +28,22 @@ export default function ProjectMeetingHeader({
       </div>
 
       {/* Horizontal tabs for selected category options */}
-      {currentCategoryData && currentCategoryData.options && (
+      {subFilters && (
         <div className="border-t border-gray-200">
           <div className="flex items-center gap-1 px-6 py-2 overflow-x-auto">
-            {currentCategoryData.options.map((option) => (
+            {subFilters.map((option) => (
               <button
-                key={option}
+                key={option.name}
                 onClick={() => {
-                  setActiveOptionState(option);
-                  handleOptionClick(currentCategory?.id, option);
+                  handleSubOptionClick(option.name);
                 }} // Pass category id and option
                 className={`whitespace-nowrap px-3 py-2 text-sm font-medium relative transition-colors ${
-                  activeOptionState === option
+                  activeSubFilter === option.name
                     ? "text-blue-600 border-b-2 border-blue-600"
                     : "text-gray-500 hover:text-gray-900"
                 }`}
               >
-                {option}
+                {option.name}
               </button>
             ))}
           </div>
