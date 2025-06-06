@@ -7,6 +7,7 @@ import {
   Database,
   Clock5,
   Settings,
+  Calendar,
 } from "lucide-react";
 import useAuth from "../hooks/userAuth";
 import useLanguage from "../hooks/useLanguage";
@@ -21,12 +22,6 @@ const SIDEBAR_ITEMS = [
     roles: ["PM", "PMO", "DEPUTY"],
   },
   {
-    name: "dashboard",
-    icon: ChartPie,
-    href: "/dashboard",
-    roles: ["USER"],
-  },
-  {
     name: "dataManagement",
     icon: Database,
     href: "/data-management",
@@ -37,6 +32,18 @@ const SIDEBAR_ITEMS = [
     icon: Settings,
     href: "/admin",
     roles: ["ADMIN"],
+  },
+  {
+    name: "dashboard",
+    icon: ChartPie,
+    href: "/dashboard",
+    roles: ["USER", "PMO"],
+  },
+  {
+    name: "meetings",
+    icon: Calendar,
+    href: "/meetings",
+    roles: ["USER", "PMO"],
   },
 ];
 

@@ -595,12 +595,19 @@ const ProjectModal = ({
       const isInternal = ["1", "4"].includes(projectType);
       if (isInternal) {
         setInternalScheduleDataState(data.schedule); // Store the full schedule array
-        setValue("execution_duration", data.executionDuration); // e.g., "4 weeks"
+        setValue("execution_duration", data.executionDuration); // e.g., "4"
+        setValue(
+          "execution_duration_type",
+          data.executionDurationType || "weeks"
+        );
         setValue("maintenance_duration", data.maintenanceDate); // e.g., "2025-04-04"
       } else {
-        console.log("Project data received in handleScheduleChange:", data);
         setScheduleTableData(data);
         setValue("execution_duration", data.executionDuration);
+        setValue(
+          "execution_duration_type",
+          data.executionDurationType || "weeks"
+        );
         setValue("maintenance_duration", data.maintenanceDate);
         setValue("execution_start_date", data.executionStartDate);
       }
@@ -819,6 +826,14 @@ const ProjectModal = ({
         return;
       }
 
+      // Convert execution_duration to days
+      let durationValue = parseInt(data.execution_duration, 10) || 0;
+      let durationType = data.execution_duration_type || "weeks";
+      let durationInDays = durationValue;
+      if (durationType === "weeks") durationInDays = durationValue * 7;
+      else if (durationType === "months") durationInDays = durationValue * 30;
+      // else days, keep as is
+
       const projectData = {
         name: data.name,
         arabic_name: data.arabic_name,
@@ -836,15 +851,13 @@ const ProjectModal = ({
         beneficiary_departments: selectedDepartmentIds,
         objectives: selectedObjectiveIds,
         project_budget: data.project_budget
-          ? parseFloat(data.project_budget)
+          ? parseFloat(data.project_budget) / 1_000_000
           : null,
         approved_project_budget: data.approved_budget
-          ? parseFloat(data.approved_budget)
+          ? parseFloat(data.approved_budget) / 1_000_000
           : null,
         execution_start_date: data.execution_start_date?.startDate || null,
-        execution_duration: data.execution_duration
-          ? `${data.execution_duration}`
-          : null,
+        execution_duration: durationInDays,
         maintenance_duration: data.maintenance_duration || null,
         approval_status: data.approval_status || "Not initiated",
       };
@@ -1695,7 +1708,7 @@ const ProjectModal = ({
                         isBudgetDisabled ? "opacity-50" : ""
                       }`}
                     >
-                      Project Planned Budget (In Millions)
+                      Project Planned Budget(in AED)
                       {isBudgetRequired && !isBudgetDisabled && (
                         <span className="text-red-500"> *</span>
                       )}
@@ -1711,7 +1724,7 @@ const ProjectModal = ({
                       } rounded ${
                         isBudgetDisabled ? "bg-gray-100 cursor-not-allowed" : ""
                       }`}
-                      placeholder=""
+                      placeholder="Enter full amount. For example, 8,000,000 for 8 million."
                       {...register("project_budget", {
                         required:
                           isBudgetRequired &&
@@ -1737,7 +1750,7 @@ const ProjectModal = ({
                         isBudgetDisabled ? "opacity-50" : ""
                       }`}
                     >
-                      Project Approved Budget (In Millions)
+                      Project Approved Budget(in AED)
                       {isBudgetDisabled && " (Disabled for this project type)"}
                     </label>
                     <input
@@ -1746,7 +1759,7 @@ const ProjectModal = ({
                       className={`w-full p-2 border border-gray-300 rounded ${
                         isBudgetDisabled ? "bg-gray-100 cursor-not-allowed" : ""
                       }`}
-                      placeholder=""
+                      placeholder="Enter full amount. For example, 8,000,000 for 8 million."
                       {...register("approved_budget")}
                       disabled={isBudgetDisabled}
                     />

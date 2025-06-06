@@ -32,7 +32,35 @@ const addProject = async (req, res) => {
   try {
     const { beneficiary_departments, objectives, ...projectData } = data;
 
+    // Convert empty strings to null for numeric fields
+    const numericFields = [
+      "vendor_id",
+      "program_id",
+      "portfolio_id",
+      "initiative_id",
+      "project_manager_id",
+      "alternative_project_manager_id",
+      "approved_project_budget",
+      "project_budget",
+    ];
+
+    for (const field of numericFields) {
+      if (projectData[field] === "") {
+        projectData[field] = null;
+      }
+      // Convert to number if it's a string
+      if (projectData[field] !== null && projectData[field] !== undefined) {
+        projectData[field] = Number(projectData[field]);
+      }
+    }
+
     // Fix execution_duration format if it contains "weeks days"
+    if (
+      projectData.execution_duration &&
+      typeof projectData.execution_duration !== "string"
+    ) {
+      projectData.execution_duration = String(projectData.execution_duration);
+    }
     if (
       projectData.execution_duration &&
       projectData.execution_duration.includes("weeks days")
@@ -54,28 +82,6 @@ const addProject = async (req, res) => {
       projectData.project_budget = null;
       projectData.approved_project_budget = null;
       projectData.category = null;
-    }
-
-    // Convert empty strings to null for numeric fields
-    const numericFields = [
-      "vendor_id",
-      "program_id",
-      "portfolio_id",
-      "initiative_id",
-      "project_manager_id",
-      "alternative_project_manager_id",
-      "approved_project_budget",
-      "project_budget",
-    ];
-
-    for (const field of numericFields) {
-      if (projectData[field] === "") {
-        projectData[field] = null;
-      }
-      // Convert to number if it's a string
-      if (projectData[field] !== null && projectData[field] !== undefined) {
-        projectData[field] = Number(projectData[field]);
-      }
     }
 
     // Derive portfolio_id and initiative_id from program_id if provided
@@ -940,7 +946,6 @@ const getObjectives = async (req, res) => {
     });
   }
 };
-
 const addBeneficiaryDepartments = async (req, res) => {
   const { projectId, departmentIds } = req.body;
 

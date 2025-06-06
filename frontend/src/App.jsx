@@ -22,6 +22,8 @@ import SchedulePlanSection from "./components/SchedulePlanSection";
 import SchedulePlan from "./components/SchedulePlan";
 import HomePage from "./pages/PMOPage";
 import PMOPage from "./pages/PMOPage";
+import DashboardContainerPage from "./pages/DashboardContainerPage";
+import MeetingsPage from "./pages/MeetingsPage";
 
 const App = () => {
   return (
@@ -70,8 +72,16 @@ export const router = createBrowserRouter([
       {
         path: "/dashboard",
         element: (
-          <ProtectedRoute allowedRoles={["USER"]}>
-            <DashboardPage />
+          <ProtectedRoute allowedRoles={["USER", "PMO"]}>
+            <DashboardContainerPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/meetings",
+        element: (
+          <ProtectedRoute allowedRoles={["USER", "PMO"]}>
+            <MeetingsPage />
           </ProtectedRoute>
         ),
       },
