@@ -35,6 +35,8 @@ const {
   addBoqApprovalStatusColumnToProject,
   alterObjectivedatetoAutoFill,
   alterColumnsToDateType,
+  createTableMeeting,
+  createTableMeetingNotes
 } = require("../database/dbConfig");
 const {
   createSchedulePlanTaskForPM,
@@ -83,5 +85,7 @@ router.get(
 
 router.get("/alterdateobjective", alterObjectivedatetoAutoFill);
 router.get("/alterColumnsToDateType", alterColumnsToDateType);
+router.get("/ctablemeeting",createTableMeeting);
+router.get("/ctablemeetingnotes",createTableMeetingNotes);
 
 module.exports = router;

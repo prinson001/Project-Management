@@ -1177,6 +1177,84 @@ const alterColumnsToDateType = async (req, res) => {
   }
 };
 
+const createTableMeeting = async(req,res)=>{
+  try{
+    const result = await sql`
+      CREATE TABLE IF NOT EXISTS meeting (
+        id SERIAL PRIMARY KEY,
+        started_at TIMESTAMP,
+        ended_at TIMESTAMP,
+        status VARCHAR(50),
+        started_by INTEGER REFERENCES users(id)
+      )
+    `;
+
+    res.status(200).json({
+      status:"success",
+      message:"Meeting table created successfully",
+      result
+    })
+
+  }
+  catch(e)
+  {
+    res.status(500).json({
+      status:"failure",
+      message:e.message
+    })
+  }
+}
+
+const createTableMeetingNotes = async(req , res)=>{
+  try{
+    const result = await sql `CREATE TABLE IF NOT EXISTS meeting_notes (
+      id SERIAL PRIMARY KEY,
+      meeting_id INTEGER REFERENCES meeting(id) ON DELETE CASCADE,
+      project_id INTEGER REFERENCES project(id) ON DELETE CASCADE,
+      notes TEXT,
+      created_date DATE DEFAULT CURRENT_DATE)`;
+    
+    res.status(200).json({
+      status:"success",
+      message:"meeting note table created successfully",
+      result
+    })
+
+  }
+  catch(e)
+  {
+    res.status(500).json({
+      status:"failure",
+      message:"failed to create meeting notes table",
+      result:e.message
+    })
+  }
+}
+
+const createTableProjectTasks = async (req,res)=>{
+  try{
+    const result = await sql `CREATE TABLE IF NOT EXISTS project_tasks(
+      id SERIAL PRIMARY KEY,
+      notes TEXT,
+      created_date DATE DEFAULT CURRENT DATE)  
+      project_id INTEGER REFERENCES project(id) ON DELETE CASCADE
+    `
+    res.status(200).json({
+      status:"success",
+      message:"SuccessFully created project tasks table",
+      result 
+    })
+  }
+  catch(e)
+  {
+    res.status(500).json({
+      status:"Failure",
+      message:"Failed to create project tasks table",
+      result:e
+    })
+  }
+}
+
 module.exports = {
   createUsersTable,
   createInitiativeTable,
@@ -1216,4 +1294,6 @@ module.exports = {
   addBoqApprovalStatusColumnToProject,
   alterObjectivedatetoAutoFill,
   alterColumnsToDateType,
+  createTableMeeting,
+  createTableMeetingNotes
 };
