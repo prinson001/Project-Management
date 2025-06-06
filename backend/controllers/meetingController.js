@@ -1,7 +1,32 @@
 const sql = require("../database/db");
 
 // Controller
-const getFilterOptions = async (req, res) => {
+
+const getMainFilters = async (req,res)=>{
+  try{
+    const result = [
+      {name:'projectType',icon:'Star'},
+      {name:'projectPhase',icon:'GitBranch'},
+      {name:'portfolio',icon:'Briefcase'},
+      {name:'program',icon:'Code'},
+      {name:'vendor',icon:'Building'}
+    ];
+    res.status(200).json({
+      status:"success",
+      message:"Successfully retreived main Filters",
+      result 
+    })
+  }
+  catch(e)
+  {
+    res.status(500).json({
+      status:"Failure",
+      message:"Failed to retreive main filter",
+      result : e
+    })
+  }
+}
+const getSubFilters = async (req, res) => {
   const { type } = req.params;
 
   if (!type) {
@@ -52,6 +77,7 @@ const getFilterOptions = async (req, res) => {
     });
   }
 };
+
 
 const getProject = async (req, res)=>{
   const {filterType , filterValue} = req.query;
@@ -145,7 +171,7 @@ const addMeetingNotes = async(req,res)=>{
     })
   }
 }
-module.exports = { getFilterOptions , getProject , getMeetingNotes , addMeetingNotes };
+module.exports = { getSubFilters , getProject , getMeetingNotes , addMeetingNotes , getMainFilters };
 
 
 // --- Helper functions ---

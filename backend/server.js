@@ -21,6 +21,7 @@ app.use("/data-management", require("./routes/dataManagementRoute"));
 app.use("/pm", require("./routes/pmRoute"));
 app.use("/tasks", require("./routes/tasksRoute"));
 app.use("/deputy", require("./routes/deputyRoute"));
+app.use("/meeting", require("./routes/meetingRoute"));
 
 app.post(
   "/data-management/addProjectDocument",
