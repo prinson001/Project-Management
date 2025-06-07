@@ -1,20 +1,17 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Bell,
   LayoutGrid,
-  Moon,
+  Users,
   Sun,
-  Heart,
-  LayoutDashboard,
-  Settings,
+  Moon,
   LogOut,
   X,
-  Users,
 } from "lucide-react";
 import logo from "../assets/rakias-logo.png";
 import userPicture from "../assets/userlogo.png";
 import useAuth from "../hooks/userAuth";
-import { useNavigate } from "react-router-dom";
 
 const TopHeader = () => {
   const navigate = useNavigate();
@@ -87,6 +84,11 @@ const TopHeader = () => {
     navigate("/");
   };
 
+  const handleMeetingRequestClick = () => {
+    navigate("/meetings");
+    closeAppsMenu();
+  };
+
   return (
     <header className="antialiased">
       <nav className="bg-white border-gray-200 px-4 lg:px-6 py-2.5 dark:bg-[#1D1D1D]">
@@ -153,7 +155,10 @@ const TopHeader = () => {
                     </div>
 
                     <div className="grid grid-cols-3 gap-2">
-                      <div className="border rounded-md p-3 flex flex-col items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer">
+                      <div
+                        className="border rounded-md p-3 flex flex-col items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer"
+                        onClick={handleMeetingRequestClick} // Added onClick handler
+                      >
                         <Users className="w-8 h-8 mb-2 text-gray-700 dark:text-gray-300" />
                         <span className="text-xs text-center font-medium text-gray-800 dark:text-gray-300">
                           Meeting Request

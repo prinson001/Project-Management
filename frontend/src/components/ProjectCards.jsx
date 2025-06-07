@@ -11,7 +11,8 @@ import {
   AlertTriangle,
   Clock,
 } from "lucide-react";
-import DeliverableTimeline from "./DeliverableTimeline.jsx";
+import RisksAndIssuesTable from "./RisksAndIssuesTable.jsx";
+import ProjectDelivarablesTable from "./ProjectDelivarablesTable.jsx"; // Changed import
 
 // Modal Component
 const Modal = ({ isOpen, onClose, title, children }) => {
@@ -38,61 +39,86 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 const ProjectCards = () => {
   const [deliverables, setDeliverables] = useState([
     {
-      name: "The long name of the deliverable for this project",
-      duration: "25 days",
+      id: "DEL-001",
+      name: "Initial Project Setup & Configuration",
+      duration: "15 days",
       progress: 100,
-      budget: 15000,
-      invoiced: 0,
-      startDate: "2024-01-01",
-      endDate: "2024-01-25",
+      budget: "5,000 SAR",
+      invoiced: "5,000 SAR",
+      startDate: "2025-01-10",
+      endDate: "2025-01-25",
       scope: 100,
       payment: 100,
+      status: "Completed",
     },
     {
-      name: "Deliverable Number Two",
-      duration: "16 days",
-      progress: 100,
-      budget: 15000,
-      invoiced: 0,
-      startDate: "2024-01-15",
-      endDate: "2024-01-31",
-      scope: 100,
-      payment: 100,
+      id: "DEL-002",
+      name: "User Interface Design & Prototyping",
+      duration: "30 days",
+      progress: 75,
+      budget: "12,000 SAR",
+      invoiced: "8,000 SAR",
+      startDate: "2025-01-26",
+      endDate: "2025-02-24",
+      scope: 75,
+      payment: 50,
+      status: "In Progress",
     },
     {
-      name: "Deliverable Number Three",
-      duration: "22 days",
-      progress: 90,
-      budget: 15000,
-      invoiced: 0,
-      startDate: "2024-02-01",
-      endDate: "2024-02-22",
-      scope: 90,
-      payment: 0,
+      id: "DEL-003",
+      name: "Backend Development & API Integration",
+      duration: "45 days",
+      progress: 40,
+      budget: "20,000 SAR",
+      invoiced: "5,000 SAR",
+      startDate: "2025-02-25",
+      endDate: "2025-04-10",
+      scope: 40,
+      payment: 25,
+      status: "In Progress",
     },
     {
-      name: "Deliverable Number Four",
-      duration: "18 days",
-      progress: 90,
-      budget: 15000,
-      invoiced: 0,
-      startDate: "2024-02-10",
-      endDate: "2024-02-28",
-      scope: 90,
-      payment: 0,
-    },
-    {
-      name: "Deliverable Number Five",
-      duration: "33 days",
+      id: "DEL-004",
+      name: "Testing, QA & Bug Fixing Phase",
+      duration: "20 days",
       progress: 0,
-      budget: 15000,
-      invoiced: 0,
-      startDate: "2024-03-01",
-      endDate: "2024-04-03",
+      budget: "8,000 SAR",
+      invoiced: "0 SAR",
+      startDate: "2025-04-11",
+      endDate: "2025-04-30",
       scope: 0,
       payment: 0,
+      status: "Not Started",
+    },
+    {
+      id: "DEL-005",
+      name: "Deployment and Go-Live Activities",
+      duration: "10 days",
+      progress: 0,
+      budget: "6,000 SAR",
+      invoiced: "0 SAR",
+      startDate: "2025-05-01",
+      endDate: "2025-05-10",
+      scope: 0,
+      payment: 0,
+      status: "Not Started",
     },
   ]);
+
+  const deliverableColumns = [
+    { Header: "ID", accessor: "id" },
+    { Header: "Deliverable Name", accessor: "name" },
+    { Header: "Duration", accessor: "duration" },
+    { Header: "Progress %", accessor: "progress" },
+    { Header: "Budget (SAR)", accessor: "budget" },
+    { Header: "Invoiced (SAR)", accessor: "invoiced" },
+    { Header: "Start Date", accessor: "startDate" },
+    { Header: "End Date", accessor: "endDate" },
+    { Header: "Scope %", accessor: "scope" },
+    { Header: "Payment %", accessor: "payment" },
+    { Header: "Status", accessor: "status" },
+    { Header: "Actions", accessor: "actions" }, // Assuming 'actions' will be handled by the table component
+  ];
 
   const [isDeliveryCompletionOpen, setDeliveryCompletionOpen] = useState(false);
   const [isDeliveryInvoiceOpen, setDeliveryInvoiceOpen] = useState(false);
@@ -118,8 +144,23 @@ const ProjectCards = () => {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Project Cards</h1>
-      <DeliverableTimeline deliverables={deliverables} />
+      {/* Removed the main "Project Cards" h1 title as sections will have their own */}
+      <div className="my-6">
+        <h2 className="text-xl font-semibold mb-3 text-gray-800 dark:text-white">
+          Project Deliverables
+        </h2>
+        <ProjectDelivarablesTable
+          data={deliverables}
+          columns={deliverableColumns}
+          tableName="projectDeliverables"
+        />
+      </div>
+      <div className="my-6">
+        <h2 className="text-xl font-semibold mb-3 text-gray-800 dark:text-white">
+          Risks and Issues
+        </h2>
+        <RisksAndIssuesTable /> {/* Assuming RisksAndIssuesTable handles its own data or uses a default */}
+      </div>
     </div>
   );
 };

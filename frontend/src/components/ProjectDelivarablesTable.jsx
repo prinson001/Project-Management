@@ -136,7 +136,7 @@ const ActionPopup = ({ onClose, onSelect, deliverable }) => (
   </div>
 );
 
-const ProjectDelivarablesTable = ({ data, columns, tableName }) => {
+const ProjectDelivarablesTable = ({ data, columns = [], tableName }) => {
   const [openAccordion, setOpenAccordion] = useState(null);
   const [columnWidths, setColumnWidths] = useState({});
   const [resizingColumn, setResizingColumn] = useState(null);
