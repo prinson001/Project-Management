@@ -154,7 +154,8 @@ const addMeetingNotes = async(req,res)=>{
   try{
     const result = await sql `
       INSERT INTO meeting_notes(meeting_id , project_id , notes)
-      VALUES(${meeting_id},${project_id},${notes});
+      VALUES(${meeting_id},${project_id},${notes})
+      RETURNING *
     `
     res.status(201).json({
       status:"success",
