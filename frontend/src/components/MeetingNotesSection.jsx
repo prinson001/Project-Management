@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState , useEffect } from "react";
 import axiosInstance from "../axiosInstance";
 import {
   MoreHorizontal,
@@ -7,6 +7,7 @@ import {
   ChevronDown,
   X,
 } from "lucide-react";
+import axios from "axios";
 
 
 const currentProject = "disasterRecovery"; // Can be dynamic
@@ -31,16 +32,32 @@ const allMeetingNotes = {
 const MeetingNotesSection = () => {
   const [showModal, setShowModal] = useState(false);
   const [newNote, setNewNote] = useState("");
-  const [selectedMeetingDate, setSelectedMeetingDate] = useState(
-    Object.keys(allMeetingNotes[currentProject].previous)[0]
-  );
+  const [selectedMeetingDate, setSelectedMeetingDate] = useState([]);
   const [currentNotes, setCurrentNotes] = useState(
     allMeetingNotes[currentProject].current
   );
-
-
   const [currentMeetingNotes , setCurrentMeetingNotes] = useState([]);
-  const [previousMeetingNotes , setPreviousMeetingNotes] = useState([]);
+  const [previousMeetings, setPreviousMeetings] = useState([]);
+  const [selectedPreviousMeeting, setSelectedPreviousMeeting] = useState("");
+  const [selectedPreviousMeetingNotes, setSelectedPreviousMeetingNotes] = useState([]);
+
+  useEffect(()=>{
+    fetchPreviousMeetings();
+  },[])
+
+  const fetchPreviousMeetings = async()=>
+  {
+    const response = await axiosInstance.get('/meeting/previous-meeting-notes?max=5');
+    console.log(response.data.result);
+    const meetings = response.data.result;
+    setPreviousMeetings(response.data.result);
+    if(meetings.length > 0)
+    {
+      selectedPreviousMeeting(meetings[0].name);
+      setSelectedPreviousMeetingNotes(meetings[0].meeting_notes);
+    }
+  }
+
 
   const handleAddNote = async() => {
     if (!newNote.trim()) return;
@@ -58,6 +75,13 @@ const MeetingNotesSection = () => {
     setShowModal(false);
   };
 
+  const handlePreviousMeetingChange = (meetingName)=>
+  {
+    setSelectedPreviousMeeting(meetingName);
+    const meeting = previousMeetings.find(meeting=> meeting.name == meetingName);
+    setSelectedPreviousMeetingNotes(meeting.meeting_notes);
+  }
+
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 relative">
       <h3 className="text-lg font-semibold text-gray-800 mb-4">Meeting Notes</h3>
@@ -69,25 +93,25 @@ const MeetingNotesSection = () => {
           <select
             className="text-sm border rounded px-2 py-1 text-gray-700 bg-white shadow-sm"
             value={selectedMeetingDate}
-            onChange={(e) => setSelectedMeetingDate(e.target.value)}
+            onChange={(e) => handlePreviousMeetingChange(e.target.value)}
           >
-            {Object.keys(allMeetingNotes[currentProject].previous).map((date) => (
-              <option key={date} value={date}>
-                {date}
+            {previousMeetings.map((meeting) => (
+              <option key={meeting.name} value={meeting.name}>
+                {meeting.name}
               </option>
             ))}
           </select>
         </div>
 
         <div className="space-y-3">
-          {allMeetingNotes[currentProject].previous[selectedMeetingDate]?.map(
+          {selectedPreviousMeetingNotes?.map(
             (note) => (
               <div
                 key={note.id}
                 className="flex items-center space-x-3 text-sm text-gray-700"
               >
                 <Flag className="w-4 h-4 text-green-500" />
-                <span>{note.text}</span>
+                <span>{note.notes}</span>
               </div>
             )
           )}

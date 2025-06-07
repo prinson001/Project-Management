@@ -115,6 +115,31 @@ const getProject = async (req, res)=>{
   
 }
 
+const createMeeting = async (req,res)=>{
+  const {name , user_id} = req.body;
+  const now = new Date();
+  const status = 'in_progress'
+  try{
+    const result = await sql `
+      INSERT INTO meeting(name , started_by , started_at , status)
+      VALUES(${name},${user_id},${now},${status})
+      RETURNING *
+    `
+    res.status(201).json({
+      status:"success",
+      message:"Successfully created meeting",
+      result
+    })
+  }
+  catch(e)
+  {
+    res.status(500).json({
+      status:"failure",
+      message:"Failed to create a meeting",
+      result :e
+    })
+  }
+}
 const getMeetingNotes= async (req,res)=>{
   const {startDate , endDate , projectId} = req.query;
 
@@ -147,7 +172,6 @@ const getMeetingNotes= async (req,res)=>{
     })
   }
 }
-
 const addMeetingNotes = async(req,res)=>{
   const {notes , project_id , meeting_id} =  req.body;
 
@@ -172,7 +196,52 @@ const addMeetingNotes = async(req,res)=>{
     })
   }
 }
-module.exports = { getSubFilters , getProject , getMeetingNotes , addMeetingNotes , getMainFilters };
+const getPreviousMeetingNotes = async(req,res)=>{
+  let maxRecords = 5;
+  const {max} = req.query;
+  maxRecords = max ?? maxRecords; 
+
+  try{
+    const result = await sql  `
+        SELECT * FROM (
+          SELECT 
+            m.id AS meeting_id,
+            m.name,
+            m.started_at,
+            COALESCE(
+              json_agg(
+                json_build_object(
+                  'notes', n.notes
+                )
+              ) FILTER (WHERE n.id IS NOT NULL),
+              '[]'
+            ) AS meeting_notes
+          FROM meeting m
+          LEFT JOIN meeting_notes n ON m.id = n.meeting_id
+          GROUP BY m.id, m.name, m.started_at
+          ORDER BY m.started_at DESC
+          LIMIT 5
+        ) AS latest_meetings
+        ORDER BY started_at DESC;
+
+    `
+    res.status(200).json({
+      status:"success",
+      message:"retreived the latest meeting and meeting notes",
+      result,
+    })
+
+  }
+  catch(e)
+  {
+    res.status(500).json({
+      status:"failure",
+      message:"failed to get previous meeting notes",
+      result:e
+    })
+  }
+}
+module.exports = { getSubFilters , getProject , getMeetingNotes , addMeetingNotes , getMainFilters , createMeeting , getPreviousMeetingNotes};
 
 
 // --- Helper functions ---

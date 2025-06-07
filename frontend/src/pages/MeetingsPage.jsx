@@ -24,7 +24,10 @@ const MeetingsPage = () => {
   useEffect(()=>{
     fetchMainFilters();
     console.log("use effect is called");
+    // console.log(formatDateWithWeek(new Date("2025-05-01")));
   },[]);
+
+
 
   const fetchMainFilters = async ()=>{
     const response = await axiosInstance.get('/meeting/main-filters');

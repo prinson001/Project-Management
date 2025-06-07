@@ -12,6 +12,7 @@ import {
 import logo from "../assets/rakias-logo.png";
 import userPicture from "../assets/userlogo.png";
 import useAuth from "../hooks/userAuth";
+import axiosInstance from "../axiosInstance";
 
 const TopHeader = () => {
   const navigate = useNavigate();
@@ -84,10 +85,40 @@ const TopHeader = () => {
     navigate("/");
   };
 
-  const handleMeetingRequestClick = () => {
-    navigate("/meetings");
-    closeAppsMenu();
+  const handleMeetingRequestClick = async() => {
+    const response = await axiosInstance.post("/meeting/meeting",{
+      name : formatDateWithWeek(new Date()),
+      user_id :22
+    })
+    console.log(response.data.result);
+    console.log(response.status);
+    if(response.status == '201')
+    {
+      navigate("/meetings");
+      closeAppsMenu();
+    }
   };
+  function formatDateWithWeek(date) {
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  const dayName = days[date.getDay()];
+  const day = date.getDate();
+  const monthName = months[date.getMonth()];
+  const yearShort = date.getFullYear().toString().slice(-2);
+  const week = getWeekOfMonth(date);
+
+  return `${dayName} ${day} ${monthName} ${yearShort} (W${week})`;
+}
+
+  // Helper: calculate which week of the month
+  function getWeekOfMonth(date) {
+    const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+    const dayOfWeek = startOfMonth.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const adjustedDate = date.getDate() + dayOfWeek;
+    return Math.ceil(adjustedDate / 7);
+  }
 
   return (
     <header className="antialiased">
