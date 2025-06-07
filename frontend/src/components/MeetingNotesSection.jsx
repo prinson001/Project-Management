@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import axiosInstance from "../axiosInstance";
 import {
   MoreHorizontal,
   Plus,
@@ -6,6 +7,7 @@ import {
   ChevronDown,
   X,
 } from "lucide-react";
+
 
 const currentProject = "disasterRecovery"; // Can be dynamic
 
@@ -36,11 +38,21 @@ const MeetingNotesSection = () => {
     allMeetingNotes[currentProject].current
   );
 
-  const handleAddNote = () => {
+
+  const [currentMeetingNotes , setCurrentMeetingNotes] = useState([]);
+  const [previousMeetingNotes , setPreviousMeetingNotes] = useState([]);
+
+  const handleAddNote = async() => {
     if (!newNote.trim()) return;
-    setCurrentNotes((prev) => [
+    const response = await axiosInstance.post("meeting/add-meeting-notes",{
+      notes : newNote,
+      project_id : 200,
+      meeting_id : 1
+    })
+    console.log(response.data.result);
+    setCurrentMeetingNotes((prev) => [
       ...prev,
-      { id: Date.now(), text: newNote, completed: false },
+      response.data.result[0]
     ]);
     setNewNote("");
     setShowModal(false);
@@ -96,11 +108,11 @@ const MeetingNotesSection = () => {
         </div>
 
         <div className="space-y-3">
-          {currentNotes.map((note) => (
+          {currentMeetingNotes.map((note) => (
             <div key={note.id} className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <Flag className="w-4 h-4 text-green-500" />
-                <span className="text-sm text-gray-700">{note.text}</span>
+                <span className="text-sm text-gray-700">{note.notes}</span>
               </div>
               <MoreHorizontal className="w-4 h-4 text-gray-400" />
             </div>
