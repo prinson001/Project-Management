@@ -7,6 +7,7 @@ import ProjectMeetingHeader from "../components/ProjectMeetingHeader";
 import ProjectMeetingMainSection from "../components/ProjectMeetingMainSection";
 import axiosInstance from "../axiosInstance";
 import { ChevronRight, ChevronLeft, NotebookPen } from "lucide-react"; // Import icons for expand/collapse and NotebookPen icon
+import ProjectSelectCard from "../components/ProjectSelectCard";
 
 const MeetingsPage = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -59,6 +60,41 @@ const MeetingsPage = () => {
   const handleSubOptionClick = async (option)=>{
     setActiveSubFilter(option);
   }
+
+  // Dummy projects data for selection
+  const dummyProjects = [
+    {
+      id: 1,
+      title: "External Platform upgrade for long name project applies in this year",
+      amount: "850,000 SAR",
+      percent1: 10,
+      percent2: 60,
+      lastUpdated: "3 days ago",
+      status: "danger",
+    },
+    {
+      id: 2,
+      title: "External Platform upgrade for long name project applies in this year",
+      amount: "1,400,000 SAR",
+      percent1: 0,
+      percent2: 90,
+      lastUpdated: "3 days ago",
+      status: "success",
+    },
+    {
+      id: 3,
+      title: "External Platform upgrade for long name project applies in this year",
+      amount: "120,000 SAR",
+      percent1: 50,
+      percent2: 20,
+      lastUpdated: "3 days ago",
+      status: "danger",
+    },
+  ];
+
+  // Show project select cards for any tab (for demo)
+  const showProjectCards = !!activeSubFilter;
+
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-gray-50 dark:bg-black">
       <TopHeader />
@@ -77,10 +113,25 @@ const MeetingsPage = () => {
           {/* Project Meeting Header */}
           <ProjectMeetingHeader
             toggleSidebar={toggleSidebar}
-            subFilters = {subFilters}
-            activeSubFilter = {activeSubFilter}
-            handleSubOptionClick = {handleSubOptionClick}
+            subFilters={subFilters}
+            activeSubFilter={activeSubFilter}
+            handleSubOptionClick={handleSubOptionClick}
           />
+
+          {/* Main Section: Show project cards for any tab (demo) */}
+          {showProjectCards && (
+            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              {dummyProjects.map((project) => (
+                <ProjectSelectCard
+                  key={project.id}
+                  project={project}
+                  onSelect={() => {
+                    // handle project selection (e.g., set selected project)
+                  }}
+                />
+              ))}
+            </div>
+          )}
 
           {/* Project Meeting Main Section */}
           {/* <ProjectMeetingMainSection
