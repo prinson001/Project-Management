@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import RisksAndIssuesTable from "./RisksAndIssuesTable.jsx";
 import ProjectDelivarablesTable from "./ProjectDelivarablesTable.jsx"; // Changed import
+import ProjectTasks from "./ProjectTasks.jsx";
+import ProjectDeliverables from "./ProjectDeliverables.jsx";
 
 // Modal Component
 const Modal = ({ isOpen, onClose, title, children }) => {
@@ -45,10 +47,10 @@ const ProjectCards = () => {
       progress: 100,
       budget: "5,000 SAR",
       invoiced: "5,000 SAR",
-      startDate: "2025-01-10",
-      endDate: "2025-01-25",
-      scope: 100,
-      payment: 100,
+      start_date: "2025-01-10",
+      end_date: "2025-01-25",
+      scope_percentage: "100%",
+      payment_percentage: "100%",
       status: "Completed",
     },
     {
@@ -58,10 +60,10 @@ const ProjectCards = () => {
       progress: 75,
       budget: "12,000 SAR",
       invoiced: "8,000 SAR",
-      startDate: "2025-01-26",
-      endDate: "2025-02-24",
-      scope: 75,
-      payment: 50,
+      start_date: "2025-01-26",
+      end_date: "2025-02-24",
+      scope_percentage: "75%",
+      payment_percentage: "50%",
       status: "In Progress",
     },
     {
@@ -71,10 +73,10 @@ const ProjectCards = () => {
       progress: 40,
       budget: "20,000 SAR",
       invoiced: "5,000 SAR",
-      startDate: "2025-02-25",
-      endDate: "2025-04-10",
-      scope: 40,
-      payment: 25,
+      start_date: "2025-02-25",
+      end_date: "2025-04-10",
+      scope_percentage: "40%",
+      payment_percentage: "25%",
       status: "In Progress",
     },
     {
@@ -84,10 +86,10 @@ const ProjectCards = () => {
       progress: 0,
       budget: "8,000 SAR",
       invoiced: "0 SAR",
-      startDate: "2025-04-11",
-      endDate: "2025-04-30",
-      scope: 0,
-      payment: 0,
+      start_date: "2025-04-11",
+      end_date: "2025-04-30",
+      scope_percentage: "0%",
+      payment_percentage: "0%",
       status: "Not Started",
     },
     {
@@ -97,27 +99,26 @@ const ProjectCards = () => {
       progress: 0,
       budget: "6,000 SAR",
       invoiced: "0 SAR",
-      startDate: "2025-05-01",
-      endDate: "2025-05-10",
-      scope: 0,
-      payment: 0,
+      start_date: "2025-05-01",
+      end_date: "2025-05-10",
+      scope_percentage: "0%",
+      payment_percentage: "0%",
       status: "Not Started",
     },
   ]);
 
   const deliverableColumns = [
-    { Header: "ID", accessor: "id" },
-    { Header: "Deliverable Name", accessor: "name" },
-    { Header: "Duration", accessor: "duration" },
-    { Header: "Progress %", accessor: "progress" },
-    { Header: "Budget (SAR)", accessor: "budget" },
-    { Header: "Invoiced (SAR)", accessor: "invoiced" },
-    { Header: "Start Date", accessor: "startDate" },
-    { Header: "End Date", accessor: "endDate" },
-    { Header: "Scope %", accessor: "scope" },
-    { Header: "Payment %", accessor: "payment" },
-    { Header: "Status", accessor: "status" },
-    { Header: "Actions", accessor: "actions" }, // Assuming 'actions' will be handled by the table component
+    { columnName: "ID", dbColumn: "id" },
+    { columnName: "Deliverable Name", dbColumn: "name" },
+    { columnName: "Duration", dbColumn: "duration" },
+    { columnName: "Progress %", dbColumn: "progress" },
+    { columnName: "Budget (SAR)", dbColumn: "budget" },
+    { columnName: "Invoiced (SAR)", dbColumn: "invoiced" },
+    { columnName: "Start Date", dbColumn: "start_date" },
+    { columnName: "End Date", dbColumn: "end_date" },
+    { columnName: "Scope %", dbColumn: "scope_percentage" },
+    { columnName: "Payment %", dbColumn: "payment_percentage" },
+    { columnName: "Status", dbColumn: "status" },
   ];
 
   const [isDeliveryCompletionOpen, setDeliveryCompletionOpen] = useState(false);
@@ -154,6 +155,10 @@ const ProjectCards = () => {
           columns={deliverableColumns}
           tableName="projectDeliverables"
         />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+        <ProjectDeliverables />
+        <ProjectTasks />
       </div>
       <div className="my-6">
         <h2 className="text-xl font-semibold mb-3 text-gray-800 dark:text-white">
