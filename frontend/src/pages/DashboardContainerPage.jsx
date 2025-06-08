@@ -5,11 +5,44 @@ import ProjectCards from "../components/ProjectCards";
 import DashboardPage from "./DashboardPage";
 import Accordion from "../components/Accordion";
 import ProjectTiles from "../components/ProjectTiles";
+import ProjectSelectCard from "../components/ProjectSelectCard";
 
 const DashboardContainerPage = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("projectCards");
+  const [selectedProject, setSelectedProject] = useState(null);
   const toggleSidebar = () => setIsSidebarOpen((open) => !open);
+
+  // Dummy projects data for selection
+  const dummyProjects = [
+    {
+      id: 1,
+      title: "External Platform upgrade for long name project applies in this year",
+      amount: "850,000 SAR",
+      percent1: 10,
+      percent2: 60,
+      lastUpdated: "3 days ago",
+      status: "danger",
+    },
+    {
+      id: 2,
+      title: "External Platform upgrade for long name project applies in this year",
+      amount: "1,400,000 SAR",
+      percent1: 0,
+      percent2: 90,
+      lastUpdated: "3 days ago",
+      status: "success",
+    },
+    {
+      id: 3,
+      title: "External Platform upgrade for long name project applies in this year",
+      amount: "120,000 SAR",
+      percent1: 50,
+      percent2: 20,
+      lastUpdated: "3 days ago",
+      status: "danger",
+    },
+  ];
 
   const tabs = [
     { id: "projectCards", label: "Project Cards" },
@@ -26,6 +59,18 @@ const DashboardContainerPage = () => {
         />
         <main className="flex-1 overflow-auto p-4">
           <Accordion title="Dashboard" defaultOpen={true} className="mb-4">
+            {/* Project Select Cards - global to accordion */}
+            {!selectedProject && (
+              <div className="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                {dummyProjects.map((project) => (
+                  <ProjectSelectCard
+                    key={project.id}
+                    project={project}
+                    onSelect={() => setSelectedProject(project)}
+                  />
+                ))}
+              </div>
+            )}
             {/* Tab Navigation - Consistent with DataManagementTabs */}
             <div className="w-full max-w-8xl mx-auto">
               <div className="text-sm font-medium text-center text-gray-500 border-b border-gray-200 dark:text-gray-400 dark:border-gray-700">
@@ -54,13 +99,28 @@ const DashboardContainerPage = () => {
             </div>
             {/* Tab Content */}
             <div>
-              {activeTab === "projectCards" ? (
+              {selectedProject && (
+                <div className="mb-6">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h2 className="text-xl font-bold">{selectedProject.title}</h2>
+                    <button
+                      className="px-3 py-1 text-sm rounded bg-gray-100 border hover:bg-gray-200"
+                      onClick={() => setSelectedProject(null)}
+                    >
+                      Back to Projects
+                    </button>
+                  </div>
+                </div>
+              )}
+              {selectedProject && activeTab === "projectCards" && (
                 <>
-                  <ProjectTiles />
-                  <ProjectCards />
+                  <ProjectTiles project={selectedProject} />
+                  <ProjectCards project={selectedProject} />
                 </>
-              ) : (
-                <DashboardPage />
+              )}
+              {selectedProject && activeTab === "dashboard" && <DashboardPage project={selectedProject} />}
+              {!selectedProject && (
+                <div className="text-center text-gray-400 py-12 text-lg">Select a project to view details.</div>
               )}
             </div>
           </Accordion>

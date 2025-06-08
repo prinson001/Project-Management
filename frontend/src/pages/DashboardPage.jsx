@@ -13,6 +13,7 @@ import {
 import { Line, Doughnut } from "react-chartjs-2";
 import { Maximize2 } from "lucide-react";
 import DashboardTabs from "../components/DashboardTabs";
+import ProjectSelectCard from "../components/ProjectSelectCard";
 
 // Register ChartJS components
 ChartJS.register(
@@ -167,85 +168,174 @@ function DashboardContent() {
   const scheduleData = [1.0, 1.04, 0.97, 1.0, 0.95, 0.99, 0.95];
   const costData = [1.0, 1.01, 0.98, 1.02, 1.0, 0.97, 1.03];
 
+  // Dummy projects data for selection
+  const dummyProjects = [
+    {
+      id: 1,
+      title: "External Platform upgrade for long name project applies in this year",
+      amount: "850,000 SAR",
+      percent1: 10,
+      percent2: 60,
+      lastUpdated: "3 days ago",
+      status: "danger",
+    },
+    {
+      id: 2,
+      title: "External Platform upgrade for long name project applies in this year",
+      amount: "1,400,000 SAR",
+      percent1: 0,
+      percent2: 90,
+      lastUpdated: "3 days ago",
+      status: "success",
+    },
+    {
+      id: 3,
+      title: "External Platform upgrade for long name project applies in this year",
+      amount: "120,000 SAR",
+      percent1: 50,
+      percent2: 20,
+      lastUpdated: "3 days ago",
+      status: "danger",
+    },
+  ];
+
+  const [selectedProject, setSelectedProject] = useState(null);
+
   return (
     <div className="p-4 max-w-6xl mx-auto">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 mb-6">
-        <DashboardCard
-          title="Invoices"
-          total={35}
-          mainPercent={90}
-          mainLabel="Invoiced"
-          secondaryPercent={10}
-          secondaryLabel="Delayed"
-          mainColor="#3b82f6"
-          secondaryColor="#f87171"
-        />
-        <DashboardCard
-          title="Deliverables"
-          total={121}
-          mainPercent={80}
-          mainLabel="On Plan"
-          secondaryPercent={20}
-          secondaryLabel="Delayed"
-          mainColor="#10b981"
-          secondaryColor="#f87171"
-        />
-        <DashboardCard
-          title="Tasks"
-          total={8}
-          mainPercent={6}
-          mainLabel="In Progress"
-          secondaryPercent={2}
-          secondaryLabel="Delayed"
-          mainColor="#10b981"
-          secondaryColor="#f87171"
-        />
-        <DashboardCard
-          title="Near Due Risks"
-          total={88}
-          mainPercent={90}
-          mainLabel="Closed"
-          secondaryPercent={10}
-          secondaryLabel="Open Risks"
-          mainColor="#d6bcfa"
-          secondaryColor="#f87171"
-        />
-        <DashboardCard
-          title="Issues"
-          total={12}
-          mainPercent={80}
-          mainLabel="Closed"
-          secondaryPercent={20}
-          secondaryLabel="Open"
-          mainColor="#d6bcfa"
-          secondaryColor="#f87171"
-        />
-        <DashboardCard
-          title="Documentation"
-          total={125}
-          mainPercent={60}
-          mainLabel="Uploaded"
-          secondaryPercent={40}
-          secondaryLabel="Delayed"
-          mainColor="#fed7aa"
-          secondaryColor="#f87171"
-        />
-      </div>
+      {/* Project selection grid */}
+      {!selectedProject && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+          {dummyProjects.map((project) => (
+            <ProjectSelectCard
+              key={project.id}
+              project={project}
+              onSelect={() => setSelectedProject(project)}
+            />
+          ))}
+        </div>
+      )}
+      {/* Show project details if selected */}
+      {selectedProject && (
+        <>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-bold">{selectedProject.title}</h2>
+            <button
+              className="px-3 py-1 text-sm rounded bg-gray-100 border hover:bg-gray-200"
+              onClick={() => setSelectedProject(null)}
+            >
+              Back to Projects
+            </button>
+          </div>
+          {/* Project Tiles, Deliverables, Risks, etc. (dummy) */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-2">Project Tiles</h3>
+            <div className="bg-white border rounded-lg p-4 mb-4">
+              <span className="text-gray-700">
+                [ProjectTiles for {selectedProject.title}]
+              </span>
+            </div>
+          </div>
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-2">Project Deliverables</h3>
+            <div className="bg-white border rounded-lg p-4 mb-4">
+              <span className="text-gray-700">
+                [ProjectDeliverables for {selectedProject.title}]
+              </span>
+            </div>
+          </div>
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-2">Risks and Issues</h3>
+            <div className="bg-white border rounded-lg p-4 mb-4">
+              <span className="text-gray-700">
+                [RisksAndIssuesTable for {selectedProject.title}]
+              </span>
+            </div>
+          </div>
+        </>
+      )}
+      {/* ...existing dashboard content (cards, charts) can be shown below or hidden if project is selected... */}
+      {!selectedProject && (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 mb-6">
+            <DashboardCard
+              title="Invoices"
+              total={35}
+              mainPercent={90}
+              mainLabel="Invoiced"
+              secondaryPercent={10}
+              secondaryLabel="Delayed"
+              mainColor="#3b82f6"
+              secondaryColor="#f87171"
+            />
+            <DashboardCard
+              title="Deliverables"
+              total={121}
+              mainPercent={80}
+              mainLabel="On Plan"
+              secondaryPercent={20}
+              secondaryLabel="Delayed"
+              mainColor="#10b981"
+              secondaryColor="#f87171"
+            />
+            <DashboardCard
+              title="Tasks"
+              total={8}
+              mainPercent={6}
+              mainLabel="In Progress"
+              secondaryPercent={2}
+              secondaryLabel="Delayed"
+              mainColor="#10b981"
+              secondaryColor="#f87171"
+            />
+            <DashboardCard
+              title="Near Due Risks"
+              total={88}
+              mainPercent={90}
+              mainLabel="Closed"
+              secondaryPercent={10}
+              secondaryLabel="Open Risks"
+              mainColor="#d6bcfa"
+              secondaryColor="#f87171"
+            />
+            <DashboardCard
+              title="Issues"
+              total={12}
+              mainPercent={80}
+              mainLabel="Closed"
+              secondaryPercent={20}
+              secondaryLabel="Open"
+              mainColor="#d6bcfa"
+              secondaryColor="#f87171"
+            />
+            <DashboardCard
+              title="Documentation"
+              total={125}
+              mainPercent={60}
+              mainLabel="Uploaded"
+              secondaryPercent={40}
+              secondaryLabel="Delayed"
+              mainColor="#fed7aa"
+              secondaryColor="#f87171"
+            />
+          </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <PerformanceChart
-          title="Schedule Performance Index"
-          value="0.95"
-          data={scheduleData}
-          color="red"
-        />
-        <PerformanceChart
-          title="Cost Performance Index"
-          value="1.01"
-          data={costData}
-          color="green"
-        />
-      </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <PerformanceChart
+              title="Schedule Performance Index"
+              value="0.95"
+              data={scheduleData}
+              color="red"
+            />
+            <PerformanceChart
+              title="Cost Performance Index"
+              value="1.01"
+              data={costData}
+              color="green"
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }
