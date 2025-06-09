@@ -1,6 +1,8 @@
 const sql = require("../database/db");
 
-
+//  project tasks
+//  project_id , notes , create_date , week , month 
+//  1 , "Complete dashboord ui design" , 09-06-2025 , w3 , June
 const createProjectTasks = async(req , res) =>{
     const {notes , projectId} = req.body;
 
@@ -78,3 +80,65 @@ const deleteProjectTasks = async(req,res)=>{
         })
     }
 }
+
+const getProjectDetails = async(req,res)=>{
+    const {projectid} = req.params;
+    try{
+        const result = await sql `
+            SELECT 
+                *
+            FROM
+                project
+            WHERE  
+                id = ${projectid}
+        `
+        res.status(200).json({
+            status:"success",
+            message:"successfully retreived project details",
+            result
+        })
+    }
+    catch(e)
+    {
+        res.status(500).json({
+            status:"failure",
+            message:"Failed to get Project Details",
+            result:e
+        })
+    }
+}
+
+const getProjectDeliverables = async(req,res)=>{
+    const {projectid} = req.params;
+    try{
+        const result = await sql `
+            SELECT 
+                *
+            FROM
+                deliverable d
+            WHERE
+                d.item_id IN ( SELECT id FROM item WHERE project_id = ${projectid})
+        `
+        res.status(200).json({
+            status:"success",
+            message:"Successfully retrieved project deliverables",
+            result
+        })
+    }
+    catch(e)
+    {
+        res.status(500).json({
+            status:"failure",
+            message:"failed to get project deliverables",
+            result:e
+        })
+    }
+}
+
+
+module.exports = {createProjectTasks,getProjectTasks,deleteProjectTasks,getProjectDetails,getProjectDeliverables};
+
+
+
+
+

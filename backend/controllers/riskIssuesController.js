@@ -3,25 +3,33 @@ const sql = require("../database/db");
 
 
 const getRisks = async (req,res) =>{
-    const {sortType , sortOrder} = req.query;
+    const {sortType , sortOrder , projectid} = req.query;
     try{
         let query = `
             SELECT
                 r.*
             FROM
-                risk r
+                risks r
+            WHERE
+                r.linked_project_id = ${projectid} OR
+                r.linked_deliverable_id IN (
+                    SELECT 
+                        id
+                    FROM
+                        deliverable
+                    WHERE
+                        item_id IN (
+                            SELECT 
+                                id
+                            FROM
+                                item
+                            WHERE
+                                project_id =${projectid}
+                        )
+                )
             ${sortType ? sql `ORDER BY ${sortType} ${sortOrder.toUpperCase()}`
                        : sql `ORDER BY created_date DESC`}
         `;
-
-        if(sortType)
-        {
-            result += sql `
-                ORDER BY
-                    ${sortType} ${sortOrder.toUpperCase()}
-            `;
-        }
-
         let result = await sql `${query}`;
         res.status(200).json({
             status:"success",
@@ -65,4 +73,7 @@ const insertRisk = async (req,res)=>{
         })
     }
 }
+
+
+module.exports = {getRisks,insertRisk};
 

@@ -79,8 +79,10 @@ const getSubFilters = async (req, res) => {
 };
 
 
-const getProject = async (req, res)=>{
+const getProjects = async (req, res)=>{
   const {filterType , filterValue} = req.query;
+  console.log("filter type :"+filterType);
+  console.log("filter Value :"+filterValue);
   try{
     let result ;
     switch(filterType)
@@ -241,7 +243,7 @@ const getPreviousMeetingNotes = async(req,res)=>{
     })
   }
 }
-module.exports = { getSubFilters , getProject , getMeetingNotes , addMeetingNotes , getMainFilters , createMeeting , getPreviousMeetingNotes};
+module.exports = { getSubFilters , getProjects , getMeetingNotes , addMeetingNotes , getMainFilters , createMeeting , getPreviousMeetingNotes};
 
 
 // --- Helper functions ---
@@ -287,7 +289,7 @@ const fetchProjectsBasedOnProjectType = async (filterType, filterValue) =>{
       WHERE 
         pt.name = ${filterValue}
     `;
-    
+    console.log("the result "+result);
     return {
       status:"success",
       message:"Succefully fetched projects",

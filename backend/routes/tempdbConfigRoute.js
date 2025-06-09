@@ -36,7 +36,8 @@ const {
   alterObjectivedatetoAutoFill,
   alterColumnsToDateType,
   createTableMeeting,
-  createTableMeetingNotes
+  createTableMeetingNotes,
+  createTableRisks
 } = require("../database/dbConfig");
 const {
   createSchedulePlanTaskForPM,
@@ -87,5 +88,6 @@ router.get("/alterdateobjective", alterObjectivedatetoAutoFill);
 router.get("/alterColumnsToDateType", alterColumnsToDateType);
 router.get("/ctablemeeting",createTableMeeting);
 router.get("/ctablemeetingnotes",createTableMeetingNotes);
+router.get("/ctablerisks",createTableRisks);
 
 module.exports = router;

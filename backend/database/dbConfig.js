@@ -1254,7 +1254,37 @@ const createTableProjectTasks = async (req,res)=>{
     })
   }
 }
+const createTableRisks = async(req,res)=>{
+  try{
+    const result = await sql `
+      CREATE TABLE IF NOT EXISTS risks (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255),
+        status VARCHAR(20),
+        type VARCHAR(20),
+        created_date DATE DEFAULT CURRENT_DATE,
+        due_date DATE,
+        linked_project_id INTEGER REFERENCES project(id) ON DELETE CASCADE,
+        linked_deliverable_id INTEGER REFERENCES deliverable(id) ON DELETE CASCADE,
+        comments VARCHAR(255)
+      );
 
+    `
+    res.status(201).json({
+      status:"success",
+      message:"successfully created table risks",
+      result 
+    })
+  }
+  catch(e)
+  {
+    res.status(500).json({
+      status:"failure",
+      message:"failed to create risk table",
+      result :e
+    })
+  }
+}
 module.exports = {
   createUsersTable,
   createInitiativeTable,
@@ -1295,5 +1325,6 @@ module.exports = {
   alterObjectivedatetoAutoFill,
   alterColumnsToDateType,
   createTableMeeting,
-  createTableMeetingNotes
+  createTableMeetingNotes,
+  createTableRisks
 };

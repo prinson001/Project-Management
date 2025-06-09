@@ -15,11 +15,11 @@ export default function ProjectSelectCard({ project, onSelect }) {
 
   return (
     <button
-      className={`w-full h-full text-left bg-white rounded-lg border ${borderColor} p-4 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between`}
+      className={`w-84 h-full text-left bg-white rounded-lg border ${borderColor} p-4 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between`}
       onClick={() => onSelect(project)}
     >
-      <div className="font-medium text-sm mb-1 line-clamp-2">{project.title}</div>
-      <div className="text-xl font-bold mb-2">{project.amount}</div>
+      <div className="font-medium text-sm mb-1 line-clamp-2">{project.name}</div>
+      <div className="text-xl font-bold mb-2">{project.project_budget}</div>
       <div className="flex items-center justify-between text-xs mb-1">
         <span className={percent1Color}>{project.percent1}%</span>
         <span className={percent2Color}>{project.percent2}%</span>

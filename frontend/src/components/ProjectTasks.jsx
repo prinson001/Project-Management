@@ -95,9 +95,9 @@ export default function ProjectTasks() {
         </div>
       )}
 
-      <TaskList tasks={tasks.completed} title="Completed tasks from last week" />
-      <TaskList tasks={tasks.planned} title="Planned tasks for next week" />
+      <TaskList tasks={tasks.completed} title="Previous Meeting Notes" />
       <TaskList tasks={tasks.previous} title="Previous tasks" />
+      <TaskList tasks={tasks.planned} title="Planned tasks for next week" />
     </div>
   );
 }

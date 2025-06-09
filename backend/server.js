@@ -22,6 +22,7 @@ app.use("/pm", require("./routes/pmRoute"));
 app.use("/tasks", require("./routes/tasksRoute"));
 app.use("/deputy", require("./routes/deputyRoute"));
 app.use("/meeting", require("./routes/meetingRoute"));
+app.use("/project-card",require("./routes/projectCardRoute"));
 
 app.post(
   "/data-management/addProjectDocument",

@@ -8,6 +8,9 @@ import ProjectMeetingMainSection from "../components/ProjectMeetingMainSection";
 import axiosInstance from "../axiosInstance";
 import { ChevronRight, ChevronLeft, NotebookPen } from "lucide-react"; // Import icons for expand/collapse and NotebookPen icon
 import ProjectSelectCard from "../components/ProjectSelectCard";
+import ProjectCards from "../components/ProjectCards";
+import ProjectTiles from "../components/ProjectTiles";
+import axios from "axios";
 
 const MeetingsPage = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -18,6 +21,7 @@ const MeetingsPage = () => {
   const [activeSideBarFilter , setActiveSideBarFilter] = useState("");
   const [subFilters , setSubFilters] = useState([]);
   const [activeSubFilter , setActiveSubFilter] = useState("");
+  const [projects , setProjects] = useState([]);
   const subFiltersCache = useRef({});
 
 
@@ -62,38 +66,14 @@ const MeetingsPage = () => {
   }
   const handleSubOptionClick = async (option)=>{
     setActiveSubFilter(option);
-  }
+    console.log("the option is"+option);
+    console.log("the sidebar filter is"+activeSideBarFilter);
+    const response = await axiosInstance.get(`/meeting/projects?filterType=${activeSideBarFilter}&filterValue=${option}`);
+    const projects = response.data.result;
+    console.log(projects);
+    setProjects(projects);
 
-  // Dummy projects data for selection
-  const dummyProjects = [
-    {
-      id: 1,
-      title: "External Platform upgrade for long name project applies in this year",
-      amount: "850,000 SAR",
-      percent1: 10,
-      percent2: 60,
-      lastUpdated: "3 days ago",
-      status: "danger",
-    },
-    {
-      id: 2,
-      title: "External Platform upgrade for long name project applies in this year",
-      amount: "1,400,000 SAR",
-      percent1: 0,
-      percent2: 90,
-      lastUpdated: "3 days ago",
-      status: "success",
-    },
-    {
-      id: 3,
-      title: "External Platform upgrade for long name project applies in this year",
-      amount: "120,000 SAR",
-      percent1: 50,
-      percent2: 20,
-      lastUpdated: "3 days ago",
-      status: "danger",
-    },
-  ];
+  }
 
   // Show project select cards for any tab (for demo)
   const showProjectCards = !!activeSubFilter;
@@ -122,18 +102,21 @@ const MeetingsPage = () => {
           />
 
           {/* Main Section: Show project cards for any tab (demo) */}
-          {showProjectCards && (
-            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {dummyProjects.map((project) => (
-                <ProjectSelectCard
-                  key={project.id}
-                  project={project}
-                  onSelect={() => {
-                    // handle project selection (e.g., set selected project)
-                  }}
-                />
-              ))}
+          {projects && (
+            <div className="p-6 overflow-x-auto h-64">
+              <div className="flex space-x-4 min-w-max">
+                {projects.map((project) => (
+                  <ProjectSelectCard
+                    key={project.id}
+                    project={project}
+                    onSelect={() => {
+                      // handle project selection
+                    }}
+                  />
+                ))}
+              </div>
             </div>
+
           )}
 
           {/* Project Meeting Main Section */}
@@ -142,6 +125,8 @@ const MeetingsPage = () => {
             activeOption={activeOption}
             mainContent={<ProjectTasksSection />}
           /> */}
+          {/* <ProjectTiles/>
+          <ProjectCards /> */}
         </div>
 
         {/* Sticky Toggle for Notes Panel */}
