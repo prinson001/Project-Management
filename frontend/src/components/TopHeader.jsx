@@ -19,7 +19,7 @@ const TopHeader = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAppsOpen, setIsAppsOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const { email, role } = useAuth();
+  const { email, role, setMeetingId } = useAuth();
 
   const profileRef = useRef(null);
   const appsRef = useRef(null);
@@ -94,6 +94,7 @@ const TopHeader = () => {
     console.log(response.status);
     if(response.status == '201')
     {
+      setMeetingId(response.data.result.id);
       navigate("/meetings");
       closeAppsMenu();
     }
