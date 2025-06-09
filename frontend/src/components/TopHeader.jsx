@@ -90,11 +90,12 @@ const TopHeader = () => {
       name : formatDateWithWeek(new Date()),
       user_id :22
     })
-    console.log(response.data.result);
+    console.log("the meeting id is");
+    console.log(response.data.result[0].id);
     console.log(response.status);
     if(response.status == '201')
     {
-      setMeetingId(response.data.result.id);
+      setMeetingId(response.data.result[0].id);
       navigate("/meetings");
       closeAppsMenu();
     }

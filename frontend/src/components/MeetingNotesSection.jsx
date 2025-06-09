@@ -29,7 +29,7 @@ const allMeetingNotes = {
   },
 };
 
-const MeetingNotesSection = () => {
+const MeetingNotesSection = (meetingId) => {
   const [showModal, setShowModal] = useState(false);
   const [newNote, setNewNote] = useState("");
   const [selectedMeetingDate, setSelectedMeetingDate] = useState([]);
@@ -42,7 +42,9 @@ const MeetingNotesSection = () => {
   const [selectedPreviousMeetingNotes, setSelectedPreviousMeetingNotes] = useState([]);
 
   useEffect(()=>{
+    console.log("meeting id in meeting page "+meetingId);
     fetchPreviousMeetings();
+
   },[])
 
   const fetchPreviousMeetings = async()=>

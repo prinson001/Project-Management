@@ -165,7 +165,9 @@ const MeetingsPage = () => {
               )}{" "}
               {/* Arrow icon */}
             </button>
-            <MeetingNotesSection />
+            <MeetingNotesSection 
+              meetingId = {meetingId}
+            />
           </div>
         </div>
       </div>
