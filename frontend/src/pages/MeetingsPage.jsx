@@ -10,7 +10,9 @@ import { ChevronRight, ChevronLeft, NotebookPen } from "lucide-react"; // Import
 import ProjectSelectCard from "../components/ProjectSelectCard";
 import ProjectCards from "../components/ProjectCards";
 import ProjectTiles from "../components/ProjectTiles";
+import useAuth from "../hooks/userAuth";
 import axios from "axios";
+
 
 const MeetingsPage = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -22,6 +24,7 @@ const MeetingsPage = () => {
   const [subFilters , setSubFilters] = useState([]);
   const [activeSubFilter , setActiveSubFilter] = useState("");
   const [projects , setProjects] = useState([]);
+   const { meetingId, setMeetingId } = useAuth();
   const subFiltersCache = useRef({});
 
 

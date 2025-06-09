@@ -11,6 +11,7 @@ const useAuthStore = create((set) => ({
   departments: [],
   roles: [],
   initiatives: [],
+  meetingId: localStorage.getItem("meetingId") || null,
   setToken: (token) => {
     set({ token });
     localStorage.setItem("token", token);
@@ -49,6 +50,10 @@ const useAuthStore = create((set) => ({
   },
   setInitiatives: (initiatives) => {
     set({ initiatives });
+  },
+    setMeetingId: (meetingId) => { // ✅ NEW
+    set({ meetingId });
+    localStorage.setItem("meetingId", meetingId);
   },
 }));
 
