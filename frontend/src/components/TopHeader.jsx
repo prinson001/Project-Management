@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import logo from "../assets/rakias-logo.png";
 import userPicture from "../assets/userlogo.png";
-import useAuth from "../hooks/userAuth";
+import useAuthStore from "../store/authStore";
 import axiosInstance from "../axiosInstance";
 
 const TopHeader = () => {
@@ -19,7 +19,7 @@ const TopHeader = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAppsOpen, setIsAppsOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const { email, role, setMeetingId } = useAuth();
+  const { email, role, setMeetingId } = useAuthStore();
 
   const profileRef = useRef(null);
   const appsRef = useRef(null);
