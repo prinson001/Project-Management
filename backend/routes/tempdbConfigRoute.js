@@ -37,7 +37,8 @@ const {
   alterColumnsToDateType,
   createTableMeeting,
   createTableMeetingNotes,
-  createTableRisks
+  createTableRisks,
+  createTableProject_Tasks
 } = require("../database/dbConfig");
 const {
   createSchedulePlanTaskForPM,
@@ -89,5 +90,6 @@ router.get("/alterColumnsToDateType", alterColumnsToDateType);
 router.get("/ctablemeeting",createTableMeeting);
 router.get("/ctablemeetingnotes",createTableMeetingNotes);
 router.get("/ctablerisks",createTableRisks);
+router.get("/ctableproject_task",createTableProject_Tasks);
 
 module.exports = router;

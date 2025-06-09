@@ -1285,6 +1285,35 @@ const createTableRisks = async(req,res)=>{
     })
   }
 }
+const createTableProject_Tasks = async (req,res)=>{
+  try{
+    const result = await sql `
+      CREATE TABLE IF NOT EXISTS project_tasks(
+        id SERIAL PRIMARY KEY,
+        notes VARCHAR(255),
+        week VARCHAR(20),
+        month VARCHAR(30),
+        year VARCHAR(20),
+        created_date DATE DEFAULT CURRENT_DATE,
+        project_id INTEGER REFERENCES project(id) ON DELETE CASCADE,
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
+      )
+    ` 
+    res.status(201).json({
+      status:"success",
+      message:"successfully added project_tasks table",
+      result 
+    })
+  }
+  catch(e)
+  {
+    res.status(500).json({
+      status:"failure",
+      message:"Failed to create project task table",
+      result : e
+    })
+  }
+}
 module.exports = {
   createUsersTable,
   createInitiativeTable,
@@ -1326,5 +1355,6 @@ module.exports = {
   alterColumnsToDateType,
   createTableMeeting,
   createTableMeetingNotes,
-  createTableRisks
+  createTableRisks,
+  createTableProject_Tasks
 };
