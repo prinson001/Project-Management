@@ -29,7 +29,7 @@ const allMeetingNotes = {
   },
 };
 
-const MeetingNotesSection = (meetingId) => {
+const MeetingNotesSection = ({meetingId}) => {
   const [showModal, setShowModal] = useState(false);
   const [newNote, setNewNote] = useState("");
   const [selectedMeetingDate, setSelectedMeetingDate] = useState([]);

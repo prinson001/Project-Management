@@ -30,6 +30,7 @@ const MeetingsPage = () => {
 
   // Mounting stage
   useEffect(()=>{
+    console.log('meeting id',meetingId);
     fetchMainFilters();
     console.log("use effect is called");
     // console.log(formatDateWithWeek(new Date("2025-05-01")));
