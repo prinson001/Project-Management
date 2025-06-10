@@ -26,6 +26,7 @@ const MeetingsPage = () => {
   const [projects , setProjects] = useState([]);
    const { meetingId, setMeetingId } = useAuthStore();
   const subFiltersCache = useRef({});
+  const [selectedProject, setSelectedProject] = useState(null);
 
 
   // Mounting stage
@@ -106,21 +107,32 @@ const MeetingsPage = () => {
           />
 
           {/* Main Section: Show project cards for any tab (demo) */}
-          {projects && (
+          {!selectedProject && projects && (
             <div className="p-6 overflow-x-auto h-64">
               <div className="flex space-x-4 min-w-max">
                 {projects.map((project) => (
                   <ProjectSelectCard
                     key={project.id}
                     project={project}
-                    onSelect={() => {
-                      // handle project selection
-                    }}
+                    onSelect={() => setSelectedProject(project)}
                   />
                 ))}
               </div>
             </div>
+          )}
 
+          {/* Show ProjectCards and ProjectTiles when a project is selected */}
+          {selectedProject && (
+            <div className="p-6">
+              <button
+                className="mb-4 px-3 py-1 text-sm rounded bg-gray-100 border hover:bg-gray-200"
+                onClick={() => setSelectedProject(null)}
+              >
+                Back to Projects
+              </button>
+              <ProjectTiles project={selectedProject} />
+              <ProjectCards project={selectedProject} />
+            </div>
           )}
 
           {/* Project Meeting Main Section */}
