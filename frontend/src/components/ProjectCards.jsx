@@ -15,6 +15,7 @@ import RisksAndIssuesTable from "./RisksAndIssuesTable.jsx";
 import ProjectDelivarablesTable from "./ProjectDelivarablesTable.jsx"; // Changed import
 import ProjectTasks from "./ProjectTasks.jsx";
 import ProjectDeliverables from "./ProjectDeliverables.jsx";
+import ProjectDocuments from "./ProjectDocuments.jsx";
 
 // Modal Component
 const Modal = ({ isOpen, onClose, title, children }) => {
@@ -165,6 +166,12 @@ const ProjectCards = () => {
           Risks and Issues
         </h2>
         <RisksAndIssuesTable /> {/* Assuming RisksAndIssuesTable handles its own data or uses a default */}
+      </div>
+       <div className="my-6">
+        <h2 className="text-xl font-semibold mb-3 text-gray-800 dark:text-white">
+         Project Documents
+        </h2>
+        <ProjectDocuments /> 
       </div>
     </div>
   );

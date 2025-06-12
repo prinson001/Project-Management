@@ -112,7 +112,7 @@ const ProjectTiles = ({ project }) => {
   ];
 
   const performanceIndices = [
-    { label: "SPI", value: projectData.schedulePerformanceIndex, bgColor: "bg-red-600" },
+    { label: "SPI", value: projectData.schedulePerformanceIndex, bgColor: "bg-red-300" },
     { label: "SV", value: projectData.scheduleVariance, bgColor: "bg-gray-50 text-gray-900 border" },
     { label: "ACTUAL COMPLETION", value: projectData.actualCompletion, subValue: projectData.actualCompletionPercentage, bgColor: "bg-gray-50 text-gray-900 border" },
     { label: "PLANNED COMPLETION", value: projectData.plannedCompletion, bgColor: "bg-gray-50 text-gray-900 border" },
@@ -126,6 +126,108 @@ const ProjectTiles = ({ project }) => {
     { label: "Maintenance and operation", value: projectData.maintenanceEndDate },
     { label: "Duration", value: projectData.maintenanceDuration },
   ];
+
+  const getStatTileStyles = (stat) => {
+    // Defaults (dark mode compatible)
+    let cardBg = "bg-gray-50 dark:bg-slate-800";
+    let cardBorder = "border-gray-200 dark:border-slate-700";
+    let iconContainerBg = "bg-gray-100 dark:bg-slate-700";
+    let iconFg = stat.iconColor || "text-gray-600 dark:text-gray-400";
+
+    if (stat.bgColor) { // For performanceIndices items
+        iconFg = "text-gray-800 dark:text-gray-100"; // Text color for these tiles
+        if (stat.bgColor.includes("bg-red-300")) {
+            cardBg = "bg-red-300 dark:bg-red-700";
+            cardBorder = "border-red-500 dark:border-red-800";
+            iconFg = "text-white dark:text-gray-200"; // Override for dark red bg
+        } else if (stat.bgColor.includes("bg-gray-50")) {
+            cardBg = "bg-gray-50 dark:bg-slate-800";
+            cardBorder = "border-gray-200 dark:border-slate-700";
+            // iconFg remains as default text-gray-800 dark:text-gray-100 for gray bg
+        }
+        // Note: performanceIndices items usually don't have icons, so iconContainerBg isn't critical.
+    } else { // For fixedStats items
+        // Use stat.className for card background, ensuring dark mode compatibility
+        if (stat.className) {
+            if (stat.className.includes("yellow")) cardBg = "bg-yellow-50 dark:bg-yellow-800/30";
+            else if (stat.className.includes("green")) cardBg = "bg-green-50 dark:bg-green-800/30";
+            else if (stat.className.includes("red")) cardBg = "bg-red-50 dark:bg-red-800/30";
+            else if (stat.className.includes("blue")) cardBg = "bg-blue-50 dark:bg-blue-800/30";
+            else if (stat.className.includes("gray")) cardBg = "bg-gray-50 dark:bg-slate-800";
+            else cardBg = stat.className; // Fallback
+        }
+
+        if (stat.iconColor) {
+            const color = stat.iconColor.split('-')[1]; // "yellow", "green", etc.
+            iconContainerBg = `bg-${color}-100 dark:bg-${color}-500/20`;
+            cardBorder = `border-${color}-200 dark:border-${color}-500/40`;
+            iconFg = `${stat.iconColor} dark:text-${color}-400`; // Ensure dark mode for icon color
+        } else if (stat.className && !stat.className.includes("gray")) {
+            // For items with a specific className bg but no iconColor (e.g. a custom colored tile)
+            const baseColor = stat.className.split('-')[1];
+            if (baseColor) {
+                 cardBorder = `border-${baseColor}-200 dark:border-${baseColor}-700`;
+            }
+        }
+        // If it's a default gray item (className includes "gray" or no specific colors), defaults are mostly fine.
+        // iconFg is already set using stat.iconColor or default.
+    }
+
+    return {
+        cardBgClassName: cardBg,
+        cardBorderClassName: cardBorder,
+        iconContainerBgClassName: iconContainerBg,
+        iconFgClassName: iconFg,
+    };
+  };
+
+  const StyledInfoTile = ({ icon: Icon, label, value }) => {
+    const cardBgClassName = "bg-gray-50 dark:bg-slate-800";
+    const cardBorderClassName = "border-gray-200 dark:border-slate-700";
+    const iconContainerBgClassName = "bg-gray-100 dark:bg-slate-700";
+    const iconFgClassName = "text-gray-500 dark:text-gray-400";
+
+    return (
+      <motion.div
+        className={`rounded-lg border ${cardBorderClassName} ${cardBgClassName} p-3 shadow-sm`}
+        variants={cardVariants}
+      >
+        <div className="flex items-start space-x-2">
+          {Icon && (
+            <div className={`${iconContainerBgClassName} p-1.5 rounded-md`}>
+              <Icon className={`w-4 h-4 ${iconFgClassName}`} />
+            </div>
+          )}
+          <div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">{label}</p>
+            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{value}</p>
+          </div>
+        </div>
+      </motion.div>
+    );
+  };
+
+  const StyledStatTile = ({ icon: Icon, label, value, subValue, cardBgClassName, cardBorderClassName, iconContainerBgClassName, iconFgClassName }) => (
+    <motion.div
+      className={`rounded-lg border ${cardBorderClassName} ${cardBgClassName} p-4 shadow-sm`}
+      variants={cardVariants}
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex items-start space-x-3">
+          {Icon && (
+            <div className={`${iconContainerBgClassName} p-2 rounded-md`}>
+              <Icon className={`w-5 h-5 ${iconFgClassName}`} />
+            </div>
+          )}
+          <div>
+            <h3 className="font-medium text-gray-700 dark:text-gray-300 text-sm leading-tight">{label}</h3>
+            <p className="text-xl font-semibold text-gray-900 dark:text-white mt-1">{value}</p>
+            {subValue && <p className="text-xs text-gray-500 dark:text-gray-400">{subValue}</p>}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
 
   return (
     <motion.div
@@ -180,12 +282,11 @@ const ProjectTiles = ({ project }) => {
               animate="visible"
             >
               {topInfoData.map((item, index) => (
-                <AnimatedInfoCard
+                <StyledInfoTile
                   key={index}
                   icon={item.icon}
                   label={item.label}
                   value={item.value}
-                  delay={index * 0.05}
                 />
               ))}
             </motion.div>
@@ -209,80 +310,61 @@ const ProjectTiles = ({ project }) => {
         </motion.button>
       </motion.div>
 
-      {/* Fixed Stats Grid - First Row (7 tiles) */}
+      {/* Fixed Stats Grid - All fixedStats items are rendered here.
+          The grid `lg:grid-cols-5` will wrap items to new rows as needed.
+        */}
       <motion.div
-        className="grid grid-cols-7 gap-4 mb-4"
+        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
-        {[
-          ...fixedStats.slice(0, 5),
-          performanceIndices[0], // SPI
-          performanceIndices[2], // Actual Completion
-        ].map((item, index) => (
-          <motion.div
-            key={index}
-            className={`bg-gray-50 border rounded-lg p-4 flex flex-col justify-center ${item.bgColor === "bg-red-600" ? "!bg-[#e60000] !text-white !border-0" : ""}`}
-            variants={cardVariants}
-            style={item.bgColor === "bg-red-600" ? { backgroundColor: '#e60000', color: '#fff', border: 'none' } : {}}
-          >
-            {/* Add icon for stat tiles if present */}
-            {item.icon && (
-              <span className="mb-1 flex items-center">
-                <item.icon className={`w-5 h-5 mr-2 ${item.iconColor || 'text-gray-600'}`} />
-                <span className="text-xs text-gray-600 uppercase font-medium">{item.label}</span>
-              </span>
-            )}
-            {/* For performance indices, just label */}
-            {!item.icon && (
-              <span className="text-xs text-gray-600 mb-1 uppercase font-medium" style={item.bgColor === "bg-red-600" ? { color: '#fff' } : {}}>{item.label}</span>
-            )}
-            <span className={`text-sm font-bold ${item.bgColor === "bg-red-600" ? "text-white" : "text-gray-900"}`}>{item.value}</span>
-            {item.subValue && (
-              <span className="text-xs text-gray-500 mt-1">{item.subValue}</span>
-            )}
-          </motion.div>
-        ))}
+        {fixedStats.map((stat, index) => {
+          const styles = getStatTileStyles(stat);
+          return (
+            <StyledStatTile
+              key={`fixed-${index}`}
+              icon={stat.icon} // Pass the icon component itself
+              label={stat.label}
+              value={stat.value}
+              subValue={stat.subValue}
+              cardBgClassName={styles.cardBgClassName}
+              cardBorderClassName={styles.cardBorderClassName}
+              iconContainerBgClassName={styles.iconContainerBgClassName}
+              iconFgClassName={styles.iconFgClassName}
+            />
+          );
+        })}
       </motion.div>
 
-      {/* Fixed Stats Grid - Second Row (7 tiles) */}
+      {/* Performance Indices Tiles (SPI, SV, Actual Completion, Planned Completion) */}
       <motion.div
-        className="grid grid-cols-7 gap-4 mb-6"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
-        {[
-          ...fixedStats.slice(5, 10),
-          performanceIndices[1], // SV
-          performanceIndices[3], // Planned Completion
-        ].map((item, index) => (
-          <motion.div
-            key={index}
-            className="bg-gray-50 border rounded-lg p-4 flex flex-col justify-center"
-            variants={cardVariants}
-          >
-            {item.icon && (
-              <span className="mb-1 flex items-center">
-                <item.icon className={`w-5 h-5 mr-2 ${item.iconColor || 'text-gray-600'}`} />
-                <span className="text-xs text-gray-600 uppercase font-medium">{item.label}</span>
-              </span>
-            )}
-            {!item.icon && (
-              <span className="text-xs text-gray-600 mb-1 uppercase font-medium">{item.label}</span>
-            )}
-            <span className="text-sm font-bold text-gray-900">{item.value}</span>
-            {item.subValue && (
-              <span className="text-xs text-gray-500 mt-1">{item.subValue}</span>
-            )}
-          </motion.div>
-        ))}
+        {performanceIndices.map((item, index) => {
+          const styles = getStatTileStyles(item);
+          return (
+            <StyledStatTile
+              key={`perf-${index}`}
+              // No icon for performanceIndices, StyledStatTile should handle Icon being undefined or null
+              label={item.label}
+              value={item.value}
+              subValue={item.subValue}
+              cardBgClassName={styles.cardBgClassName}
+              cardBorderClassName={styles.cardBorderClassName}
+              iconContainerBgClassName={styles.iconContainerBgClassName}
+              iconFgClassName={styles.iconFgClassName}
+            />
+          );
+        })}
       </motion.div>
-
+      
       {/* Date Information */}
       <motion.div
-        className="grid grid-cols-6 gap-4"
+        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"
         variants={{
           hidden: { opacity: 0 },
           visible: {
@@ -291,20 +373,20 @@ const ProjectTiles = ({ project }) => {
               staggerChildren: 0.05,
               delayChildren: 0.1,
             },
-          }}
-        }
+          },
+        }}
         initial="hidden"
         animate="visible"
       >
         {dateInfo.map((item, index) => (
-          <motion.div
-            key={index}
-            className="bg-gray-50 border rounded-lg p-4"
-            variants={cardVariants}
-          >
-            <p className="text-xs text-gray-500 font-medium uppercase mb-2">{item.label}</p>
-            <p className="text-sm font-medium text-gray-900">{item.value}</p>
-          </motion.div>
+          // Using StyledInfoTile for dateInfo as they are simpler key-value pairs without complex styling needs like stats
+          // StyledInfoTile also handles cases where an icon might not be present.
+          <StyledInfoTile
+            key={`date-${index}`}
+            // icon={item.icon} // dateInfo items don't have icons defined in the provided data
+            label={item.label}
+            value={item.value}
+          />
         ))}
       </motion.div>
     </motion.div>
