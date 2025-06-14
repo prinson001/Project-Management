@@ -150,48 +150,48 @@ const ChangeDatesModal = ({ onClose, deliverable }) => (
   </div>
 );
 
-const deliverables = [
-  {
-    id: "1",
-    name: "Current State assessment Report",
-    progress: 80,
-    startDate: "5-Jan-24",
-    endDate: "20-Feb-24",
-    status: "on-track",
-  },
-  {
-    id: "2",
-    name: "Gap Analysis Report",
-    progress: 70,
-    startDate: "5-Jan-24",
-    endDate: "20-Feb-24",
-    status: "on-track",
-  },
-  {
-    id: "3",
-    name: "Future State Report",
-    progress: 20,
-    startDate: "5-Jan-24",
-    endDate: "20-Feb-24",
-    status: "at-risk",
-  },
-  {
-    id: "4",
-    name: "Road map",
-    progress: 0,
-    startDate: "5-Jan-24",
-    endDate: "20-Feb-24",
-    status: "delayed",
-  },
-  {
-    id: "5",
-    name: "Operating model activation",
-    progress: 0,
-    startDate: "5-Jan-24",
-    endDate: "20-Feb-24",
-    status: "delayed",
-  },
-];
+// const deliverables = [
+//   {
+//     id: "1",
+//     name: "Current State assessment Report",
+//     progress: 80,
+//     startDate: "5-Jan-24",
+//     endDate: "20-Feb-24",
+//     status: "on-track",
+//   },
+//   {
+//     id: "2",
+//     name: "Gap Analysis Report",
+//     progress: 70,
+//     startDate: "5-Jan-24",
+//     endDate: "20-Feb-24",
+//     status: "on-track",
+//   },
+//   {
+//     id: "3",
+//     name: "Future State Report",
+//     progress: 20,
+//     startDate: "5-Jan-24",
+//     endDate: "20-Feb-24",
+//     status: "at-risk",
+//   },
+//   {
+//     id: "4",
+//     name: "Road map",
+//     progress: 0,
+//     startDate: "5-Jan-24",
+//     endDate: "20-Feb-24",
+//     status: "delayed",
+//   },
+//   {
+//     id: "5",
+//     name: "Operating model activation",
+//     progress: 0,
+//     startDate: "5-Jan-24",
+//     endDate: "20-Feb-24",
+//     status: "delayed",
+//   },
+// ];
 
 const getProgressColor = (status) => {
   switch (status) {
@@ -206,7 +206,7 @@ const getProgressColor = (status) => {
   }
 };
 
-export default function ProjectDeliverables() {
+export default function ProjectDeliverables({deliverables}) {
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const [selectedModal, setSelectedModal] = useState(null); // 'completion', 'invoice', 'details', 'changeRequest', 'dates'
   const [selectedDeliverable, setSelectedDeliverable] = useState(null);

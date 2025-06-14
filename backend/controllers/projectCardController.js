@@ -135,8 +135,55 @@ const getProjectDeliverables = async(req,res)=>{
     }
 }
 
+const getPreviousMeetingNotes = async(req,res)=>{
+  let maxRecords = 5;
+  const {max , projectid} = req.query;
+  maxRecords = max ?? maxRecords; 
 
-module.exports = {createProjectTasks,getProjectTasks,deleteProjectTasks,getProjectDetails,getProjectDeliverables};
+  try{
+    const result = await sql  `
+        SELECT * FROM (
+          SELECT 
+            m.id AS meeting_id,
+            m.name,
+            m.started_at,
+            COALESCE(
+              json_agg(
+                json_build_object(
+                  'notes', n.notes
+                )
+              ) FILTER (WHERE n.id IS NOT NULL),
+              '[]'
+            ) AS meeting_notes
+          FROM meeting m
+          LEFT JOIN meeting_notes n ON m.id = n.meeting_id AND n.project_id = ${projectid}
+          GROUP BY m.id, m.name, m.started_at
+          ORDER BY m.started_at DESC
+          LIMIT 5
+        ) AS latest_meetings
+        ORDER BY started_at DESC;
+
+    `
+    res.status(200).json({
+      status:"success",
+      message:"retreived the latest meeting and meeting notes",
+      result,
+    })
+
+  }
+  catch(e)
+  {
+    console.log(e);
+    res.status(500).json({
+      status:"failure",
+      message:"failed to get previous meeting notes",
+      result:e
+    })
+  }
+}
+
+
+module.exports = {createProjectTasks,getProjectTasks,deleteProjectTasks,getProjectDetails,getProjectDeliverables , getPreviousMeetingNotes};
 
 
 

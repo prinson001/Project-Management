@@ -94,7 +94,7 @@ const MeetingNotesSection = ({meetingId}) => {
           <h4 className="font-medium text-gray-700">Previous Meeting Notes</h4>
           <select
             className="text-sm border rounded px-2 py-1 text-gray-700 bg-white shadow-sm"
-            value={selectedMeetingDate}
+            value={selectedPreviousMeeting}
             onChange={(e) => handlePreviousMeetingChange(e.target.value)}
           >
             {previousMeetings.map((meeting) => (

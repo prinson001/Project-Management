@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import axiosInstance from "../axiosInstance.js";
 import {
   Download,
   CheckCircle,
@@ -39,74 +40,85 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 };
 
 // Main Component
-const ProjectCards = () => {
-  const [deliverables, setDeliverables] = useState([
-    {
-      id: "DEL-001",
-      name: "Initial Project Setup & Configuration",
-      duration: "15 days",
-      progress: 100,
-      budget: "5,000 SAR",
-      invoiced: "5,000 SAR",
-      start_date: "2025-01-10",
-      end_date: "2025-01-25",
-      scope_percentage: "100%",
-      payment_percentage: "100%",
-      status: "Completed",
-    },
-    {
-      id: "DEL-002",
-      name: "User Interface Design & Prototyping",
-      duration: "30 days",
-      progress: 75,
-      budget: "12,000 SAR",
-      invoiced: "8,000 SAR",
-      start_date: "2025-01-26",
-      end_date: "2025-02-24",
-      scope_percentage: "75%",
-      payment_percentage: "50%",
-      status: "In Progress",
-    },
-    {
-      id: "DEL-003",
-      name: "Backend Development & API Integration",
-      duration: "45 days",
-      progress: 40,
-      budget: "20,000 SAR",
-      invoiced: "5,000 SAR",
-      start_date: "2025-02-25",
-      end_date: "2025-04-10",
-      scope_percentage: "40%",
-      payment_percentage: "25%",
-      status: "In Progress",
-    },
-    {
-      id: "DEL-004",
-      name: "Testing, QA & Bug Fixing Phase",
-      duration: "20 days",
-      progress: 0,
-      budget: "8,000 SAR",
-      invoiced: "0 SAR",
-      start_date: "2025-04-11",
-      end_date: "2025-04-30",
-      scope_percentage: "0%",
-      payment_percentage: "0%",
-      status: "Not Started",
-    },
-    {
-      id: "DEL-005",
-      name: "Deployment and Go-Live Activities",
-      duration: "10 days",
-      progress: 0,
-      budget: "6,000 SAR",
-      invoiced: "0 SAR",
-      start_date: "2025-05-01",
-      end_date: "2025-05-10",
-      scope_percentage: "0%",
-      payment_percentage: "0%",
-      status: "Not Started",
-    },
-  ]);
+const ProjectCards = ({projectId}) => {
+
+  const [deliverables , setDeliverables] = useState([]);
+  const fetchDelierables = async (id)=>{
+    const response = await axiosInstance.get(`/project-card/deliverables/${id}`);
+    console.log(response.data.result);
+    setDeliverables(response.data.result);
+  }
+  useEffect(()=>{
+    fetchDelierables(projectId);
+  },[projectId])
+
+  // const [deliverables, setDeliverables] = useState([
+  //   {
+  //     id: "DEL-001",
+  //     name: "Initial Project Setup & Configuration",
+  //     duration: "15 days",
+  //     progress: 100,
+  //     budget: "5,000 SAR",
+  //     invoiced: "5,000 SAR",
+  //     start_date: "2025-01-10",
+  //     end_date: "2025-01-25",
+  //     scope_percentage: "100%",
+  //     payment_percentage: "100%",
+  //     status: "Completed",
+  //   },
+  //   {
+  //     id: "DEL-002",
+  //     name: "User Interface Design & Prototyping",
+  //     duration: "30 days",
+  //     progress: 75,
+  //     budget: "12,000 SAR",
+  //     invoiced: "8,000 SAR",
+  //     start_date: "2025-01-26",
+  //     end_date: "2025-02-24",
+  //     scope_percentage: "75%",
+  //     payment_percentage: "50%",
+  //     status: "In Progress",
+  //   },
+  //   {
+  //     id: "DEL-003",
+  //     name: "Backend Development & API Integration",
+  //     duration: "45 days",
+  //     progress: 40,
+  //     budget: "20,000 SAR",
+  //     invoiced: "5,000 SAR",
+  //     start_date: "2025-02-25",
+  //     end_date: "2025-04-10",
+  //     scope_percentage: "40%",
+  //     payment_percentage: "25%",
+  //     status: "In Progress",
+  //   },
+  //   {
+  //     id: "DEL-004",
+  //     name: "Testing, QA & Bug Fixing Phase",
+  //     duration: "20 days",
+  //     progress: 0,
+  //     budget: "8,000 SAR",
+  //     invoiced: "0 SAR",
+  //     start_date: "2025-04-11",
+  //     end_date: "2025-04-30",
+  //     scope_percentage: "0%",
+  //     payment_percentage: "0%",
+  //     status: "Not Started",
+  //   },
+  //   {
+  //     id: "DEL-005",
+  //     name: "Deployment and Go-Live Activities",
+  //     duration: "10 days",
+  //     progress: 0,
+  //     budget: "6,000 SAR",
+  //     invoiced: "0 SAR",
+  //     start_date: "2025-05-01",
+  //     end_date: "2025-05-10",
+  //     scope_percentage: "0%",
+  //     payment_percentage: "0%",
+  //     status: "Not Started",
+  //   },
+  // ]);
 
   const deliverableColumns = [
     { columnName: "ID", dbColumn: "id" },
@@ -158,14 +170,14 @@ const ProjectCards = () => {
         />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-        <ProjectDeliverables />
-        <ProjectTasks />
+        <ProjectDeliverables deliverables={deliverables} />
+        <ProjectTasks projectId={projectId} />
       </div>
       <div className="my-6">
         <h2 className="text-xl font-semibold mb-3 text-gray-800 dark:text-white">
           Risks and Issues
         </h2>
-        <RisksAndIssuesTable /> {/* Assuming RisksAndIssuesTable handles its own data or uses a default */}
+        <RisksAndIssuesTable projectId={projectId} deliverables={deliverables}  /> {/* Assuming RisksAndIssuesTable handles its own data or uses a default */}
       </div>
        <div className="my-6">
         <h2 className="text-xl font-semibold mb-3 text-gray-800 dark:text-white">

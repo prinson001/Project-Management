@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import TableData from "../components/TableData"; // Adjust the import path if necessary
+import axiosInstance from "../axiosInstance";
 
 const sampleRisks = [
   {
@@ -36,7 +37,7 @@ const columnSetting = [
   { columnName: "Status", dbColumn: "status", isVisible: true, isInput: false },
 ];
 
-const AddRiskModal = ({ onClose }) => (
+const AddRiskModal = ({ onClose , deliverables }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
     <div className="bg-white rounded-lg w-full max-w-2xl p-6 relative shadow-lg">
       <button
@@ -60,8 +61,10 @@ const AddRiskModal = ({ onClose }) => (
         <div>
           <label className="block text-sm font-medium mb-1">Deliverable name</label>
           <select className="w-full border rounded px-3 py-2 text-sm bg-gray-50">
-            <option>Deliverable number one</option>
-            <option>Deliverable two</option>
+            {deliverables && deliverables.map((deliverable) => {
+              return <option key={deliverable.id}>{deliverable.name}</option>;
+            })}
+
           </select>
         </div>
 
@@ -109,10 +112,27 @@ const AddRiskModal = ({ onClose }) => (
   </div>
 );
 
-const RisksAndIssuesTable = () => {
+const RisksAndIssuesTable = ({projectId , deliverables}) => {
   const [showModal, setShowModal] = useState(false);
   const [tableData, setTableData] = useState(sampleRisks);
 
+  const fetchRiskAndIssues =async(id)=>{
+    const response =await  axiosInstance.get(`/project-card/risk?projectid=${id}`);
+    console.log("risks and issues");
+    console.log(response);
+    setTableData(response.data.result);
+  }
+  useEffect(()=>{
+    fetchRiskAndIssues(projectId);
+  },[projectId]);
+
+
+  const addRisk = async()=>{
+    const response = await axiosInstance.post("/project-card/risk",{
+      // {caseName , dueDate , comments  , phaseName , linkedToType , linkedToId } variable needs to pass
+      
+    })
+  }
   const sortTableData = (column, order) => {
     const sorted = [...tableData].sort((a, b) =>
       order === "ASC"
@@ -148,7 +168,7 @@ const RisksAndIssuesTable = () => {
         columnSetting={columnSetting}
       />
 
-      {showModal && <AddRiskModal onClose={() => setShowModal(false)} />}
+      {showModal && <AddRiskModal onClose={() => setShowModal(false)} deliverables={deliverables} />}
     </>
   );
 };
