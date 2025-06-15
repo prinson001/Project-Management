@@ -136,7 +136,7 @@ const MeetingsPage = () => {
                 Back to Projects
               </button>
               <ProjectTiles projectId={selectedProject.id} />
-              <ProjectCards projectId={selectedProject.id} />
+              <ProjectCards projectId={selectedProject.id} projectName={selectedProject.name} />
             </div>
           )}
 

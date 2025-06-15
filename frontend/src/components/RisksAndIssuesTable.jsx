@@ -529,13 +529,19 @@ const EditRiskModal = ({ onClose, risk, deliverables, onSave }) => {
   );
 };
 
-const RisksAndIssuesTable = ({ risks, onEdit, onAdd, isLoading, projectName, projectPhases, deliverables, addRisk }) => {
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false); // Define isAddModalOpen and its setter
+const RisksAndIssuesTable = ({ risks, onEdit, onAdd, isLoading, projectName, projectPhases, deliverables, addRisk, projectId }) => {
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedRisk, setSelectedRisk] = useState(null);
-  const [tableData, setTableData] = useState(sampleRisks);
+  const [tableData, setTableData] = useState(sampleRisks); // Should probably use the `risks` prop or fetch
+  // const [projectPhasesData, setProjectPhasesData] = useState(projectPhases); // If phases need to be managed internally
 
-  const fetchRiskAndIssues =async(id)=>{
+  // Note: The `projectId` used in the useEffect below is not defined in this component's scope.
+  // It should likely be passed as a prop if it's different from `projectName`.
+  // Also, `setProjectPhases` is called, but `projectPhases` is a prop. This might be an issue.
+
+  const fetchRiskAndIssues = async (id) => {
+    if (!id) return; // Add a guard clause to prevent calling with undefined id
     const response =await  axiosInstance.get(`/project-card/risk?projectid=${id}`);
     console.log("risks and issues");
     console.log(response);
@@ -548,39 +554,58 @@ const RisksAndIssuesTable = ({ risks, onEdit, onAdd, isLoading, projectName, pro
     setProjectPhases(response.data.result);
   }
   useEffect(()=>{
-    fetchRiskAndIssues(projectId);
+    if (projectId) { // Add a check to ensure projectId is defined
+      fetchRiskAndIssues(projectId);
+    }
   },[projectId]);
   useEffect(()=>{
     fetchProjectPhase();
   },[])
 
 
-  const addRisk = async(data)=>{
+  // Renamed this function from addRisk to handleRiskSubmission to avoid conflict with addRisk prop
+  const handleRiskSubmission = async (data) => {
     console.log("form data is ");
     console.log(data);
-    let linkedToType = ""
-    let linkedToId = ""
-    //dueDate , comments  , phaseName , linkedToType , linkedToId 
-    if(data.hasOwnProperty("deliverableId"))
-    {
-      linkedToType = 'deliverable',
-      linkedToId  = data.deliverableId;
-    }
-    else{
-      linkedToType = 'project'
+    let linkedToType = "";
+    let linkedToId = "";
+    
+    if (data.hasOwnProperty("deliverableId") && data.deliverableId) {
+      linkedToType = 'deliverable';
+      linkedToId = data.deliverableId;
+    } else if (data.hasOwnProperty("projectId") && data.projectId) {
+      linkedToType = 'project';
       linkedToId = data.projectId;
+    } else {
+      // Handle cases where neither is available if necessary, or ensure one is always present
+      console.error("Risk must be linked to either a deliverable or a project.");
+      return; // Or throw an error
     }
-    const response = await axiosInstance.post("/project-card/risk",{
-      
-      riskName : data.riskName,
-      comments : data.responsePlan,
-      phaseId : data.phaseName,
+
+    const payload = {
+      riskName: data.riskName,
+      comments: data.responsePlan,
+      phaseId: data.phaseName, // Ensure this phaseId is valid
       linkedToType,
       linkedToId,
-      phaseId:data.phaseName
-    })
-    console.log(Response);
-  }
+      // status: data.status || 'Open', // Example: Default status if not provided
+      // severity: data.severity || 'Medium', // Example: Default severity
+      // createdBy: 'currentUserId', // Example: Add user info
+      // creationDate: new Date().toISOString().split('T')[0], // Example: Add creation date
+      // owner: data.owner || 'defaultOwner' // Example: Add owner
+    };
+
+    try {
+      const response = await axiosInstance.post("/project-card/risk", payload);
+      console.log(response); // Corrected from console.log(Response)
+      // Optionally, refresh the risks list here or call a prop function to do so
+      // e.g., if `addRisk` prop was meant to refresh/notify parent: addRisk(response.data.result);
+      // Or, if you have a local fetch function: fetchRiskAndIssues(projectId); (ensure projectId is available)
+    } catch (error) {
+      console.error("Error adding risk:", error.response?.data || error.message);
+    }
+  };
+
   const sortTableData = (column, order) => {
     const sorted = [...tableData].sort((a, b) =>
       order === "ASC"
@@ -626,8 +651,8 @@ const RisksAndIssuesTable = ({ risks, onEdit, onAdd, isLoading, projectName, pro
           onClose={() => setIsAddModalOpen(false)}
           deliverables={deliverables}
           projectName={projectName}
-          projectPhases={projectPhases}
-          addRisk={addRisk}
+          projectPhases={projectPhases} // Pass the projectPhases prop
+          addRisk={handleRiskSubmission} // Pass the renamed internal function
         />
       )}
       {showEditModal && (
@@ -635,7 +660,8 @@ const RisksAndIssuesTable = ({ risks, onEdit, onAdd, isLoading, projectName, pro
           onClose={() => setShowEditModal(false)}
           risk={selectedRisk}
           deliverables={deliverables}
-          onSave={editRisk}
+          // projectPhases={projectPhasesData} // Pass phases if EditRiskModal needs them
+          onSave={editRisk} // Ensure editRisk is defined or passed as a prop
         />
       )}
     </>

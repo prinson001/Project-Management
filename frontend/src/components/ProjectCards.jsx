@@ -150,8 +150,8 @@ const ProjectCards = ({ projectId , projectName }) => {
     { columnName: "Progress %", dbColumn: "progress" },
     { columnName: "Budget (SAR)", dbColumn: "budget" },
     { columnName: "Invoiced (SAR)", dbColumn: "invoiced" },
-    { columnName: "Start Date", dbColumn: "start_date" },
-    { columnName: "End Date", dbColumn: "end_date" },
+    // { columnName: "Start Date", dbColumn: "start_date" },
+    // { columnName: "End Date", dbColumn: "end_date" },
     { columnName: "Scope %", dbColumn: "scope_percentage" },
     { columnName: "Payment %", dbColumn: "payment_percentage" },
     { columnName: "Status", dbColumn: "status" },
@@ -195,6 +195,7 @@ const ProjectCards = ({ projectId , projectName }) => {
             data={deliverables}
             columns={deliverableColumns}
             tableName="projectDeliverables"
+            projectId={projectId} // Add projectId here
           />
         )}
       </div>

@@ -41,7 +41,7 @@ const DeliveryCompletionModal = ({ onClose, deliverable }) => (
   </div>
 );
 
-const DeliveryInvoiceModal = ({ onClose, deliverable, onSuccessfulSubmit }) => {
+const DeliveryInvoiceModal = ({ onClose, deliverable, onSuccessfulSubmit, projectId }) => {
   const [invoiceAmount, setInvoiceAmount] = useState('');
   const [isFullAmount, setIsFullAmount] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -72,6 +72,7 @@ const DeliveryInvoiceModal = ({ onClose, deliverable, onSuccessfulSubmit }) => {
     formData.append('evidenceFile', selectedFile);
     formData.append('document_type', 'INVOICE');
     formData.append('deliverable_id', deliverable.id);
+    formData.append('project_id', projectId); // Add project_id to the form data
     
     const finalInvoiceAmount = isFullAmount 
       ? (deliverable.budget - (deliverable.invoiced || 0)) // Calculate remaining if full amount
@@ -201,29 +202,91 @@ const DeliveryInvoiceModal = ({ onClose, deliverable, onSuccessfulSubmit }) => {
   );
 };
 
-const ViewDeliverableDetailsModal = ({ onClose, deliverable }) => (
-  <div className="fixed inset-0 bg-black/45 backdrop-blur-sm z-50 flex justify-center items-center">
-    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md mx-4">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">View Deliverable Details</h2>
-        <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-      <div className="space-y-4">
-        <p><strong>Name:</strong> {deliverable.name}</p>
-        <p><strong>Budget:</strong> {deliverable.budget}</p>
-        <p><strong>Invoiced:</strong> {deliverable.invoiced}</p>
-        {/* <p><strong>Start Date:</strong> {deliverable.start_date}</p> */}
-        {/* <p><strong>End Date:</strong> {deliverable.end_date}</p> */}
-        <p><strong>Scope %:</strong> {deliverable.scope_percentage}</p>
-        <p><strong>Payment %:</strong> {deliverable.payment_percentage}</p>
-      </div>
+const DeliverableDetailsModal = ({ onClose, deliverable, projectId }) => {
+  const [scopeEvidenceFile, setScopeEvidenceFile] = useState(null);
+  const [uploadingScope, setUploadingScope] = useState(false);
+  const [uploadErrorScope, setUploadErrorScope] = useState('');
+
+  const handleScopeFileChange = (event) => {
+    setScopeEvidenceFile(event.target.files[0]);
+    setUploadErrorScope('');
+  };
+
+  const handleScopeSubmit = async (event) => {
+    event.preventDefault();
+    if (!scopeEvidenceFile) {
+      setUploadErrorScope('Please select a scope evidence document to upload.');
+      return;
+    }
+
+    setUploadingScope(true);
+    setUploadErrorScope('');
+
+    const formData = new FormData();
+    formData.append('evidenceFile', scopeEvidenceFile);
+    formData.append('document_type', 'SCOPE_EVIDENCE');
+    formData.append('deliverable_id', deliverable.id);
+    formData.append('project_id', projectId); // Add project_id to the form data
+
+    try {
+      const response = await axiosInstance.post(`/deliverables/${deliverable.id}/documents`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      setUploadingScope(false);
+      if (response.data.document) {
+        // Handle successful upload, e.g., notify parent component
+        onClose(); // Close modal on success
+      } else {
+        setUploadErrorScope(response.data.message || 'Upload failed. Please try again.');
+      }
+    } catch (error) {
+      setUploadingScope(false);
+      console.error('Upload error:', error);
+      setUploadErrorScope(error.response?.data?.message || error.message || 'An error occurred during upload.');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/45 backdrop-blur-sm z-50 flex justify-center items-center">
+      <form onSubmit={handleScopeSubmit} className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md mx-4">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Upload Scope Evidence</h2>
+          <button type="button" onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Deliverable Name</label>
+            <input type="text" value={deliverable.name} disabled className="mt-1 block w-full border border-gray-300 rounded-md p-2 bg-gray-100" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Upload Scope Evidence Document</label>
+            <input 
+              type="file" 
+              onChange={handleScopeFileChange} 
+              className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+            {scopeEvidenceFile && <p className="text-sm text-gray-600 mt-1">Selected: {scopeEvidenceFile.name}</p>}
+          </div>
+          {uploadErrorScope && <p className="text-red-500 text-sm">{uploadErrorScope}</p>}
+          <button 
+            type="submit" 
+            disabled={uploadingScope}
+            className="w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-400"
+          >
+            {uploadingScope ? 'Uploading...' : 'Upload Document'}
+          </button>
+        </div>
+      </form>
     </div>
-  </div>
-);
+  );
+};
 
 const ChangeRequestModal = ({ onClose, deliverable }) => (
   <div className="fixed inset-0 bg-black/45 backdrop-blur-sm z-50 flex justify-center items-center">
@@ -257,7 +320,7 @@ const ActionPopup = ({ onClose, onSelect, deliverable }) => (
   </div>
 );
 
-const ProjectDelivarablesTable = ({ data, columns = [], tableName }) => {
+const ProjectDelivarablesTable = ({ data, columns = [], tableName, projectId }) => {
   const [openAccordion, setOpenAccordion] = useState(null);
   const [columnWidths, setColumnWidths] = useState({});
   const [resizingColumn, setResizingColumn] = useState(null);
@@ -524,13 +587,15 @@ const ProjectDelivarablesTable = ({ data, columns = [], tableName }) => {
         <DeliveryInvoiceModal
           onClose={handleModalClose}
           deliverable={selectedDeliverable}
+          projectId={projectId}
           onSuccessfulSubmit={() => { /* Handle successful submit, e.g., refresh data */ handleModalClose(); }}
         />
       )}
       {selectedModal === 'details' && selectedDeliverable && (
-        <ViewDeliverableDetailsModal
+        <DeliverableDetailsModal
           onClose={handleModalClose}
           deliverable={selectedDeliverable}
+          projectId={projectId}
         />
       )}
       {selectedModal === 'changeRequest' && selectedDeliverable && (
