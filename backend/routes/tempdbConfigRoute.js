@@ -38,7 +38,8 @@ const {
   createTableMeeting,
   createTableMeetingNotes,
   createTableRisks,
-  createTableProject_Tasks
+  createTableProject_Tasks,
+  createProjectWeekTasksTable
 } = require("../database/dbConfig");
 const {
   createSchedulePlanTaskForPM,
@@ -91,5 +92,6 @@ router.get("/ctablemeeting",createTableMeeting);
 router.get("/ctablemeetingnotes",createTableMeetingNotes);
 router.get("/ctablerisks",createTableRisks);
 router.get("/ctableproject_task",createTableProject_Tasks);
+router.get("/ctableptw",createProjectWeekTasksTable);
 
 module.exports = router;
