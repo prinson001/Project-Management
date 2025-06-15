@@ -1,8 +1,9 @@
-import React, { useState , useEffect } from "react";
-import { Plus, ChevronRight } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Plus, ChevronRight, Trash2 } from "lucide-react";
 import axiosInstance from "../axiosInstance";
 import axios from "axios";
 import useAuthStore from "../store/authStore";
+
 const initialTasks = {
   completed: [
     { id: "1", title: "Conducted the review meeting with the client", completed: true },
@@ -20,80 +21,82 @@ const initialTasks = {
   ],
 };
 
-export default function ProjectTasks({projectId}) {
+export default function ProjectTasks({ projectId }) {
   const [tasks, setTasks] = useState(initialTasks);
   const [newTask, setNewTask] = useState("");
   const [showAddTask, setShowAddTask] = useState(false);
-  const [previousMeetings , setPreviousMeetings] = useState([]);
-  const [selectedMeeting , setSelectedMeeting] = useState("");
-  const [selectedMeetingNotes , setSelectedMeetingNotes] = useState([]);
-  const [previousWeekTasks , setPreviousWeekTasks] = useState([]);
-  const [selectedTaskWeek , setSelectedTaskWeek] = useState("");
-  const [selectedTaskWeekLists , setSelectedTaskWeekLists] = useState([]);
-  const [nextWeekTasks , setNextWeekTasks] = useState([]);
+  const [previousMeetings, setPreviousMeetings] = useState([]);
+  const [selectedMeeting, setSelectedMeeting] = useState("");
+  const [selectedMeetingNotes, setSelectedMeetingNotes] = useState([]);
+  const [previousWeekTasks, setPreviousWeekTasks] = useState([]);
+  const [selectedTaskWeek, setSelectedTaskWeek] = useState("");
+  const [selectedTaskWeekLists, setSelectedTaskWeekLists] = useState([]);
+  const [nextWeekTasks, setNextWeekTasks] = useState([]);
   const { userId, role } = useAuthStore();
   console.log("user id in project tasks", userId);
   console.log("role in project tasks", role);
 
-  const fetchPreviousMeetingNotes = async()=>{
+  const fetchPreviousMeetingNotes = async () => {
     const response = await axiosInstance.get(`/project-card/meeting-notes?projectid=${projectId}`);
     console.log("meeting notes in project task");
     console.log(response.data.result);
     setPreviousMeetings(response.data.result);
-  }
-  const fetchPreviousTasks = async()=>{
+  };
+
+  const fetchPreviousTasks = async () => {
     const response = await axiosInstance.get(`/project-card/project-tasks/${projectId}`);
     console.log("the previous meeting notes are");
     console.log(response);
     setPreviousWeekTasks(response.data.result);
-  }
-  const fetchNextWeekTasks =  async () => {
+  };
+
+  const fetchNextWeekTasks = async () => {
     const response = await axiosInstance.get(`/project-card/next-week-task/${projectId}`);
     console.log("the next week tasks are");
     console.log(response);
-    setNextWeekTasks(response.data.result)
-  }
+    setNextWeekTasks(response.data.result);
+  };
+
   const deleteNextWeekTask = async (id) => {
     const response = await axiosInstance.delete(`/project-card/next-week-task/${id}`);
-    if(response.status === 200)
-    {
+    if (response.status === 200) {
       setNextWeekTasks((e) => e.filter((task) => task.id !== id));
     }
-  }
-  useEffect(()=>{
+  };
+
+  useEffect(() => {
     fetchPreviousMeetingNotes();
     fetchPreviousTasks();
     fetchNextWeekTasks();
-  },[projectId]);
+  }, [projectId]);
 
-  const handlePreviousMeetingChange = (meetingName)=>
-  {
+  const handlePreviousMeetingChange = (meetingName) => {
     setSelectedMeeting(meetingName);
-    const meeting = previousMeetings.find(meeting=> meeting.name == meetingName);
+    const meeting = previousMeetings.find((meeting) => meeting.name == meetingName);
     setSelectedMeetingNotes(meeting.meeting_notes);
-  }
-  const handlePreviousTaskWeekChange = (weekName)=>
-  {
+  };
+
+  const handlePreviousTaskWeekChange = (weekName) => {
     setSelectedTaskWeek(weekName);
-    const weeklytasks = previousWeekTasks.find(week=> week.name == weekName);
-    setSelectedTaskWeekLists(weeklytasks.project_tasks)
-  }
-  const addTask = async() => {
+    const weeklytasks = previousWeekTasks.find((week) => week.name == weekName);
+    setSelectedTaskWeekLists(weeklytasks.project_tasks);
+  };
+
+  const addTask = async () => {
     if (newTask.trim()) {
-      console.log("new tasks:"+newTask);
-      console.log("project Id "+projectId);
-      const result = await axiosInstance.post("/project-card/next-week-task",{
-        notes:newTask.trim(),
+      console.log("new tasks:" + newTask);
+      console.log("project Id " + projectId);
+      const result = await axiosInstance.post("/project-card/next-week-task", {
+        notes: newTask.trim(),
         projectId,
-        userId:25,
+        userId: 25,
       });
-      if(result.status === 201)
-      {
+      if (result.status === 201) {
         console.log("***success");
-        console.log([...nextWeekTasks,...result.data.result]);
-        setNextWeekTasks((e)=>{
-          return [...e , ...result.data.result]
-        })
+        console.log([...nextWeekTasks, ...result.data.result]);
+        setNextWeekTasks((e) => {
+          return [...e, ...result.data.result];
+        });
       }
       setNewTask("");
       setShowAddTask(false);
@@ -101,31 +104,40 @@ export default function ProjectTasks({projectId}) {
     }
   };
 
-  const TaskList = ({ records, title , showFilter = false , filterOptions , selectedFilterOption , onChangeHandler}) => (
+  const TaskList = ({ records, title, showFilter = false, filterOptions, selectedFilterOption, onChangeHandler }) => (
     <div className="mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-medium text-sm text-gray-900 mb-3">{title}</h3>
-          {showFilter && 
-            <select
-              className="text-sm border rounded px-2 py-1 text-gray-700 bg-white shadow-sm"
-              value={selectedFilterOption}
-              onChange={(e) => onChangeHandler(e.target.value)}
-            >
-              {filterOptions.map((option , i) => (
-                <option key={i} value={option.name}>
-                  {option.name}
-                </option>
-              ))}
-            </select>
-          }
-        </div>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-medium text-sm text-gray-900 mb-3">{title}</h3>
+        {showFilter && (
+          <select
+            className="text-sm border rounded px-2 py-1 text-gray-700 bg-white shadow-sm"
+            value={selectedFilterOption}
+            onChange={(e) => onChangeHandler(e.target.value)}
+          >
+            {filterOptions.map((option, i) => (
+              <option key={i} value={option.name}>
+                {option.name}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
       <div className="space-y-2">
-        {records && records.map((task) => (
-          <div key={task.id} className="flex items-start gap-2 text-sm text-gray-700">
-            <ChevronRight className="h-4 w-4 mt-0.5 text-gray-400 flex-shrink-0" />
-            <span >{task.name}</span>
-          </div>
-        ))}
+        {records &&
+          records.map((task) => (
+            <div key={task.id} className="flex items-start gap-2 text-sm text-gray-700">
+              <ChevronRight className="h-4 w-4 mt-0.5 text-gray-400 flex-shrink-0" />
+              <span>{task.name}</span>
+              {title === "Planned tasks for next week" && (
+                <button
+                  onClick={() => deleteNextWeekTask(task.id)}
+                  className="ml-auto text-red-600 hover:text-red-800"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          ))}
       </div>
     </div>
   );
@@ -173,23 +185,26 @@ export default function ProjectTasks({projectId}) {
         </div>
       )}
 
-      <TaskList  
-        title="Previous Meeting Notes" 
-        showFilter={true} 
+      <TaskList
+        title="Previous Meeting Notes"
+        showFilter={true}
         onChangeHandler={handlePreviousMeetingChange}
         selectedFilterOption={selectedMeeting}
         filterOptions={previousMeetings}
-        records={selectedMeetingNotes} />
-      <TaskList  
-        title="Previous tasks"  
+        records={selectedMeetingNotes}
+      />
+      <TaskList
+        title="Previous tasks"
         showFilter={true}
         onChangeHandler={handlePreviousTaskWeekChange}
         selectedFilterOption={selectedTaskWeek}
         filterOptions={previousWeekTasks}
-        records={selectedTaskWeekLists} />
-      <TaskList 
-        records={nextWeekTasks} 
-        title="Planned tasks for next week" />
+        records={selectedTaskWeekLists}
+      />
+      <TaskList
+        records={nextWeekTasks}
+        title="Planned tasks for next week"
+      />
     </div>
   );
 }
