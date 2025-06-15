@@ -1291,10 +1291,8 @@ const createTableProject_Tasks = async (req,res)=>{
       CREATE TABLE IF NOT EXISTS project_tasks(
         id SERIAL PRIMARY KEY,
         notes VARCHAR(255),
-        week VARCHAR(20),
-        month VARCHAR(30),
-        year VARCHAR(20),
         created_date DATE DEFAULT CURRENT_DATE,
+        project_task_weeks_id INTEGER REFERENCES project_task_weeks(id) ON DELETE CASCADE,
         project_id INTEGER REFERENCES project(id) ON DELETE CASCADE,
         user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
       )
@@ -1310,6 +1308,36 @@ const createTableProject_Tasks = async (req,res)=>{
     res.status(500).json({
       status:"failure",
       message:"Failed to create project task table",
+      result : e
+    })
+  }
+}
+
+const createProjectWeekTasksTable = async (req,res)=>{
+  try{
+    const result = await sql `
+      CREATE TABLE IF NOT EXISTS project_task_weeks(
+        id SERIAL PRIMARY KEY ,
+        name TEXT,
+        created_date DATE DEFAULT CURRENT_DATE,
+        start_date DATE,
+        end_date DATE,
+        week TEXT,
+        MONTH TEXT,
+        YEAR TEXT
+      )
+    `;
+    res.status(201).json({
+      status:"success",
+      message:"Successfully created table project tasks weeeks",
+      result 
+    })
+  }
+  catch(e)
+  {
+    res.status(500).json({
+      status:"failure",
+      message:"Failed to create table project task weeks",
       result : e
     })
   }
@@ -1356,5 +1384,6 @@ module.exports = {
   createTableMeeting,
   createTableMeetingNotes,
   createTableRisks,
-  createTableProject_Tasks
+  createTableProject_Tasks,
+  createProjectWeekTasksTable
 };

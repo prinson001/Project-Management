@@ -1,6 +1,7 @@
 import React, { useState , useEffect } from "react";
 import { Plus, ChevronRight } from "lucide-react";
 import axiosInstance from "../axiosInstance";
+import axios from "axios";
 
 const initialTasks = {
   completed: [
@@ -9,9 +10,9 @@ const initialTasks = {
     { id: "3", title: "Shared the quality check document with contract department", completed: true },
   ],
   planned: [
-    { id: "4", title: "Conducted the review meeting with the client" },
-    { id: "5", title: "Shared the business requirement document for review to the business team" },
-    { id: "6", title: "Shared the quality check document with contract department" },
+    { id: "4", name: "Conducted the review meeting with the client" },
+    { id: "5", name: "Shared the business requirement document for review to the business team" },
+    { id: "6", name: "Shared the quality check document with contract department" },
   ],
   previous: [
     { id: "7", title: "Conducted the review meeting with the client" },
@@ -26,6 +27,10 @@ export default function ProjectTasks({projectId}) {
   const [previousMeetings , setPreviousMeetings] = useState([]);
   const [selectedMeeting , setSelectedMeeting] = useState("");
   const [selectedMeetingNotes , setSelectedMeetingNotes] = useState([]);
+  const [previousWeekTasks , setPreviousWeekTasks] = useState([]);
+  const [selectedTaskWeek , setSelectedTaskWeek] = useState("");
+  const [selectedTaskWeekLists , setSelectedTaskWeekLists] = useState([]);
+  const [nextWeekTasks , setNextWeekTasks] = useState([]);
 
   const fetchPreviousMeetingNotes = async()=>{
     const response = await axiosInstance.get(`/project-card/meeting-notes?projectid=${projectId}`);
@@ -34,34 +39,28 @@ export default function ProjectTasks({projectId}) {
     setPreviousMeetings(response.data.result);
   }
   const fetchPreviousTasks = async()=>{
-    const currentWeek = getWeekOfMonth(new Date());
-    console.log("the current week is "+currentWeek)
+    const response = await axiosInstance.get(`/project-card/project-tasks/${projectId}`);
+    console.log("the previous meeting notes are");
+    console.log(response);
+    setPreviousWeekTasks(response.data.result);
   }
-  function formatDateWithWeek(date) {
-  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-                  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-  const dayName = days[date.getDay()];
-  const day = date.getDate();
-  const monthName = months[date.getMonth()];
-  const yearShort = date.getFullYear().toString().slice(-2);
-  const week = getWeekOfMonth(date);
-
-  return `${dayName} ${day} ${monthName} ${yearShort} (W${week})`;
-}
-
-  // Helper: calculate which week of the month
-  function getWeekOfMonth(date) {
-    const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-    const dayOfWeek = startOfMonth.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    const adjustedDate = date.getDate() + dayOfWeek;
-    return Math.ceil(adjustedDate / 7);
+  const fetchNextWeekTasks =  async () => {
+    const response = await axiosInstance.get(`/project-card/next-week-task/${projectId}`);
+    console.log("the next week tasks are");
+    console.log(response);
+    setNextWeekTasks(response.data.result)
   }
-
+  const deleteNextWeekTask = async (id) => {
+    const response = await axiosInstance.delete(`/project-card/next-week-task/${id}`);
+    if(response.status === 200)
+    {
+      setNextWeekTasks((e) => e.filter((task) => task.id !== id));
+    }
+  }
   useEffect(()=>{
     fetchPreviousMeetingNotes();
     fetchPreviousTasks();
+    fetchNextWeekTasks();
   },[projectId]);
 
   const handlePreviousMeetingChange = (meetingName)=>
@@ -70,26 +69,40 @@ export default function ProjectTasks({projectId}) {
     const meeting = previousMeetings.find(meeting=> meeting.name == meetingName);
     setSelectedMeetingNotes(meeting.meeting_notes);
   }
-  const addTask = () => {
+  const handlePreviousTaskWeekChange = (weekName)=>
+  {
+    setSelectedTaskWeek(weekName);
+    const weeklytasks = previousWeekTasks.find(week=> week.name == weekName);
+    setSelectedTaskWeekLists(weeklytasks.project_tasks)
+  }
+  const addTask = async() => {
     if (newTask.trim()) {
-      const task = {
-        id: Date.now().toString(),
-        title: newTask.trim(),
-      };
-      setTasks((prev) => ({
-        ...prev,
-        planned: [...prev.planned, task],
-      }));
+      console.log("new tasks:"+newTask);
+      console.log("project Id "+projectId);
+      const result = await axiosInstance.post("/project-card/next-week-task",{
+        notes:newTask.trim(),
+        projectId,
+        userId:25,
+      });
+      if(result.status === 201)
+      {
+        console.log("***success");
+        console.log([...nextWeekTasks,...result.data.result]);
+        setNextWeekTasks((e)=>{
+          return [...e , ...result.data.result]
+        })
+      }
       setNewTask("");
       setShowAddTask(false);
+      console.log(result);
     }
   };
 
   const TaskList = ({ records, title , showFilter = false , filterOptions , selectedFilterOption , onChangeHandler}) => (
     <div className="mb-6">
-      {showFilter && 
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-medium text-sm text-gray-900 mb-3">{title}</h3>
+          {showFilter && 
             <select
               className="text-sm border rounded px-2 py-1 text-gray-700 bg-white shadow-sm"
               value={selectedFilterOption}
@@ -101,13 +114,13 @@ export default function ProjectTasks({projectId}) {
                 </option>
               ))}
             </select>
+          }
         </div>
-      }
       <div className="space-y-2">
         {records && records.map((task) => (
           <div key={task.id} className="flex items-start gap-2 text-sm text-gray-700">
             <ChevronRight className="h-4 w-4 mt-0.5 text-gray-400 flex-shrink-0" />
-            <span >{records.name}</span>
+            <span >{task.name}</span>
           </div>
         ))}
       </div>
@@ -157,21 +170,22 @@ export default function ProjectTasks({projectId}) {
         </div>
       )}
 
-      <TaskList 
-        tasks={tasks.completed} 
+      <TaskList  
         title="Previous Meeting Notes" 
         showFilter={true} 
         onChangeHandler={handlePreviousMeetingChange}
         selectedFilterOption={selectedMeeting}
         filterOptions={previousMeetings}
         records={selectedMeetingNotes} />
-      <TaskList 
-        tasks={tasks.previous} 
+      <TaskList  
         title="Previous tasks"  
-        showFilter={false}
-        records={[]} />
+        showFilter={true}
+        onChangeHandler={handlePreviousTaskWeekChange}
+        selectedFilterOption={selectedTaskWeek}
+        filterOptions={previousWeekTasks}
+        records={selectedTaskWeekLists} />
       <TaskList 
-        tasks={tasks.planned} 
+        records={nextWeekTasks} 
         title="Planned tasks for next week" />
     </div>
   );
