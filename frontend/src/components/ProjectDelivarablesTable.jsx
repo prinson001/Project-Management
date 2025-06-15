@@ -216,8 +216,8 @@ const ViewDeliverableDetailsModal = ({ onClose, deliverable }) => (
         <p><strong>Name:</strong> {deliverable.name}</p>
         <p><strong>Budget:</strong> {deliverable.budget}</p>
         <p><strong>Invoiced:</strong> {deliverable.invoiced}</p>
-        <p><strong>Start Date:</strong> {deliverable.start_date}</p>
-        <p><strong>End Date:</strong> {deliverable.end_date}</p>
+        {/* <p><strong>Start Date:</strong> {deliverable.start_date}</p> */}
+        {/* <p><strong>End Date:</strong> {deliverable.end_date}</p> */}
         <p><strong>Scope %:</strong> {deliverable.scope_percentage}</p>
         <p><strong>Payment %:</strong> {deliverable.payment_percentage}</p>
       </div>
