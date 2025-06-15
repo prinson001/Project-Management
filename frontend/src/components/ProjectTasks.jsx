@@ -2,6 +2,7 @@ import React, { useState , useEffect } from "react";
 import { Plus, ChevronRight } from "lucide-react";
 import axiosInstance from "../axiosInstance";
 import axios from "axios";
+import useAuth from "../hooks/userAuth";
 
 const initialTasks = {
   completed: [
@@ -31,6 +32,9 @@ export default function ProjectTasks({projectId}) {
   const [selectedTaskWeek , setSelectedTaskWeek] = useState("");
   const [selectedTaskWeekLists , setSelectedTaskWeekLists] = useState([]);
   const [nextWeekTasks , setNextWeekTasks] = useState([]);
+  const { userId, role } = useAuthStore();
+  console.log("user id in project tasks", userId);
+  console.log("role in project tasks", role);
 
   const fetchPreviousMeetingNotes = async()=>{
     const response = await axiosInstance.get(`/project-card/meeting-notes?projectid=${projectId}`);
