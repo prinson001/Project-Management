@@ -2,8 +2,7 @@ import React, { useState , useEffect } from "react";
 import { Plus, ChevronRight } from "lucide-react";
 import axiosInstance from "../axiosInstance";
 import axios from "axios";
-import useAuth from "../hooks/userAuth";
-
+import useAuthStore from "../store/authStore";
 const initialTasks = {
   completed: [
     { id: "1", title: "Conducted the review meeting with the client", completed: true },
