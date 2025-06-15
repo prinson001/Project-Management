@@ -261,15 +261,15 @@ async function uploadDeliverableDocument(req, res) {
 }
 
 const submitDeliverableDocument = async (req, res) => {
+  const actualDeliverableId = req.params.deliverable_id; // Correctly get from URL params
+
   const {
-    deliverable_id,
     document_type, // e.g., 'SCOPE_EVIDENCE', 'PAYMENT_INVOICE', 'DELIVERY_NOTE'
     invoice_amount,
     payment_percentage_at_upload,
     scope_percentage_at_upload,
-    // deliverable_scope_percentage, // The new scope % for the deliverable
-    // deliverable_payment_percentage // The new payment % for the deliverable
-  } = req.body;
+  } = req.body; // These come from FormData
+
   const file = req.file;
   // const userId = req.user?.id; // Assuming verifyToken middleware adds user to req - Placeholder
   const userId = '00000000-0000-0000-0000-000000000000'; // Replace with actual user ID from auth
@@ -277,15 +277,17 @@ const submitDeliverableDocument = async (req, res) => {
   if (!file) {
     return res.status(400).json({ error: "No file uploaded." });
   }
-  if (!deliverable_id || !document_type) {
-    return res.status(400).json({ error: "Missing deliverable_id or document_type." });
+  // Use actualDeliverableId from params for the check
+  if (!actualDeliverableId || !document_type) {
+    return res.status(400).json({ error: "Missing deliverable_id (from URL) or document_type (from body)." });
   }
   if (!userId) { // Basic check, ensure proper auth in production
     return res.status(401).json({ error: "User not authenticated." });
   }
 
   const bucketName = 'deliverable_evidence'; // Make sure this bucket exists in your Supabase project
-  const uniqueFileName = `${deliverable_id}/${Date.now()}_${file.originalname.replace(/\s+/g, '_')}`;
+  // Use actualDeliverableId from params for the filename
+  const uniqueFileName = `${actualDeliverableId}/${Date.now()}_${file.originalname.replace(/\\s+/g, '_')}`;
 
   try {
     // 1. Upload to Supabase Storage
@@ -303,12 +305,12 @@ const submitDeliverableDocument = async (req, res) => {
 
     // 2. Insert record into deliverable_documents table
     const documentRecord = {
-      deliverable_id,
+      deliverable_id: actualDeliverableId, // Use actualDeliverableId from params
       document_type,
       file_name: file.originalname,
       storage_path: uploadData.path, // path from Supabase storage response
       mime_type: file.mimetype,
-      size_bytes: file.size,
+      size_bytes: file.size, // Corrected from file.size_bytes to file.size
       invoice_amount: invoice_amount ? parseFloat(invoice_amount) : null,
       payment_percentage_at_upload: payment_percentage_at_upload ? parseFloat(payment_percentage_at_upload) : null,
       scope_percentage_at_upload: scope_percentage_at_upload ? parseFloat(scope_percentage_at_upload) : null,
@@ -326,11 +328,11 @@ const submitDeliverableDocument = async (req, res) => {
       const newScopePercentage = insertedDocument.scope_percentage_at_upload;
       let newStatus;
 
-      if (newScopePercentage >= 100) { // Assuming 100 or more means full scope completion
-        newStatus = 'PENDING_REVIEW'; // Or 'SCOPE_COMPLETED' if no review needed
+      if (newScopePercentage >= 100) {
+        newStatus = 'PENDING_REVIEW'; 
       } else if (newScopePercentage > 0) {
         newStatus = 'IN_PROGRESS';
-      } else { // Handles 0 or if it was somehow negative (though DB constraint prevents < 0)
+      } else { 
         newStatus = 'NOT_STARTED';
       }
 
@@ -347,9 +349,6 @@ const submitDeliverableDocument = async (req, res) => {
         // console.log('Updated deliverable_progress:', updatedProgress);
       } catch (progressError) {
         console.error("Error updating deliverable_progress:", progressError);
-        // Decide if this error should cause the whole request to fail
-        // For now, we'll let it proceed but log the error.
-        // In a production scenario, you might want to roll back or handle this more gracefully.
       }
     }
     // TODO: Consider if other document_types (e.g., INVOICE, DELIVERY_NOTE) should affect deliverable_progress.status
