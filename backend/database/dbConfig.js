@@ -1264,6 +1264,7 @@ const createTableRisks = async(req,res)=>{
         type VARCHAR(20),
         created_date DATE DEFAULT CURRENT_DATE,
         due_date DATE,
+        phase_id INTEGER REFERENCES project_phase(id) ON DELETE SET NULL,
         linked_project_id INTEGER REFERENCES project(id) ON DELETE CASCADE,
         linked_deliverable_id INTEGER REFERENCES deliverable(id) ON DELETE CASCADE,
         comments VARCHAR(255)

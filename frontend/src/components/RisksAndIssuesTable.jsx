@@ -38,7 +38,7 @@ const columnSetting = [
   { columnName: "Status", dbColumn: "status", isVisible: true, isInput: false },
 ];
 
-const AddRiskModal = ({ onClose, deliverables }) => {
+const AddRiskModal = ({ onClose, deliverables , projectName, projectPhases ,addRisk }) => {
   const {
     register,
     handleSubmit,
@@ -56,26 +56,6 @@ const AddRiskModal = ({ onClose, deliverables }) => {
     },
   });
   const [linkToProject, setLinkToProject] = useState(false);
-  const [projects, setProjects] = useState([]);
-
-  // Placeholder: Fetch projects. Replace with your actual data fetching logic.
-  useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        // Example: const response = await axiosInstance.get("/projects");
-        // setProjects(response.data.result || []);
-        setProjects([
-          { id: "proj-1", name: "Project Alpha" },
-          { id: "proj-2", name: "Project Beta" },
-          { id: "proj-3", name: "Project Gamma" },
-        ]);
-      } catch (error) {
-        console.error("Error fetching projects:", error);
-      }
-    };
-    fetchProjects();
-  }, []);
-
   const onSubmitRisk = (data) => {
     console.log("Form data before processing:", data);
     const submissionData = { ...data };
@@ -85,6 +65,7 @@ const AddRiskModal = ({ onClose, deliverables }) => {
       delete submissionData.projectId;
     }
     console.log("Processed form data for submission:", submissionData);
+    addRisk(submissionData);
     // onSaveRisk(submissionData); // Call your actual save function
     onClose();
   };
@@ -171,19 +152,19 @@ const AddRiskModal = ({ onClose, deliverables }) => {
               <label className="block text-sm font-medium mb-1">
                 Project name
               </label>
-              <select
+              <select disabled
                 {...register("projectId", {
                   required: linkToProject ? "Project is required" : false,
                 })}
                 className="w-full border rounded px-3 py-2 text-sm bg-gray-50"
-                defaultValue=""
+                value={projectName}
               >
-                <option value="" disabled>Select Project</option>
-                {projects.map((project) => (
+                <option value={projectName} selected>{projectName}</option>
+                {/* {projects.map((project) => (
                   <option key={project.id} value={project.id}>
                     {project.name}
                   </option>
-                ))}
+                ))} */}
               </select>
               {errors.projectId && (
                 <p className="text-red-500 text-xs mt-1">
@@ -201,8 +182,11 @@ const AddRiskModal = ({ onClose, deliverables }) => {
               defaultValue=""
             >
               <option value="" disabled>Select Phase</option>
-              <option>Bidding</option>
-              <option>Execution</option>
+              {/* <option>Bidding</option>
+              <option>Execution</option> */}
+              {projectPhases.map((phase)=>{
+                return <option key={phase.id} value={phase.id}>{phase.name}</option>
+              })}
             </select>
             {errors.phaseName && (
               <p className="text-red-500 text-xs mt-1">
@@ -230,7 +214,7 @@ const AddRiskModal = ({ onClose, deliverables }) => {
             )}
           </div>
 
-          <div>
+          {/* <div>
             <label className="block text-sm font-medium mb-1">
               Risk status
             </label>
@@ -250,7 +234,7 @@ const AddRiskModal = ({ onClose, deliverables }) => {
                 {errors.riskStatus.message}
               </p>
             )}
-          </div>
+          </div> */}
 
           <div className="flex justify-start gap-4 mt-6">
             <button
@@ -273,26 +257,56 @@ const AddRiskModal = ({ onClose, deliverables }) => {
   );
 };
 
-const RisksAndIssuesTable = ({ projectId, deliverables }) => {
+const RisksAndIssuesTable = ({ projectId, deliverables , projectName="Project XYZ"}) => {
   const [showModal, setShowModal] = useState(false);
   const [tableData, setTableData] = useState(sampleRisks);
-
+  const [projectPhases , setProjectPhases] = useState([]);
+ 
   const fetchRiskAndIssues =async(id)=>{
     const response =await  axiosInstance.get(`/project-card/risk?projectid=${id}`);
     console.log("risks and issues");
     console.log(response);
     setTableData(response.data.result);
   }
+  const fetchProjectPhase = async()=>{
+    const response = await axiosInstance.get("/project-card/project-phase");
+    console.log("the project phases are");
+    console.log(response);
+    setProjectPhases(response.data.result);
+  }
   useEffect(()=>{
     fetchRiskAndIssues(projectId);
   },[projectId]);
+  useEffect(()=>{
+    fetchProjectPhase();
+  },[])
 
 
-  const addRisk = async()=>{
+  const addRisk = async(data)=>{
+    console.log("form data is ");
+    console.log(data);
+    let linkedToType = ""
+    let linkedToId = ""
+    //dueDate , comments  , phaseName , linkedToType , linkedToId 
+    if(data.hasOwnProperty("deliverableId"))
+    {
+      linkedToType = 'deliverable',
+      linkedToId  = data.deliverableId;
+    }
+    else{
+      linkedToType = 'project'
+      linkedToId = data.projectId;
+    }
     const response = await axiosInstance.post("/project-card/risk",{
-      // {caseName , dueDate , comments  , phaseName , linkedToType , linkedToId } variable needs to pass
       
+      riskName : data.riskName,
+      comments : data.responsePlan,
+      phaseId : data.phaseName,
+      linkedToType,
+      linkedToId,
+      phaseId:data.phaseName
     })
+    console.log(Response);
   }
   const sortTableData = (column, order) => {
     const sorted = [...tableData].sort((a, b) =>
@@ -329,7 +343,7 @@ const RisksAndIssuesTable = ({ projectId, deliverables }) => {
         columnSetting={columnSetting}
       />
 
-      {showModal && <AddRiskModal onClose={() => setShowModal(false)} deliverables={deliverables} />}
+      {showModal && <AddRiskModal onClose={() => setShowModal(false)} deliverables={deliverables} projectName={projectName} projectPhases={projectPhases}  addRisk={addRisk}/>}
     </>
   );
 };

@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const multer = require('multer');
 
-const { getProjectDetails, getPreviousMeetingNotes } = require("../controllers/projectCardController");
+const { getProjectDetails, getPreviousMeetingNotes , createNextWeekProjectTask , getNextWeekProjectTasks, deleteNextWeekProjectTask, getProjectTasksGroupedByWeek,getProjectPhaseNames} = require("../controllers/projectCardController");
 const { getRisks, insertRisk } = require("../controllers/riskIssuesController");
 const {
     getDeliverablesByProjectId,
@@ -32,8 +32,20 @@ router.post("/deliverables/:deliverable_id/documents", upload.single('file'), su
 // NEW: Route for manually updating deliverable progress
 router.put("/deliverables/:deliverableId/progress", updateDeliverableProgressManual);
 
-router.get("/risk", getRisks);
-router.post("/risk", insertRisk);
-router.get("/meeting-notes", getPreviousMeetingNotes);
+
+
+
+router.get("/project-details/:projectid",getProjectDetails);
+// router.get("/deliverables/:projectid",getProjectDeliverables);
+router.get("/risk",getRisks);
+router.post("/risk",insertRisk);
+router.get("/meeting-notes",getPreviousMeetingNotes);``
+router.get("/meeting-notes",getPreviousMeetingNotes);
+router.post("/next-week-task",createNextWeekProjectTask);
+router.get("/next-week-task/:projectId",getNextWeekProjectTasks);
+router.delete("/next-week-task/:id",deleteNextWeekProjectTask);
+router.get("/project-tasks/:projectid",getProjectTasksGroupedByWeek);
+router.get("/project-phase",getProjectPhaseNames);
+
 
 module.exports = router;

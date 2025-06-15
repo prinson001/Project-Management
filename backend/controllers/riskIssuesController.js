@@ -56,16 +56,62 @@ const getRisks = async (req, res) => {
 
 
 const insertRisk = async (req,res)=>{
-    const {caseName , dueDate , comments  , phaseName , linkedToType , linkedToId } = req.body;
+    console.log(req.body);
+    const {riskName , comments  , phaseId , linkedToType , linkedToId } = req.body;
 
     const linkedProjectId = linkedToType === 'project' ? linkedToId : null;
     const linkedDeliverableId = linkedToType === 'deliverable' ? linkedToId : null; 
     const today = new Date().toISOString().split('T')[0];
-
+    let dueDate = "";
+    if(linkedToType == 'project')
+    {
+      try{
+        const response = await sql `
+          SELECT 
+            maintenance_duration
+          FROM 
+            project
+          WHERE   
+            id=${linkedProjectId}
+        `
+        dueDate = response[0].maintenance_duration;
+      }
+      catch(e)
+      {
+        res.status(500).json({
+          status:"failure",
+          message:"Failed to get due date of project",
+          result : e
+        })
+      }
+    }
+    else
+    {
+      try{
+        const response = await sql  `
+          SELECT 
+            end_date
+          FROM
+            deliverable
+          WHERE
+            id=${linkedDeliverableId}
+        `
+        dueDate=response[0].end_date;
+      }
+      catch(e)
+      {
+        res.status(500).json({
+          status:"failure",
+          message:"Failed to get due date of deliverable",
+          result : e
+        })
+      }
+    }
+    console.log("due date:"+dueDate);
     try{
         const result = await sql `
-            INSERT INTO RISK(name , status , type , due_date , phasename , created_date , linkedProjectId , linkedDeliverableId, comments )
-            VALUES (${caseName},'open','risk',${dueDate},${phaseName},${today},${linkedProjectId},${linkedDeliverableId}, ${comments})
+            INSERT INTO risks(name , status , type , due_date , phase_id , created_date , linked_project_id , linked_deliverable_id, comments )
+            VALUES (${riskName},'open','risk',${dueDate},${phaseId},${today},${linkedProjectId},${linkedDeliverableId}, ${comments})
         `
         return res.status(201).json({
             status: "success",

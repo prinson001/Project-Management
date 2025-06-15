@@ -40,7 +40,7 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 };
 
 // Main Component
-const ProjectCards = ({ projectId }) => {
+const ProjectCards = ({ projectId , projectName }) => {
   const [deliverables, setDeliverables] = useState([]);
   const [loadingDeliverables, setLoadingDeliverables] = useState(true);
   const [deliverablesError, setDeliverablesError] = useState(null);
@@ -208,7 +208,7 @@ const ProjectCards = ({ projectId }) => {
         <h2 className="text-xl font-semibold mb-3 text-gray-800 dark:text-white">
           Risks and Issues
         </h2>
-        <RisksAndIssuesTable projectId={projectId} deliverables={deliverables} />
+        <RisksAndIssuesTable projectId={projectId} deliverables={deliverables} projectName={projectName} />
       </div>
       <div className="my-6">
         <h2 className="text-xl font-semibold mb-3 text-gray-800 dark:text-white">
