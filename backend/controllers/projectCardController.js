@@ -296,6 +296,30 @@ const deleteNextWeekProjectTask = async(req,res)=>{
     }
 }
 
+const getProjectPhaseNames = async(req,res)=>{
+    try{
+        const result = await sql `
+            SELECT 
+                id, name
+            FROM
+                project_phase
+        `
+        res.status(200).json({
+            status:'success',
+            message:"Successfully retrieved project phase",
+            result 
+        })
+    }
+    catch(e)
+    {
+        res.status(500).json({
+            status:"failure",
+            message:"Failed to retrieve project phases",
+            result:e,
+        })
+    }
+}
+
 // HELPER FUNCTIONS
 
 const getWeekStartDate = ()=>{
@@ -335,7 +359,7 @@ function getWeekOfMonth(date) {
 
 
 
-module.exports = {getProjectDetails,getProjectDeliverables , getPreviousMeetingNotes , createNextWeekProjectTask, getProjectTasksGroupedByWeek, getNextWeekProjectTasks, deleteNextWeekProjectTask};
+module.exports = {getProjectDetails,getProjectDeliverables , getPreviousMeetingNotes , createNextWeekProjectTask, getProjectTasksGroupedByWeek, getNextWeekProjectTasks, deleteNextWeekProjectTask , getProjectPhaseNames};
 
 
 
