@@ -529,11 +529,12 @@ const EditRiskModal = ({ onClose, risk, deliverables, onSave }) => {
   );
 };
 
-const RisksAndIssuesTable = ({ projectId, deliverables , projectName="Project XYZ"}) => {
-  const [showModal, setShowModal] = useState(false);
+const RisksAndIssuesTable = ({ risks, onEdit, onAdd, isLoading, projectName, projectPhases, deliverables, addRisk }) => {
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false); // Define isAddModalOpen and its setter
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedRisk, setSelectedRisk] = useState(null);
   const [tableData, setTableData] = useState(sampleRisks);
-  const [projectPhases , setProjectPhases] = useState([]);
- 
+
   const fetchRiskAndIssues =async(id)=>{
     const response =await  axiosInstance.get(`/project-card/risk?projectid=${id}`);
     console.log("risks and issues");
@@ -602,7 +603,7 @@ const RisksAndIssuesTable = ({ projectId, deliverables , projectName="Project XY
     <>
       <div className="mb-4 flex justify-end">
         <button
-          onClick={() => setShowAddModal(true)}
+          onClick={() => setIsAddModalOpen(true)}
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm font-medium"
         >
           + Add Risk
@@ -620,8 +621,14 @@ const RisksAndIssuesTable = ({ projectId, deliverables , projectName="Project XY
         onEdit={handleEdit}
       />
 
-      {showAddModal && (
-        <AddRiskModal onClose={() => setShowAddModal(false)} deliverables={deliverables} />
+      {isAddModalOpen && (
+        <AddRiskModal
+          onClose={() => setIsAddModalOpen(false)}
+          deliverables={deliverables}
+          projectName={projectName}
+          projectPhases={projectPhases}
+          addRisk={addRisk}
+        />
       )}
       {showEditModal && (
         <EditRiskModal
