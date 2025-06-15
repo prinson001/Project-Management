@@ -1,4 +1,7 @@
-import { useEffect, useState, Fragment } from "react";
+import { useEffect, useState, Fragment, useRef } from "react"; // Added useRef
+import React, { useCallback } from 'react';
+import axiosInstance from '../axiosInstance';
+import useClickOutside from '../hooks/useClickOutside'; // Import the new hook
 
 const DeliveryCompletionModal = ({ onClose, deliverable }) => (
   <div className="fixed inset-0 bg-black/45 backdrop-blur-sm z-50 flex justify-center items-center">
@@ -38,47 +41,165 @@ const DeliveryCompletionModal = ({ onClose, deliverable }) => (
   </div>
 );
 
-const DeliveryInvoiceModal = ({ onClose, deliverable }) => (
-  <div className="fixed inset-0 bg-black/45 backdrop-blur-sm z-50 flex justify-center items-center">
-    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md mx-4">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Delivery Invoice</h2>
-        <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Delivery name</label>
-          <input type="text" value={deliverable.name} disabled className="mt-1 block w-full border border-gray-300 rounded-md p-2 bg-gray-100" />
+const DeliveryInvoiceModal = ({ onClose, deliverable, onSuccessfulSubmit }) => {
+  const [invoiceAmount, setInvoiceAmount] = useState('');
+  const [isFullAmount, setIsFullAmount] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [paymentPercentage, setPaymentPercentage] = useState(deliverable.payment_percentage || 0); // Or derive from remaining value
+
+  const handleFileChange = (event) => {
+    setSelectedFile(event.target.files[0]);
+    setUploadError('');
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (!selectedFile) {
+      setUploadError('Please select an invoice document to upload.');
+      return;
+    }
+    if (!invoiceAmount && !isFullAmount) {
+      setUploadError('Please enter an invoice amount or check Full Amount.');
+      return;
+    }
+
+    setUploading(true);
+    setUploadError('');
+
+    const formData = new FormData();
+    formData.append('evidenceFile', selectedFile);
+    formData.append('document_type', 'INVOICE');
+    formData.append('deliverable_id', deliverable.id);
+    
+    const finalInvoiceAmount = isFullAmount 
+      ? (deliverable.budget - (deliverable.invoiced || 0)) // Calculate remaining if full amount
+      : parseFloat(invoiceAmount);
+    formData.append('invoice_amount', finalInvoiceAmount);
+    
+    // Assuming payment_percentage is also set/confirmed in this modal
+    // This could be calculated or manually entered. For now, let's use a state variable.
+    formData.append('related_payment_percentage', paymentPercentage); 
+    // Add other relevant fields like invoice_date if you have them in the form
+
+    try {
+      // Adjust the endpoint to match your backend route
+      const response = await axiosInstance.post(`/deliverables/${deliverable.id}/documents`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      setUploading(false);
+      if (response.data.document) {
+        // console.log('Upload successful:', response.data);
+        if (onSuccessfulSubmit) {
+          onSuccessfulSubmit(response.data.document); // Pass data back if needed
+        }
+        onClose(); // Close modal on success
+      } else {
+        setUploadError(response.data.message || 'Upload failed. Please try again.');
+      }
+    } catch (error) {
+      setUploading(false);
+      console.error('Upload error:', error);
+      setUploadError(error.response?.data?.message || error.message || 'An error occurred during upload.');
+    }
+  };
+  
+  // Calculate remaining value for display
+  const remainingValue = deliverable.budget - (deliverable.invoiced || 0);
+
+  const handleFullAmountChange = (e) => {
+    setIsFullAmount(e.target.checked);
+    if (e.target.checked) {
+      setInvoiceAmount(remainingValue.toString()); // Set invoice amount to remaining
+      setPaymentPercentage(100); // If full amount, payment percentage becomes 100
+    } else {
+      // Optionally clear or revert invoiceAmount if unchecked
+      // setInvoiceAmount(''); 
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/45 backdrop-blur-sm z-50 flex justify-center items-center">
+      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md mx-4">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Delivery Invoice</h2>
+          <button type="button" onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Deliverable remaining value (SAR)</label>
-          <input type="text" value="100,000" disabled className="mt-1 block w-full border border-gray-300 rounded-md p-2 bg-gray-100" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Invoice Amount (SAR)</label>
-          <input type="text" value="50,000" className="mt-1 block w-full border border-gray-300 rounded-md p-2" />
-        </div>
-        <div className="flex items-center space-x-2">
-          <label className="text-sm font-medium text-gray-700">Full Amount</label>
-          <input type="checkbox" className="h-4 w-4 text-blue-600 border-gray-300 rounded" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Upload signed delivery note</label>
-          <div className="flex items-center space-x-2">
-            <input type="text" value="Filename.pdf" disabled className="mt-1 block w-full border border-gray-300 rounded-md p-2 bg-gray-100" />
-            <button className="mt-1 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">Browse</button>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Deliverable Name</label>
+            <input type="text" value={deliverable.name} disabled className="mt-1 block w-full border border-gray-300 rounded-md p-2 bg-gray-100" />
           </div>
-          <p className="text-green-600 text-sm mt-1">Uploading completed!</p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Deliverable Remaining Value (SAR)</label>
+            <input type="text" value={remainingValue.toLocaleString()} disabled className="mt-1 block w-full border border-gray-300 rounded-md p-2 bg-gray-100" />
+          </div>
+          <div>
+            <label htmlFor="invoiceAmount" className="block text-sm font-medium text-gray-700">Invoice Amount (SAR)</label>
+            <input 
+              id="invoiceAmount"
+              type="number" 
+              value={invoiceAmount} 
+              onChange={(e) => setInvoiceAmount(e.target.value)}
+              disabled={isFullAmount}
+              className="mt-1 block w-full border border-gray-300 rounded-md p-2" 
+              placeholder="Enter invoice amount"
+            />
+          </div>
+          <div className="flex items-center space-x-2">
+            <input 
+              type="checkbox" 
+              id="fullAmount"
+              checked={isFullAmount}
+              onChange={handleFullAmountChange}
+              className="h-4 w-4 text-blue-600 border-gray-300 rounded" 
+            />
+            <label htmlFor="fullAmount" className="text-sm font-medium text-gray-700">Invoice Full Remaining Amount</label>
+          </div>
+          <div>
+            <label htmlFor="paymentPercentage" className="block text-sm font-medium text-gray-700">Payment Percentage (%)</label>
+            <input
+              id="paymentPercentage"
+              type="number"
+              value={paymentPercentage}
+              onChange={(e) => setPaymentPercentage(Math.max(0, Math.min(100, Number(e.target.value))))}
+              className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+              placeholder="Enter payment percentage"
+              max="100"
+              min="0"
+            />
+          </div>
+          <div>
+            <label htmlFor="invoiceFile" className="block text-sm font-medium text-gray-700">Upload Invoice Document</label>
+            <input 
+              id="invoiceFile"
+              type="file" 
+              onChange={handleFileChange} 
+              className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+            {selectedFile && <p className="text-sm text-gray-600 mt-1">Selected: {selectedFile.name}</p>}
+          </div>
+          {uploadError && <p className="text-red-500 text-sm">{uploadError}</p>}
+          <button 
+            type="submit" 
+            disabled={uploading}
+            className="w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-400"
+          >
+            {uploading ? 'Submitting...' : 'Submit Invoice'}
+          </button>
         </div>
-        <button className="w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">Submit</button>
-      </div>
+      </form>
     </div>
-  </div>
-);
+  );
+};
 
 const ViewDeliverableDetailsModal = ({ onClose, deliverable }) => (
   <div className="fixed inset-0 bg-black/45 backdrop-blur-sm z-50 flex justify-center items-center">
@@ -236,11 +357,17 @@ const ProjectDelivarablesTable = ({ data, columns = [], tableName }) => {
   const handleActionSelect = (action, deliverable) => {
     setSelectedDeliverable(deliverable);
     setSelectedModal(action);
-    setShowActionPopup(null);
+    setShowActionPopup(null); // Close the popup itself
+  };
+
+  const handleModalClose = () => {
+    setSelectedModal(null);
+    // Keep selectedDeliverable for a moment if needed for animations, or clear it too
+    // setSelectedDeliverable(null);
   };
 
   return (
-    <div className="relative text-xs overflow-x-auto rounded-lg shadow-md">
+    <div className="relative text-xs overflow-x-auto rounded-lg shadow-md min-h-[600px]"> {/* Added min-h-[600px] for more height */}
       <table className="w-full text-xs text-left text-gray-500">
         <thead className="text-xs text-gray-700 uppercase bg-gray-50">
           <tr>
@@ -386,36 +513,38 @@ const ProjectDelivarablesTable = ({ data, columns = [], tableName }) => {
         </tbody>
       </table>
 
-      {selectedModal === 'completion' && (
+      {/* Modals are now rendered here, wrapped with ModalWrapper */}
+      {selectedModal === 'completion' && selectedDeliverable && (
         <DeliveryCompletionModal
-          onClose={() => setSelectedModal(null)}
+          onClose={handleModalClose} 
           deliverable={selectedDeliverable}
         />
       )}
-      {selectedModal === 'invoice' && (
+      {selectedModal === 'invoice' && selectedDeliverable && (
         <DeliveryInvoiceModal
-          onClose={() => setSelectedModal(null)}
+          onClose={handleModalClose}
           deliverable={selectedDeliverable}
+          onSuccessfulSubmit={() => { /* Handle successful submit, e.g., refresh data */ handleModalClose(); }}
         />
       )}
-      {selectedModal === 'details' && (
+      {selectedModal === 'details' && selectedDeliverable && (
         <ViewDeliverableDetailsModal
-          onClose={() => setSelectedModal(null)}
+          onClose={handleModalClose}
           deliverable={selectedDeliverable}
         />
       )}
-      {selectedModal === 'changeRequest' && (
+      {selectedModal === 'changeRequest' && selectedDeliverable && (
         <ChangeRequestModal
-          onClose={() => setSelectedModal(null)}
+          onClose={handleModalClose}
           deliverable={selectedDeliverable}
         />
       )}
-      {selectedModal === 'dates' && (
+      {selectedModal === 'dates' && selectedDeliverable && (
         <div className="fixed inset-0 bg-black/45 backdrop-blur-sm z-50 flex justify-center items-center">
           <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md mx-4">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Change Deliverable Dates</h2>
-              <button onClick={() => setSelectedModal(null)} className="text-gray-500 hover:text-gray-700">
+              <button onClick={handleModalClose} className="text-gray-500 hover:text-gray-700">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>

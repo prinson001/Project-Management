@@ -138,6 +138,7 @@ const ProjectModal = ({
   // Watch for changes in projectType and currentPhase
   const projectType = watch("projectType");
   const currentPhase = watch("currentPhase");
+  const projectBudget = watch("project_budget"); // Assuming 'project_budget' is a field in your form
 
   const scheduleData = [
     {
@@ -1167,6 +1168,44 @@ const ProjectModal = ({
       }
     }
   };
+
+  useEffect(() => {
+    const fetchPhaseDurationsForBudget = async () => {
+      if (projectBudget !== undefined && projectBudget !== null && projectBudget !== '') {
+        // Ensure projectBudget is a full numeric value before sending
+        const numericBudget = parseFloat(String(projectBudget).replace(/,/g, '')); // Clean up any commas if user inputs them
+
+        if (isNaN(numericBudget)) {
+          // console.log("Budget is not a valid number for fetching phases.");
+          setDurationOptions([]); // Clear or handle appropriately
+          return;
+        }
+        
+        try {
+          const response = await fetch(`${PORT}/data-management/getPhases`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ budget: numericBudget }), // Send full numeric budget
+          });
+          const data = await response.json();
+          if (data.status === "success") {
+            setPhaseDurations(data.data); // Assuming this state stores the fetched phase durations
+            // You might need to transform this data for scheduleTableData or internalScheduleDataState
+          } else {
+            // console.error("Failed to fetch phase durations:", data.message);
+            setPhaseDurations([]);
+          }
+        } catch (error) {
+          // console.error("Error fetching phase durations:", error);
+          setPhaseDurations([]);
+        }
+      } else {
+        setPhaseDurations([]); // Clear durations if no budget
+      }
+    };
+
+    fetchPhaseDurationsForBudget();
+  }, [projectBudget, PORT]); // Re-fetch when projectBudget changes
 
   return (
     <div className="flex flex-col rounded-lg border border-gray-200 shadow-md bg-white max-w-6xl mx-auto max-h-[90vh]">

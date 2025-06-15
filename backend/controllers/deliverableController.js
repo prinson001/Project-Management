@@ -1,4 +1,24 @@
-const sql = require("../database/db");
+const { createClient } = require('@supabase/supabase-js');
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+const sql = require('../database/db'); // Your existing postgres.js instance
+const multer = require('multer');
+const path = require('path');
+
+// Configure multer for memory storage to pass buffer to Supabase
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB file size limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|pdf|doc|docx|xls|xlsx/;
+    const mimetype = allowedTypes.test(file.mimetype);
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    if (mimetype && extname) {
+      return cb(null, true);
+    }
+    cb(new Error("Error: File type not allowed! Allowed types: " + allowedTypes.toString()));
+  }
+});
 
 const getItemsWithDeliverables = async (req, res) => {
   let { projectId } = req.body;
@@ -142,9 +162,493 @@ const saveDeliverables = async (req, res) => {
   }
 };
 
+async function uploadDeliverableDocument(req, res) {
+  const { deliverableId } = req.params;
+  const {
+    document_type, // e.g., 'INVOICE', 'SCOPE_EVIDENCE'
+    description,
+    invoice_amount,
+    invoice_date,
+    related_scope_percentage,
+    related_payment_percentage
+  } = req.body;
+  // const userId = req.user.id; // From your auth middleware
+
+  if (!req.file) {
+    return res.status(400).json({ message: "No file uploaded." });
+  }
+
+  const file = req.file;
+  const uniqueFileName = `${deliverableId}/${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`;
+  const bucketName = 'deliverable_documents'; // Or your chosen bucket name
+
+  try {
+    // Step 1: Upload file to Supabase Storage
+    // const { data: uploadResult, error: uploadError } = await supabase.storage
+    //   .from(bucketName)
+    //   .upload(uniqueFileName, file.buffer, {
+    //     contentType: file.mimetype,
+    //     upsert: false, // Set to true if you want to overwrite if file exists
+    //   });
+
+    // if (uploadError) {
+    //   console.error('Supabase storage upload error:', uploadError);
+    //   return res.status(500).json({ message: "Storage upload failed.", error: uploadError.message });
+    // }
+    // const storagePath = uploadResult.path; // Path in Supabase storage
+
+    // SIMULATED - replace with actual Supabase upload above
+    const storagePath = uniqueFileName; // Placeholder for actual path from Supabase
+
+    // Step 2: Prepare data for deliverable_documents table
+    const documentData = {
+      deliverable_id: deliverableId,
+      document_type,
+      file_name: file.originalname,
+      storage_path: storagePath,
+      mime_type: file.mimetype,
+      file_size_bytes: file.size,
+      // uploaded_by: userId,
+      description,
+      invoice_amount: document_type === 'INVOICE' && invoice_amount ? parseFloat(invoice_amount) : null,
+      invoice_date: document_type === 'INVOICE' && invoice_date ? invoice_date : null,
+      related_scope_percentage: related_scope_percentage ? parseInt(related_scope_percentage, 10) : null,
+      related_payment_percentage: related_payment_percentage ? parseInt(related_payment_percentage, 10) : null,
+    };
+
+    const [insertedDocument] = await sql`
+      INSERT INTO deliverable_documents ${sql(documentData)}
+      RETURNING id, deliverable_id, document_type, related_scope_percentage, related_payment_percentage, invoice_amount
+    `;
+
+    // Step 3: Update the parent deliverable based on the document
+    let deliverableUpdateQuery = null;
+    if (insertedDocument.document_type === 'SCOPE_EVIDENCE' && insertedDocument.related_scope_percentage !== null) {
+      deliverableUpdateQuery = sql`
+        UPDATE deliverable
+        SET scope_percentage = ${insertedDocument.related_scope_percentage}
+        WHERE id = ${insertedDocument.deliverable_id}
+        RETURNING id, scope_percentage
+      `;
+    } else if (insertedDocument.document_type === 'INVOICE' && insertedDocument.related_payment_percentage !== null) {
+      // If an invoice also implies a certain payment percentage completion
+      // And potentially update the 'invoiced' amount on the deliverable
+      // This logic can be more complex, e.g., summing up invoice amounts.
+      // For simplicity, let's say this document directly sets the payment_percentage.
+      // You might also want to update a total invoiced amount on the deliverable:
+      // SET payment_percentage = ${insertedDocument.related_payment_percentage}, invoiced = COALESCE(invoiced, 0) + ${insertedDocument.invoice_amount}
+      deliverableUpdateQuery = sql`
+        UPDATE deliverable
+        SET payment_percentage = ${insertedDocument.related_payment_percentage} 
+        WHERE id = ${insertedDocument.deliverable_id}
+        RETURNING id, payment_percentage
+      `;
+    }
+    // Add more conditions for 'DELIVERY_NOTE' if it affects status or scope.
+
+    if (deliverableUpdateQuery) {
+      const [updatedDeliverable] = await deliverableUpdateQuery;
+      // console.log('Updated deliverable:', updatedDeliverable);
+    }
+
+    res.status(201).json({ message: "Document uploaded and processed successfully.", document: insertedDocument });
+
+  } catch (dbError) {
+    console.error('Database or processing error:', dbError);
+    // TODO: If DB operation fails after storage upload, consider deleting the file from storage (rollback)
+    res.status(500).json({ message: "Server error during document processing.", error: dbError.message });
+  }
+}
+
+const submitDeliverableDocument = async (req, res) => {
+  const {
+    deliverable_id,
+    document_type, // e.g., 'SCOPE_EVIDENCE', 'PAYMENT_INVOICE', 'DELIVERY_NOTE'
+    invoice_amount,
+    payment_percentage_at_upload,
+    scope_percentage_at_upload,
+    // deliverable_scope_percentage, // The new scope % for the deliverable
+    // deliverable_payment_percentage // The new payment % for the deliverable
+  } = req.body;
+  const file = req.file;
+  // const userId = req.user?.id; // Assuming verifyToken middleware adds user to req - Placeholder
+  const userId = '00000000-0000-0000-0000-000000000000'; // Replace with actual user ID from auth
+
+  if (!file) {
+    return res.status(400).json({ error: "No file uploaded." });
+  }
+  if (!deliverable_id || !document_type) {
+    return res.status(400).json({ error: "Missing deliverable_id or document_type." });
+  }
+  if (!userId) { // Basic check, ensure proper auth in production
+    return res.status(401).json({ error: "User not authenticated." });
+  }
+
+  const bucketName = 'deliverable_evidence'; // Make sure this bucket exists in your Supabase project
+  const uniqueFileName = `${deliverable_id}/${Date.now()}_${file.originalname.replace(/\s+/g, '_')}`;
+
+  try {
+    // 1. Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from(bucketName)
+      .upload(uniqueFileName, file.buffer, {
+        contentType: file.mimetype,
+        upsert: false, // true to overwrite if file exists, false to error
+      });
+
+    if (uploadError) {
+      console.error("Supabase storage upload error:", uploadError);
+      return res.status(500).json({ error: "Failed to upload file to storage.", details: uploadError.message });
+    }
+
+    // 2. Insert record into deliverable_documents table
+    const documentRecord = {
+      deliverable_id,
+      document_type,
+      file_name: file.originalname,
+      storage_path: uploadData.path, // path from Supabase storage response
+      mime_type: file.mimetype,
+      size_bytes: file.size,
+      invoice_amount: invoice_amount ? parseFloat(invoice_amount) : null,
+      payment_percentage_at_upload: payment_percentage_at_upload ? parseFloat(payment_percentage_at_upload) : null,
+      scope_percentage_at_upload: scope_percentage_at_upload ? parseFloat(scope_percentage_at_upload) : null,
+      uploaded_by: userId,
+      status: 'PENDING_REVIEW', // Default status
+    };
+
+    const [insertedDocument] = await sql`
+      INSERT INTO deliverable_documents ${sql(documentRecord)}
+      RETURNING *
+    `;
+
+    // Update deliverable_progress based on the document
+    if (insertedDocument.document_type === 'SCOPE_EVIDENCE' && insertedDocument.scope_percentage_at_upload !== null) {
+      const newScopePercentage = insertedDocument.scope_percentage_at_upload;
+      let newStatus;
+
+      if (newScopePercentage >= 100) { // Assuming 100 or more means full scope completion
+        newStatus = 'PENDING_REVIEW'; // Or 'SCOPE_COMPLETED' if no review needed
+      } else if (newScopePercentage > 0) {
+        newStatus = 'IN_PROGRESS';
+      } else { // Handles 0 or if it was somehow negative (though DB constraint prevents < 0)
+        newStatus = 'NOT_STARTED';
+      }
+
+      try {
+        const [updatedProgress] = await sql`
+          INSERT INTO deliverable_progress (deliverable_id, scope_percentage, status, last_updated)
+          VALUES (${insertedDocument.deliverable_id}, ${newScopePercentage}, ${newStatus}, NOW())
+          ON CONFLICT (deliverable_id) DO UPDATE SET
+            scope_percentage = EXCLUDED.scope_percentage,
+            status = EXCLUDED.status,
+            last_updated = NOW()
+          RETURNING *
+        `;
+        // console.log('Updated deliverable_progress:', updatedProgress);
+      } catch (progressError) {
+        console.error("Error updating deliverable_progress:", progressError);
+        // Decide if this error should cause the whole request to fail
+        // For now, we'll let it proceed but log the error.
+        // In a production scenario, you might want to roll back or handle this more gracefully.
+      }
+    }
+    // TODO: Consider if other document_types (e.g., INVOICE, DELIVERY_NOTE) should affect deliverable_progress.status
+
+    res.status(201).json({
+      success: true,
+      message: "Document submitted successfully.",
+      document: insertedDocument,
+    });
+
+  } catch (error) {
+    console.error("Error submitting deliverable document:", error);
+    // If storage upload succeeded but DB insert failed, consider deleting the orphaned file from storage.
+    // This is a good practice for production but omitted here for brevity.
+    res.status(500).json({ error: "Server error while submitting document.", details: error.message });
+  }
+};
+
+// Get all deliverables for a specific project (expects projectId from params)
+const getDeliverablesByProjectId = async (req, res) => {
+  const projectId = req.params.projectid;
+
+  if (!projectId) {
+    return res.status(400).json({ message: "Project ID is required in params" });
+  }
+
+  try {
+    const deliverables = await sql`
+      SELECT 
+        d.id, 
+        d.name, 
+        d.amount, /* This is used as the budget/total value */
+        d.start_date,
+        d.end_date,
+        d.duration,
+        d.item_id, 
+        i.project_id,
+        COALESCE(dp.progress_percentage, 0) as progress_percentage,
+        COALESCE(dp.scope_percentage, 0) as scope_percentage,
+        COALESCE(dp.status, 'NOT_STARTED') as status,
+        dp.notes as progress_notes,
+        COALESCE(SUM(CASE WHEN dd.document_type = 'INVOICE' THEN dd.invoice_amount ELSE 0 END), 0) as invoiced,
+        COALESCE(d.amount, 0) - COALESCE(SUM(CASE WHEN dd.document_type = 'INVOICE' THEN dd.invoice_amount ELSE 0 END), 0) as remaining_budget,
+        ROUND(LEAST( (COALESCE(SUM(CASE WHEN dd.document_type = 'INVOICE' THEN dd.invoice_amount ELSE 0 END), 0) / NULLIF(d.amount, 0)) * 100 , 100)) as payment_percentage,
+        d.created_at,
+        d.updated_at,
+        dp.updated_at as progress_updated_at
+      FROM deliverable d
+      JOIN item i ON d.item_id = i.id 
+      LEFT JOIN deliverable_progress dp ON d.id = dp.deliverable_id
+      LEFT JOIN deliverable_documents dd ON d.id = dd.deliverable_id
+      WHERE i.project_id = ${projectId}
+      GROUP BY d.id, i.project_id, dp.id 
+      ORDER BY d.start_date ASC, d.created_at ASC
+    `;
+    return res.status(200).json(deliverables);
+  } catch (error) {
+    console.error("Error fetching deliverables by project ID (params):", error);
+    res.status(500).json({ message: "Error fetching project deliverables", error: error.message });
+  }
+};
+
+// NEW: Get all deliverables for a specific project (expects projectId in body)
+const getProjectDeliverablesFromBody = async (req, res) => {
+  const { projectId } = req.body;
+
+  if (!projectId) {
+    return res.status(400).json({ message: "Project ID is required in body" });
+  }
+
+  try {
+    const deliverables = await sql`
+      SELECT 
+        d.id, 
+        d.name, 
+        d.amount, /* This is used as the budget/total value */
+        d.start_date,
+        d.end_date,
+        d.duration,
+        d.item_id, 
+        i.project_id,
+        COALESCE(dp.progress_percentage, 0) as progress_percentage,
+        COALESCE(dp.scope_percentage, 0) as scope_percentage,
+        COALESCE(dp.status, 'NOT_STARTED') as status,
+        dp.notes as progress_notes,
+        COALESCE(SUM(CASE WHEN dd.document_type = 'INVOICE' THEN dd.invoice_amount ELSE 0 END), 0) as invoiced,
+        COALESCE(d.amount, 0) - COALESCE(SUM(CASE WHEN dd.document_type = 'INVOICE' THEN dd.invoice_amount ELSE 0 END), 0) as remaining_budget,
+        ROUND(LEAST( (COALESCE(SUM(CASE WHEN dd.document_type = 'INVOICE' THEN dd.invoice_amount ELSE 0 END), 0) / NULLIF(d.amount, 0)) * 100 , 100)) as payment_percentage,
+        d.created_at,
+        d.updated_at,
+        dp.updated_at as progress_updated_at
+      FROM deliverable d
+      JOIN item i ON d.item_id = i.id
+      LEFT JOIN deliverable_progress dp ON d.id = dp.deliverable_id
+      LEFT JOIN deliverable_documents dd ON d.id = dd.deliverable_id
+      WHERE i.project_id = ${projectId}
+      GROUP BY d.id, i.project_id, dp.id 
+      ORDER BY d.start_date ASC, d.created_at ASC
+    `;
+    return res.status(200).json(deliverables);
+  } catch (error) {
+    console.error("Error fetching deliverables by project ID (body):", error);
+    res.status(500).json({ message: "Error fetching project deliverables", error: error.message });
+  }
+};
+
+const getDeliverablesByProject = async (req, res) => {
+  const { projectId } = req.params;
+  if (!projectId) {
+    return res.status(400).json({ message: "Project ID is required in params" });
+  }
+  try {
+    const result = await sql`
+      SELECT
+        d.id,
+        d.name,
+        d.description,
+        TO_CHAR(d.start_date, 'YYYY-MM-DD') as start_date,
+        TO_CHAR(d.end_date, 'YYYY-MM-DD') as end_date,
+        d.amount,
+        i.project_id, 
+        dp.id as progress_id,
+        COALESCE(dp.progress_percentage, 0) as progress_percentage,
+        COALESCE(dp.status, 'NOT_STARTED') as progress_status,
+        COALESCE(dp.scope_percentage, 0) as scope_percentage,
+        dp.notes as progress_notes,
+        dp.last_updated as progress_last_updated,
+        d.item_id,
+        d.created_at,
+        d.updated_at
+      FROM deliverable d
+      JOIN item i ON d.item_id = i.id
+      LEFT JOIN deliverable_progress dp ON d.id = dp.deliverable_id
+      WHERE i.project_id = ${projectId}
+      ORDER BY d.start_date ASC, d.created_at ASC
+    `;
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching deliverables by project (params):', error);
+    res.status(500).json({ message: 'Error fetching deliverables by project', error: error.message });
+  }
+};
+
+const getDeliverableById = async (req, res) => {
+  const { id } = req.params; // This is deliverable ID
+  if (!id) {
+    return res.status(400).json({ message: "Deliverable ID is required" });
+  }
+  try {
+    const result = await sql`
+      SELECT
+        d.id,
+        d.name,
+        d.description,
+        TO_CHAR(d.start_date, 'YYYY-MM-DD') as start_date,
+        TO_CHAR(d.end_date, 'YYYY-MM-DD') as end_date,
+        d.amount,
+        i.project_id, 
+        dp.id as progress_id,
+        COALESCE(dp.progress_percentage, 0) as progress_percentage,
+        COALESCE(dp.status, 'NOT_STARTED') as progress_status,
+        COALESCE(dp.scope_percentage, 0) as scope_percentage,
+        dp.notes as progress_notes,
+        dp.last_updated as progress_last_updated,
+        d.item_id,
+        d.created_at,
+        d.updated_at
+      FROM deliverable d
+      JOIN item i ON d.item_id = i.id 
+      LEFT JOIN deliverable_progress dp ON d.id = dp.deliverable_id
+      WHERE d.id = ${id}
+    `;
+    if (result.length === 0) {
+      return res.status(404).json({ message: 'Deliverable not found' });
+    }
+    res.json(result[0]);
+  } catch (error) {
+    console.error('Error fetching deliverable by ID:', error);
+    res.status(500).json({ message: 'Error fetching deliverable by ID', error: error.message });
+  }
+};
+
+// NEW: Manually update deliverable progress
+const updateDeliverableProgressManual = async (req, res) => {
+  const { deliverableId } = req.params;
+  const {
+    scope_percentage,
+    progress_percentage,
+    status,
+    notes
+  } = req.body;
+
+  if (scope_percentage === undefined && progress_percentage === undefined && status === undefined && notes === undefined) {
+    return res.status(400).json({ message: "No update data provided." });
+  }
+
+  const parsedScopePercentage = scope_percentage !== undefined ? parseFloat(scope_percentage) : undefined;
+  const parsedProgressPercentage = progress_percentage !== undefined ? parseFloat(progress_percentage) : undefined;
+
+  if (parsedScopePercentage !== undefined && (isNaN(parsedScopePercentage) || parsedScopePercentage < 0 || parsedScopePercentage > 100)) {
+    return res.status(400).json({ message: "Invalid scope_percentage. Must be a number between 0 and 100." });
+  }
+  if (parsedProgressPercentage !== undefined && (isNaN(parsedProgressPercentage) || parsedProgressPercentage < 0 || parsedProgressPercentage > 100)) {
+    return res.status(400).json({ message: "Invalid progress_percentage. Must be a number between 0 and 100." });
+  }
+  // TODO: Add validation for 'status' against an enum or predefined list if applicable
+
+  try {
+    const updateFields = {};
+    const setClauses = [];
+    const values = [deliverableId];
+    let valueCounter = 2; // Start after deliverableId
+
+    if (parsedScopePercentage !== undefined) {
+      updateFields.scope_percentage = parsedScopePercentage;
+      setClauses.push(sql`scope_percentage = ${parsedScopePercentage}`);
+    }
+    if (parsedProgressPercentage !== undefined) {
+      updateFields.progress_percentage = parsedProgressPercentage;
+      setClauses.push(sql`progress_percentage = ${parsedProgressPercentage}`);
+    } else if (parsedScopePercentage !== undefined && parsedProgressPercentage === undefined) {
+      // Default progress_percentage to scope_percentage if scope is given and progress is not
+      updateFields.progress_percentage = parsedScopePercentage;
+      setClauses.push(sql`progress_percentage = ${parsedScopePercentage}`);
+    }
+    if (status !== undefined) {
+      updateFields.status = status;
+      setClauses.push(sql`status = ${status}`);
+    }
+    if (notes !== undefined) { // Allow empty string for notes
+      updateFields.notes = notes;
+      setClauses.push(sql`notes = ${notes}`);
+    }
+    
+    updateFields.last_updated = sql`NOW()`; // Always update timestamp
+    setClauses.push(sql`last_updated = NOW()`);
+
+
+    if (setClauses.length === 1 && updateFields.last_updated) { // Only last_updated means no effective change
+        return res.status(400).json({ message: "No effective update data provided beyond timestamp." });
+    }
+    
+    // Prepare for INSERT part
+    const insertColumns = ['deliverable_id'];
+    const insertValuesPlaceholders = [deliverableId]; // SQL injection safe placeholder for deliverableId
+
+    if (updateFields.scope_percentage !== undefined) {
+        insertColumns.push('scope_percentage');
+        insertValuesPlaceholders.push(updateFields.scope_percentage);
+    }
+    if (updateFields.progress_percentage !== undefined) {
+        insertColumns.push('progress_percentage');
+        insertValuesPlaceholders.push(updateFields.progress_percentage);
+    }
+    if (updateFields.status !== undefined) {
+        insertColumns.push('status');
+        insertValuesPlaceholders.push(updateFields.status);
+    }
+    if (updateFields.notes !== undefined) {
+        insertColumns.push('notes');
+        insertValuesPlaceholders.push(updateFields.notes);
+    }
+    // last_updated will be handled by default or NOW() on insert/update
+
+    const [updatedProgress] = await sql`
+      INSERT INTO deliverable_progress (${sql(insertColumns)})
+      VALUES (${sql(insertValuesPlaceholders)})
+      ON CONFLICT (deliverable_id) DO UPDATE SET
+        ${sql.join(setClauses, sql`, `)}
+      RETURNING *
+    `;
+
+    res.status(200).json({
+      success: true,
+      message: "Deliverable progress updated successfully.",
+      progress: updatedProgress,
+    });
+
+  } catch (error) {
+    console.error("Error updating deliverable progress manually:", error);
+    if (error.message.includes("check constraint")) { // More specific error for check constraint
+        return res.status(400).json({ message: "Update failed due to invalid data (e.g., percentage out of range).", error: error.message });
+    }
+    res.status(500).json({ message: "Server error while updating progress.", error: error.message });
+  }
+};
+
+
 module.exports = {
-  saveDeliverables,
-  getDeliverables,
   getItemsWithDeliverables,
   saveDeliverablesItems,
+  getDeliverables,
+  saveDeliverables,
+  uploadDeliverableDocument,
+  submitDeliverableDocument,
+  getDeliverablesByProjectId,
+  getProjectDeliverablesFromBody,
+  getDeliverablesByProject, // Corrected
+  getDeliverableById,       // Corrected
+  updateDeliverableProgressManual, // Added
+  // ...other exports
 };

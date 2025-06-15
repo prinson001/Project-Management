@@ -697,60 +697,49 @@ const upsertSchedulePlan = async (req, res) => {
 // @Description Get all phases with default durations based on budget
 // @Route site.com/data-management/getPhases
 const getPhases = async (req, res) => {
-  const { budget } = req.body; // Changed to query params to match frontend usage
-  console.log("Budget", budget);
-  console.log(typeof budget);
-  if (!budget || isNaN(budget)) {
+  const { budget } = req.body; // Expecting full numeric budget, e.g., 1500000
+
+  if (budget === undefined || budget === null || isNaN(parseFloat(budget))) {
     return res.status(400).json({
       status: "failure",
-      message: "Budget is required and must be a number" + budget,
-      result: null,
+      message: "Required field missing or invalid: budget must be a number.",
     });
   }
 
+  const projectBudget = parseFloat(budget);
+
   try {
-    // Find the appropriate budget range
-    const budgetRange = await sql`
-    SELECT id
-    FROM budget_range
-    WHERE (${budget} > min_budget AND ${budget} <= max_budget)
-       OR (${budget} > min_budget AND max_budget IS NULL)
-    LIMIT 1;
-  `;
-
-    if (!budgetRange || budgetRange.length === 0) {
-      return res.status(404).json({
-        status: "failure",
-        message: "No budget range found for the provided budget",
-        result: null,
-      });
-    }
-
-    const rangeId = budgetRange[0].id;
-
-    // Fetch phases with their default durations based on the budget range
+    // Query to find the matching budget range and get phase durations
+    // Ensure min_budget and max_budget in your budget_range table store full numeric values
     const result = await sql`
-      SELECT 
-        p.id,
+      SELECT
+        p.id AS phase_id,
         p.phase_name,
+        p.phase_order,
         p.main_phase,
-        pd.duration_weeks
-      FROM phase p
-      LEFT JOIN phase_duration pd ON p.id = pd.phase_id AND pd.range_id = ${rangeId}
-      ORDER BY p.id;
+        pd.duration_days
+      FROM
+        public.phase p
+      INNER JOIN
+        public.phase_duration pd ON p.id = pd.phase_id
+      INNER JOIN
+        public.budget_range br ON pd.range_id = br.id
+      WHERE
+        ${projectBudget} >= br.min_budget AND (${projectBudget} <= br.max_budget OR br.max_budget IS NULL)
+      ORDER BY
+        p.phase_order;
     `;
-
-    return res.status(200).json({
+    
+    res.status(200).json({
       status: "success",
-      message: "Phases retrieved successfully",
-      result: result,
+      message: "Phases and durations retrieved successfully for the budget.",
+      data: result,
     });
   } catch (error) {
-    console.error("Error retrieving phases:", error);
-    return res.status(500).json({
+    console.error("Error in getPhases:", error);
+    res.status(500).json({
       status: "failure",
-      message: "Error retrieving phases",
-      result: error.message || error,
+      message: `Failed to fetch phases: ${error.message}`,
     });
   }
 };

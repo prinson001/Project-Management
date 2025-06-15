@@ -40,17 +40,40 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 };
 
 // Main Component
-const ProjectCards = ({projectId}) => {
+const ProjectCards = ({ projectId }) => {
+  const [deliverables, setDeliverables] = useState([]);
+  const [loadingDeliverables, setLoadingDeliverables] = useState(true);
+  const [deliverablesError, setDeliverablesError] = useState(null);
 
-  const [deliverables , setDeliverables] = useState([]);
-  const fetchDelierables = async (id)=>{
-    const response = await axiosInstance.get(`/project-card/deliverables/${id}`);
-    console.log(response.data.result);
-    setDeliverables(response.data.result);
-  }
-  useEffect(()=>{
-    fetchDelierables(projectId);
-  },[projectId])
+  useEffect(() => {
+    const fetchProjectDeliverables = async () => {
+      if (!projectId) {
+        setDeliverables([]);
+        setLoadingDeliverables(false);
+        return;
+      }
+      try {
+        setLoadingDeliverables(true);
+        // Make sure this endpoint '/project-card/get-project-deliverables' matches your backend route
+        const response = await axiosInstance.post(
+          "/project-card/get-project-deliverables", // Corrected path
+          { projectId }
+        );
+        setDeliverables(response.data || []);
+        setDeliverablesError(null);
+      } catch (err) {
+        console.error("Error fetching project deliverables:", err);
+        setDeliverablesError(
+          err.response?.data?.error || "Failed to load deliverables"
+        );
+        setDeliverables([]);
+      } finally {
+        setLoadingDeliverables(false);
+      }
+    };
+
+    fetchProjectDeliverables();
+  }, [projectId]);
 
   // const [deliverables, setDeliverables] = useState([
   //   {
@@ -163,13 +186,21 @@ const ProjectCards = ({projectId}) => {
         <h2 className="text-xl font-semibold mb-3 text-gray-800 dark:text-white">
           Project Deliverables
         </h2>
-        <ProjectDelivarablesTable
-          data={deliverables}
-          columns={deliverableColumns}
-          tableName="projectDeliverables"
-        />
+        {loadingDeliverables && <p>Loading deliverables...</p>}
+        {deliverablesError && (
+          <p className="text-red-500">Error: {deliverablesError}</p>
+        )}
+        {!loadingDeliverables && !deliverablesError && (
+          <ProjectDelivarablesTable
+            data={deliverables}
+            columns={deliverableColumns}
+            tableName="projectDeliverables"
+          />
+        )}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+        {/* Pass the fetched deliverables to ProjectDeliverables component if it needs them */}
+        {/* Otherwise, it might fetch its own data or process these further */}
         <ProjectDeliverables deliverables={deliverables} />
         <ProjectTasks projectId={projectId} />
       </div>
@@ -177,13 +208,13 @@ const ProjectCards = ({projectId}) => {
         <h2 className="text-xl font-semibold mb-3 text-gray-800 dark:text-white">
           Risks and Issues
         </h2>
-        <RisksAndIssuesTable projectId={projectId} deliverables={deliverables}  /> {/* Assuming RisksAndIssuesTable handles its own data or uses a default */}
+        <RisksAndIssuesTable projectId={projectId} deliverables={deliverables} />
       </div>
-       <div className="my-6">
+      <div className="my-6">
         <h2 className="text-xl font-semibold mb-3 text-gray-800 dark:text-white">
-         Project Documents
+          Project Documents
         </h2>
-        <ProjectDocuments /> 
+        <ProjectDocuments />
       </div>
     </div>
   );

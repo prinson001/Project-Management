@@ -16,7 +16,6 @@ const {
 
 const {
   getBudgetRanges,
-  updatePhaseDurations,
   updateBudgetRanges,
 } = require("../controllers/projectTimelineController");
 const { getPhaseDurations } = require("../database/dbConfig");
@@ -29,7 +28,7 @@ adminRouter.post("/updateactivityduration", updateActivityDurations);
 adminRouter.post("/getUser", getUser);
 adminRouter.get("/getRoles", getRoles);
 adminRouter.post("/updateUser", updateUser);
-adminRouter.post("/updatephaseduration", updatePhaseDurations);
+//adminRouter.post("/updatephaseduration", updatePhaseDurations);
 adminRouter.get("/getPhaseDurations", getPhaseDurations);
 adminRouter.get("/getBudgetRanges", getBudgetRanges);
 adminRouter.post("/updateBudgetRanges", updateBudgetRanges);

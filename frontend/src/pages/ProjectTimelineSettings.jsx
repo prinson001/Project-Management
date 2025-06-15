@@ -88,154 +88,199 @@ const WeekDropdown = ({
 const RangeSettingsDropdown = ({
   isOpen,
   onClose,
-  onSave,
-  budgetRanges,
-  setbudgetRanges,
+  onSave, // This function should now expect full numeric values
+  budgetRanges: initialBudgetRanges,
+  // setBudgetRanges is not directly used here for parent state, onSave handles it
 }) => {
-  const handleInputChange = (e, index, field) => {
-    console.log("budget Ranges");
-    console.log(budgetRanges);
-    const { value } = e.target;
+  const [localBudgetRanges, setLocalBudgetRanges] = useState([]);
 
-    if (!isNaN(value) || value === "") {
-      setbudgetRanges((prevRanges) =>
-        prevRanges.map((range, i) =>
-          i === index
-            ? { ...range, [field]: value === "" ? null : parseInt(value) }
-            : range
-        )
-      );
-    }
+  useEffect(() => {
+    // Initialize local state. Assume initialBudgetRanges now provides full numeric values.
+    const initializedRanges = initialBudgetRanges.map((range) => ({
+      ...range,
+      min_budget: range.min_budget, // Should be full number from API
+      max_budget: range.max_budget, // Should be full number from API
+    }));
+    setLocalBudgetRanges(initializedRanges);
+  }, [initialBudgetRanges]);
+
+  const handleAddRange = () => {
+    setLocalBudgetRanges([
+      ...localBudgetRanges,
+      {
+        id: `new_${Date.now()}`, // Temporary ID for new unsaved ranges
+        label: "",
+        min_budget: 0,
+        max_budget: 0,
+        budget_order: localBudgetRanges.length, // Basic ordering
+        isNew: true,
+      },
+    ]);
+  };
+
+  const handleRemoveRange = (id) => {
+    // If it's a new range not yet saved, just remove from local state.
+    // If it's an existing range, mark for deletion or handle differently.
+    // For simplicity here, we'll just filter. The backend `updateBudgetRanges`
+    // would need to handle actual deletions if an ID is provided.
+    setLocalBudgetRanges(
+      localBudgetRanges.filter((range) => range.id !== id)
+    );
+  };
+
+  const handleChange = (id, field, value) => {
+    setLocalBudgetRanges(
+      localBudgetRanges.map((range) => {
+        if (range.id === id) {
+          // Ensure min/max budgets are treated as numbers for input state
+          if (field === "min_budget" || field === "max_budget") {
+            return { ...range, [field]: value === "" ? "" : Number(value) };
+          }
+          return { ...range, [field]: value };
+        }
+        return range;
+      })
+    );
   };
 
   const handleSave = () => {
-    console.log(budgetRanges);
-    if (
-      budgetRanges.some((range) => {
-        if (range.min != null && range.max != null) {
-          range.min >= range.max;
-        }
-      })
-    ) {
-      alert("Invalid range: Min must be less than Max.");
-      return;
-    }
-    onSave(budgetRanges);
+    const rangesToSave = localBudgetRanges.map((range) => ({
+      ...range,
+      min_budget: parseFloat(range.min_budget) || 0,
+      max_budget: parseFloat(range.max_budget) || 0,
+      // if max_budget can be null for 'no limit', handle that case:
+      // max_budget: range.max_budget === null || range.max_budget === '' ? null : parseFloat(range.max_budget),
+    }));
+    onSave(rangesToSave); // Pass the processed ranges to the parent save function
     onClose();
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-      <div
-        className="bg-white rounded shadow-lg w-72 relative"
-        role="dialog"
-        aria-modal="true"
-      >
-        {/* Header */}
-        <div className="flex justify-between items-center py-2 px-3 border-b">
-          <h3 className="font-semibold text-gray-800">Ranges settings</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-            aria-label="Close"
-          >
-            <ArrowIcon direction="up" size={16} />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="p-3">
-          <div className="space-y-2">
-            {budgetRanges.map((range, index) => (
-              <div
-                key={range.id}
-                className="grid grid-cols-12 gap-1 items-center"
+    <div className="absolute right-0 mt-2 w-96 bg-white border border-gray-300 rounded-lg shadow-lg z-50 p-6">
+      <h3 className="text-xl font-semibold mb-6 text-gray-800">
+        Edit Budget Ranges
+      </h3>
+      {localBudgetRanges.map((range, index) => (
+        <div
+          key={range.id || index}
+          className="mb-6 p-4 border border-gray-200 rounded-md bg-gray-50"
+        >
+          <div className="grid grid-cols-2 gap-4 mb-3">
+            <div>
+              <label
+                htmlFor={`label-${range.id}`}
+                className="block text-sm font-medium text-gray-700 mb-1"
               >
-                <div className="col-span-3">
-                  <span
-                    className="font-medium"
-                    style={{
-                      color:
-                        index === 0
-                          ? "#1d4ed8"
-                          : index === 1
-                          ? "#d97706"
-                          : index === 2
-                          ? "#059669"
-                          : "#dc2626",
-                    }}
-                  >
-                    {range.name}
-                  </span>
-                </div>
-
-                {index < 3 ? (
-                  <>
-                    <div className="col-span-2 text-right pr-1">
-                      {index > 0 && (
-                        <input
-                          type="text"
-                          className="w-full py-1 px-2 border rounded text-center"
-                          value={range.min}
-                          name={range.id}
-                          onChange={(e) => handleInputChange(e, index, "min")}
-                        />
-                      )}
-                    </div>
-                    <div className="col-span-3 text-center text-sm">
-                      {index === 0 ? (
-                        <span className="text-gray-600">Budget</span>
-                      ) : (
-                        <span className="text-gray-600">&gt; Budget</span>
-                      )}
-                    </div>
-                    <div className="col-span-1 text-center">
-                      <span className="text-gray-600">&lt;</span>
-                    </div>
-                    <div className="col-span-2">
-                      <input
-                        type="text"
-                        className="w-full py-1 px-2 border rounded text-center"
-                        value={range.max}
-                        name={range.id}
-                        onChange={(e) => handleInputChange(e, index, "max")}
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <div className="col-span-8 flex items-center">
-                    <span className="text-gray-600 mr-1">Budget</span>
-                    <span className="text-gray-600 mx-1">&gt;</span>
-                    <input
-                      type="text"
-                      className="w-12 py-1 px-2 border rounded text-center"
-                      value={range.min}
-                      name={range.id}
-                      onChange={(e) => handleInputChange(e, index, "min")}
-                    />
-                  </div>
-                )}
-              </div>
-            ))}
+                Label (e.g., 0-1M)
+              </label>
+              <input
+                type="text"
+                id={`label-${range.id}`}
+                value={range.label || ""}
+                onChange={(e) =>
+                  handleChange(range.id, "label", e.target.value)
+                }
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                placeholder="Display Label"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor={`min_budget-${range.id}`}
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Min Budget (e.g. 0)
+              </label>
+              <input
+                type="number"
+                id={`min_budget-${range.id}`}
+                value={
+                  range.min_budget === null ||
+                  range.min_budget === undefined
+                    ? ""
+                    : range.min_budget
+                }
+                onChange={(e) =>
+                  handleChange(range.id, "min_budget", e.target.value)
+                }
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                placeholder="Enter full number"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor={`max_budget-${range.id}`}
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Max Budget (e.g. 1000000)
+              </label>
+              <input
+                type="number"
+                id={`max_budget-${range.id}`}
+                value={
+                  range.max_budget === null ||
+                  range.max_budget === undefined
+                    ? ""
+                    : range.max_budget
+                }
+                onChange={(e) =>
+                  handleChange(range.id, "max_budget", e.target.value)
+                }
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                placeholder="Enter full number (or leave empty for no max)"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor={`order-${range.id}`}
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Order
+              </label>
+              <input
+                type="number"
+                id={`order-${range.id}`}
+                value={range.budget_order || 0}
+                onChange={(e) =>
+                  handleChange(
+                    range.id,
+                    "budget_order",
+                    parseInt(e.target.value, 10)
+                  )
+                }
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              />
+            </div>
           </div>
-
-          {/* Note */}
-          <div className="mt-3 text-xs text-gray-500 italic">
-            Values are equivalent to million SAR
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="p-3 pt-2">
           <button
-            onClick={handleSave}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded text-sm"
+            onClick={() => handleRemoveRange(range.id)}
+            className="text-red-500 hover:text-red-700 text-sm font-medium"
           >
-            Save
+            Remove Range
           </button>
         </div>
+      ))}
+      <button
+        onClick={handleAddRange}
+        className="w-full mb-4 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+      >
+        Add New Range
+      </button>
+      <div className="flex justify-end space-x-3">
+        <button
+          onClick={onClose}
+          className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleSave}
+          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          Save Ranges
+        </button>
       </div>
     </div>
   );
@@ -248,7 +293,7 @@ const ProjectTimelineSettings = () => {
   );
   let range = [];
   const [showRangeSettings, setShowRangeSettings] = useState(false);
-  const [budgetRanges, setbudgetRanges] = useState([]);
+  const [budgetRanges, setBudgetRanges] = useState([]);
   const [timelineData, setTimelineData] = useState([]);
   const [changesToSave, setChangesToSave] = useState([]);
   useEffect(() => {
@@ -256,7 +301,7 @@ const ProjectTimelineSettings = () => {
       try {
         const result = await axiosInstance.get(`/admin/getBudgetRanges`);
         console.log("Fetched Data:", result.data.data);
-        setbudgetRanges(result.data.data.map((item) => ({ ...item })));
+        setBudgetRanges(result.data.data.map((item) => ({ ...item })));
       } catch (e) {
         console.log(e);
       }
@@ -471,7 +516,7 @@ const ProjectTimelineSettings = () => {
       <RangeSettingsDropdown
         isOpen={showRangeSettings}
         budgetRanges={budgetRanges}
-        setbudgetRanges={setbudgetRanges}
+        setBudgetRanges={setBudgetRanges}
         onClose={() => setShowRangeSettings(false)}
         onSave={handleRangeSettingsSave}
       />

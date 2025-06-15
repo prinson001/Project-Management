@@ -2,16 +2,13 @@ import React, { useState , useEffect , useRef} from "react";
 import TopHeader from "../components/TopHeader";
 import ProjectMeetingSidebar from "../components/ProjectMeetingSidebar";
 import MeetingNotesSection from "../components/MeetingNotesSection";
-import ProjectTasksSection from "../components/ProjectTasksSection";
-import ProjectMeetingHeader from "../components/ProjectMeetingHeader";
-import ProjectMeetingMainSection from "../components/ProjectMeetingMainSection";
-import axiosInstance from "../axiosInstance";
-import { ChevronRight, ChevronLeft, NotebookPen } from "lucide-react"; // Import icons for expand/collapse and NotebookPen icon
-import ProjectSelectCard from "../components/ProjectSelectCard";
-import ProjectCards from "../components/ProjectCards";
-import ProjectTiles from "../components/ProjectTiles";
-import useAuthStore from "../store/authStore";
-import axios from "axios";
+import ProjectCards from "../components/ProjectCards"; // Ensure ProjectCards is imported
+import ProjectTiles from "../components/ProjectTiles"; // Ensure ProjectTiles is imported
+import ProjectSelectCard from "../components/ProjectSelectCard"; // Ensure ProjectSelectCard is imported
+import ProjectMeetingHeader from "../components/ProjectMeetingHeader"; // Ensure ProjectMeetingHeader is imported
+import { NotebookPen, ChevronLeft, ChevronRight } from "lucide-react"; // Ensure icons are imported
+import useAuthStore from "../store/authStore"; // Import the Zustand store
+import axiosInstance from "../axiosInstance"; // Ensure axiosInstance is imported
 
 
 const MeetingsPage = () => {
@@ -24,9 +21,9 @@ const MeetingsPage = () => {
   const [subFilters , setSubFilters] = useState([]);
   const [activeSubFilter , setActiveSubFilter] = useState("");
   const [projects , setProjects] = useState([]);
-   const { meetingId, setMeetingId } = useAuthStore();
+  const { meetingId, selectedProject, setSelectedProject } = useAuthStore(); // Use store
   const subFiltersCache = useRef({});
-  const [selectedProjectId, setSelectedProjectId] = useState(null);
+  // const [selectedProjectId, setSelectedProjectId] = useState(null); // Remove local state
 
 
   // Mounting stage
@@ -37,6 +34,10 @@ const MeetingsPage = () => {
     // console.log(formatDateWithWeek(new Date("2025-05-01")));
   },[]);
 
+  // useEffect to log selectedProject when it changes (for debugging)
+  useEffect(() => {
+    console.log("Selected project from store:", selectedProject);
+  }, [selectedProject]);
 
 
   const fetchMainFilters = async ()=>{
@@ -77,6 +78,7 @@ const MeetingsPage = () => {
     const projects = response.data.result;
     console.log(projects);
     setProjects(projects);
+    setSelectedProject(null); // Reset selected project when subfilter changes
 
   }
 
@@ -107,14 +109,17 @@ const MeetingsPage = () => {
           />
 
           {/* Main Section: Show project cards for any tab (demo) */}
-          {!selectedProjectId && projects && (
+          {!selectedProject && projects && projects.length > 0 && (
             <div className="p-6 overflow-x-auto h-64">
               <div className="flex space-x-4 min-w-max">
                 {projects.map((project) => (
                   <ProjectSelectCard
                     key={project.id}
                     project={project}
-                    onSelect={() => setSelectedProjectId(project.id)}
+                    onSelect={() => {
+                        console.log("Setting selected project:", project);
+                        setSelectedProject(project);
+                    }}
                   />
                 ))}
               </div>
@@ -122,16 +127,16 @@ const MeetingsPage = () => {
           )}
 
           {/* Show ProjectCards and ProjectTiles when a project is selected */}
-          {selectedProjectId && (
+          {selectedProject && selectedProject.id && (
             <div className="p-6">
               <button
                 className="mb-4 px-3 py-1 text-sm rounded bg-gray-100 border hover:bg-gray-200"
-                onClick={() => setSelectedProjectId(null)}
+                onClick={() => setSelectedProject(null)}
               >
                 Back to Projects
               </button>
-              <ProjectTiles projectId={selectedProjectId} />
-              <ProjectCards projectId={selectedProjectId} />
+              <ProjectTiles projectId={selectedProject.id} />
+              <ProjectCards projectId={selectedProject.id} />
             </div>
           )}
 
