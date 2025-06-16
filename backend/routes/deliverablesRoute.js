@@ -12,11 +12,9 @@ const upload = multer({ storage: storage });
 // Keeping verifyToken for this one as it's a GET-like operation
 router.post('/get-project-deliverables', verifyToken, deliverableController.getProjectDeliverablesFromBody);
 
-// POST /deliverables/:deliverableId/documents - Upload document for a specific deliverable
-// Changed to use submitDeliverableDocument and added multer middleware
-// Temporarily removed verifyToken for testing, add back if needed
-// Changed 'file' to 'evidenceFile' to match the field name apparently sent by the frontend
-router.post('/:deliverableId/documents', upload.single('evidenceFile'), deliverableController.submitDeliverableDocument);
+// POST /deliverables/:deliverable_id/documents - Upload document for a specific deliverable
+// Use deliverable_id in the URL to match controller expectations
+router.post('/:deliverable_id/documents', upload.single('evidenceFile'), deliverableController.submitDeliverableDocument);
 
 
 module.exports = router;

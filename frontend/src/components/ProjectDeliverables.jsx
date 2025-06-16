@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "../axiosInstance";
 import { MoreHorizontal, ChevronDown } from "lucide-react";
 
-// Modal components from ProjectDelivarablesTable
+// Modal components remain unchanged
 const DeliveryCompletionModal = ({ onClose, deliverable }) => (
   <div className="fixed inset-0 bg-black/45 backdrop-blur-sm z-50 flex justify-center items-center">
     <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md mx-4">
@@ -95,7 +96,7 @@ const ViewDeliverableDetailsModal = ({ onClose, deliverable }) => (
       </div>
       <div className="space-y-4">
         <p><strong>Name:</strong> {deliverable.name}</p>
-        <p><strong>Progress:</strong> {deliverable.progress}%</p>
+        <p><strong>Progress:</strong> {deliverable.calculatedProgress}%</p>
         <p><strong>Start Date:</strong> {deliverable.startDate}</p>
         <p><strong>End Date:</strong> {deliverable.endDate}</p>
         <p><strong>Status:</strong> {deliverable.status}</p>
@@ -150,66 +151,140 @@ const ChangeDatesModal = ({ onClose, deliverable }) => (
   </div>
 );
 
-// const deliverables = [
-//   {
-//     id: "1",
-//     name: "Current State assessment Report",
-//     progress: 80,
-//     startDate: "5-Jan-24",
-//     endDate: "20-Feb-24",
-//     status: "on-track",
-//   },
-//   {
-//     id: "2",
-//     name: "Gap Analysis Report",
-//     progress: 70,
-//     startDate: "5-Jan-24",
-//     endDate: "20-Feb-24",
-//     status: "on-track",
-//   },
-//   {
-//     id: "3",
-//     name: "Future State Report",
-//     progress: 20,
-//     startDate: "5-Jan-24",
-//     endDate: "20-Feb-24",
-//     status: "at-risk",
-//   },
-//   {
-//     id: "4",
-//     name: "Road map",
-//     progress: 0,
-//     startDate: "5-Jan-24",
-//     endDate: "20-Feb-24",
-//     status: "delayed",
-//   },
-//   {
-//     id: "5",
-//     name: "Operating model activation",
-//     progress: 0,
-//     startDate: "5-Jan-24",
-//     endDate: "20-Feb-24",
-//     status: "delayed",
-//   },
-// ];
+// Calculate progress based on dates
+const calculateProgress = (startDate, endDate, status) => {
+  const today = new Date('2025-06-16'); // Current date for testing
+  const start = new Date(startDate);
+  const end = new Date(endDate);
 
-const getProgressColor = (status) => {
-  switch (status) {
-    case "on-track":
-      return "bg-green-500";
-    case "at-risk":
-      return "bg-yellow-500";
-    case "delayed":
-      return "bg-red-500";
-    default:
-      return "bg-gray-300";
+  // If dates are invalid, return 0
+  if (isNaN(start) || isNaN(end)) return 0;
+
+  const totalDuration = end - start;
+  const elapsedDuration = today - start;
+
+  // If task hasn't started yet
+  if (today < start) return 0;
+
+  // If task is completed
+  if (status.toLowerCase() === 'completed') return 100;
+
+  // If task is overdue and pending
+  if (today >= end && status.toLowerCase() === 'pending') {
+    return 100; // Will show as red due to overdue status
   }
+
+  // Calculate percentage based on elapsed time
+  const progress = (elapsedDuration / totalDuration) * 100;
+  return Math.min(Math.max(Math.round(progress), 0), 100);
 };
 
-export default function ProjectDeliverables({deliverables}) {
+// Determine progress bar color
+const getProgressColor = (progress, startDate, endDate, status) => {
+  const today = new Date('2025-06-16');
+  const end = new Date(endDate);
+
+  // If overdue and pending, show red
+  if (today >= end && status.toLowerCase() === 'pending') {
+    return "bg-red-500";
+  }
+
+  // Otherwise, use green for progress
+  if (progress > 0) return "bg-green-500";
+  return "bg-gray-300";
+};
+
+export default function ProjectDeliverables({ projectId }) {
+  const [deliverables, setDeliverables] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [openDropdownId, setOpenDropdownId] = useState(null);
-  const [selectedModal, setSelectedModal] = useState(null); // 'completion', 'invoice', 'details', 'changeRequest', 'dates'
+  const [selectedModal, setSelectedModal] = useState(null);
   const [selectedDeliverable, setSelectedDeliverable] = useState(null);
+
+  // Dummy data for testing
+  const dummyDeliverables = [
+    {
+      id: 1,
+      name: "Current State Assessment Report",
+      startDate: "2024-01-05",
+      endDate: "2024-02-20",
+      status: "pending",
+      calculatedProgress: 0,
+    },
+    {
+      id: 2,
+      name: "Gap Analysis Report",
+      startDate: "2024-01-05",
+      endDate: "2024-02-20",
+      status: "completed",
+      calculatedProgress: 0,
+    },
+    {
+      id: 3,
+      name: "Future State Report",
+      startDate: "2024-01-05",
+      endDate: "2024-02-20",
+      status: "pending",
+      calculatedProgress: 0,
+    },
+    {
+      id: 4,
+      name: "Road Map",
+      startDate: "2024-01-05",
+      endDate: "2024-02-20",
+      status: "pending",
+      calculatedProgress: 0,
+    },
+    {
+      id: 5,
+      name: "Operating Model Activation",
+      startDate: "2024-01-05",
+      endDate: "2024-02-20",
+      status: "pending",
+      calculatedProgress: 0,
+    },
+  ];
+
+  useEffect(() => {
+    if (!projectId) {
+      setLoading(false);
+      setError("No projectId provided. Please pass a valid projectId prop to ProjectDeliverables.");
+      console.warn('No projectId provided to ProjectDeliverables component.');
+      return;
+    }
+
+    // For testing, use dummy data instead of API call
+    const enhancedDeliverables = dummyDeliverables.map(deliverable => ({
+      ...deliverable,
+      calculatedProgress: calculateProgress(deliverable.startDate, deliverable.endDate, deliverable.status),
+    }));
+
+    setDeliverables(enhancedDeliverables);
+    setLoading(false);
+
+    // Uncomment below to use actual API call
+    /*
+    setLoading(true);
+    console.log('Fetching deliverables for projectId:', projectId);
+    axios
+      .get(`/project-card/deliverables/${projectId}`)
+      .then((res) => {
+        console.log('Deliverables API response:', res);
+        const enhancedDeliverables = res.data.map(deliverable => ({
+          ...deliverable,
+          calculatedProgress: calculateProgress(deliverable.start_date, deliverable.end_date, deliverable.status),
+        }));
+        setDeliverables(enhancedDeliverables);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('Error fetching deliverables:', err);
+        setError("Failed to fetch deliverables");
+        setLoading(false);
+      });
+    */
+  }, [projectId]);
 
   const toggleDropdown = (id) => {
     setOpenDropdownId((prev) => (prev === id ? null : id));
@@ -226,56 +301,68 @@ export default function ProjectDeliverables({deliverables}) {
     setSelectedDeliverable(null);
   };
 
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d)) return '';
+    return d.toISOString().slice(0, 10);
+  };
+
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm border">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-red-600">Deliverables</h2>
         <ChevronDown className="h-4 w-4 text-gray-400" />
       </div>
+      {loading ? (
+        <div>Loading...</div>
+      ) : error ? (
+        <div className="text-red-500">{error}</div>
+      ) : (
+        <div className="space-y-4">
+          {deliverables.map((deliverable) => (
+            <div key={deliverable.id} className="space-y-2 relative">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium text-sm text-gray-900">{deliverable.name}</h3>
+                <button
+                  onClick={() => toggleDropdown(deliverable.id)}
+                  className="h-6 w-6 p-0 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </button>
 
-      <div className="space-y-4">
-        {deliverables.map((deliverable) => (
-          <div key={deliverable.id} className="space-y-2 relative">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium text-sm text-gray-900">{deliverable.name}</h3>
-              <button
-                onClick={() => toggleDropdown(deliverable.id)}
-                className="h-6 w-6 p-0 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded"
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </button>
-
-              {openDropdownId === deliverable.id && (
-                <div className="absolute right-0 mt-2 w-48 bg-white border rounded shadow z-10">
-                  <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => handleModalOpen('completion', deliverable)}>Delivery Completion</button>
-                  <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => handleModalOpen('invoice', deliverable)}>Delivery Invoice</button>
-                  <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => handleModalOpen('dates', deliverable)}>Change Deliverable Dates</button>
-                  <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => handleModalOpen('details', deliverable)}>View Deliverable Details</button>
-                  <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => handleModalOpen('changeRequest', deliverable)}>Apply for Change Request</button>
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center gap-4 text-xs text-gray-600">
-              <div className="flex items-center gap-2">
-                <span>Progress</span>
-                <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full ${getProgressColor(deliverable.status)} transition-all duration-300`}
-                    style={{ width: `${deliverable.progress}%` }}
-                  />
-                </div>
-                <span className="font-medium">{deliverable.progress}%</span>
+                {openDropdownId === deliverable.id && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white border rounded shadow z-10">
+                    <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => handleModalOpen('completion', deliverable)}>Delivery Completion</button>
+                    <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => handleModalOpen('invoice', deliverable)}>Delivery Invoice</button>
+                    <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => handleModalOpen('dates', deliverable)}>Change Deliverable Dates</button>
+                    <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => handleModalOpen('details', deliverable)}>View Deliverable Details</button>
+                    <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => handleModalOpen('changeRequest', deliverable)}>Apply for Change Request</button>
+                  </div>
+                )}
               </div>
 
-              <div className="flex items-center gap-4">
-                <span>{deliverable.startDate}</span>
-                <span>{deliverable.endDate}</span>
+              <div className="flex items-center gap-4 text-xs text-gray-600">
+                <div className="flex items-center gap-2">
+                  <span>Progress</span>
+                  <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full ${getProgressColor(deliverable.calculatedProgress, deliverable.startDate, deliverable.endDate, deliverable.status)} transition-all duration-300`}
+                      style={{ width: `${deliverable.calculatedProgress}%` }}
+                    />
+                  </div>
+                  <span className="font-medium">{deliverable.calculatedProgress}%</span>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <span>{formatDate(deliverable.startDate)}</span>
+                  <span>{formatDate(deliverable.endDate)}</span>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {selectedModal === 'completion' && (
         <DeliveryCompletionModal onClose={handleModalClose} deliverable={selectedDeliverable} />

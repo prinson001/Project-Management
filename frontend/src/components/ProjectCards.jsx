@@ -200,9 +200,8 @@ const ProjectCards = ({ projectId , projectName }) => {
         )}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-        {/* Pass the fetched deliverables to ProjectDeliverables component if it needs them */}
-        {/* Otherwise, it might fetch its own data or process these further */}
-        <ProjectDeliverables deliverables={deliverables} />
+        {/* Pass projectId to ProjectDeliverables so it fetches its own data */}
+        <ProjectDeliverables projectId={projectId} />
         <ProjectTasks projectId={projectId} />
       </div>
       <div className="my-6">

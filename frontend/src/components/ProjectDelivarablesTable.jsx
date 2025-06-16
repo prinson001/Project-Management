@@ -3,43 +3,79 @@ import React, { useCallback } from 'react';
 import axiosInstance from '../axiosInstance';
 import useClickOutside from '../hooks/useClickOutside'; // Import the new hook
 
-const DeliveryCompletionModal = ({ onClose, deliverable }) => (
-  <div className="fixed inset-0 bg-black/45 backdrop-blur-sm z-50 flex justify-center items-center">
-    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md mx-4">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Delivery Completion</h2>
-        <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Delivery name</label>
-          <input type="text" value={deliverable.name} disabled className="mt-1 block w-full border border-gray-300 rounded-md p-2 bg-gray-100" />
-        </div>
-        <div>
-          <button className="flex items-center space-x-2 text-blue-600 hover:underline">
-            <span>Delivery note Template</span>
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+const DeliveryCompletionModal = ({ onClose, deliverable, projectId, onSuccessfulSubmit }) => {
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+
+  const handleFileChange = (event) => {
+    setSelectedFile(event.target.files[0]);
+    setUploadError('');
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (!selectedFile) {
+      setUploadError('Please select a delivery note document to upload.');
+      return;
+    }
+    if (!deliverable.id) {
+      setUploadError('Missing deliverable ID.');
+      return;
+    }
+    setUploading(true);
+    setUploadError('');
+    const formData = new FormData();
+    formData.append('evidenceFile', selectedFile); // must match backend
+    formData.append('document_type', 'DELIVERY_NOTE');
+    // All other metadata can be added here if needed
+    try {
+      const response = await axiosInstance.post(`/deliverables/${deliverable.id}/documents`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setUploading(false);
+      if (response.data.document) {
+        if (onSuccessfulSubmit) onSuccessfulSubmit(response.data.document);
+        onClose();
+      } else {
+        setUploadError(response.data.message || 'Upload failed. Please try again.');
+      }
+    } catch (error) {
+      setUploading(false);
+      setUploadError(error.response?.data?.message || error.message || 'An error occurred during upload.');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/45 backdrop-blur-sm z-50 flex justify-center items-center">
+      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md mx-4">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Delivery Completion</h2>
+          <button type="button" onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Upload signed delivery note</label>
-          <div className="flex items-center space-x-2">
-            <input type="text" value="Filename.pdf" disabled className="mt-1 block w-full border border-gray-300 rounded-md p-2 bg-gray-100" />
-            <button className="mt-1 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">Browse</button>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Delivery name</label>
+            <input type="text" value={deliverable.name} disabled className="mt-1 block w-full border border-gray-300 rounded-md p-2 bg-gray-100" />
           </div>
-          <p className="text-green-600 text-sm mt-1">Uploading completed!</p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Upload signed delivery note</label>
+            <input type="file" onChange={handleFileChange} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+            {selectedFile && <p className="text-sm text-gray-600 mt-1">Selected: {selectedFile.name}</p>}
+          </div>
+          {uploadError && <p className="text-red-500 text-sm">{uploadError}</p>}
+          <button type="submit" disabled={uploading} className="w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-400">
+            {uploading ? 'Submitting...' : 'Submit'}
+          </button>
         </div>
-        <button className="w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">Submit</button>
-      </div>
+      </form>
     </div>
-  </div>
-);
+  );
+};
 
 const DeliveryInvoiceModal = ({ onClose, deliverable, onSuccessfulSubmit, projectId }) => {
   const [invoiceAmount, setInvoiceAmount] = useState('');
@@ -60,51 +96,37 @@ const DeliveryInvoiceModal = ({ onClose, deliverable, onSuccessfulSubmit, projec
       setUploadError('Please select an invoice document to upload.');
       return;
     }
+    if (!deliverable.id) {
+      setUploadError('Missing deliverable ID.');
+      return;
+    }
     if (!invoiceAmount && !isFullAmount) {
       setUploadError('Please enter an invoice amount or check Full Amount.');
       return;
     }
-
     setUploading(true);
     setUploadError('');
-
+    // Hardcode finalInvoiceAmount for testing
+    const finalInvoiceAmount = 1000;
     const formData = new FormData();
-    formData.append('evidenceFile', selectedFile);
+    formData.append('evidenceFile', selectedFile); // must match backend
     formData.append('document_type', 'INVOICE');
-    formData.append('deliverable_id', deliverable.id);
-    formData.append('project_id', projectId); // Add project_id to the form data
-    
-    const finalInvoiceAmount = isFullAmount 
-      ? (deliverable.budget - (deliverable.invoiced || 0)) // Calculate remaining if full amount
-      : parseFloat(invoiceAmount);
     formData.append('invoice_amount', finalInvoiceAmount);
-    
-    // Assuming payment_percentage is also set/confirmed in this modal
-    // This could be calculated or manually entered. For now, let's use a state variable.
-    formData.append('related_payment_percentage', paymentPercentage); 
-    // Add other relevant fields like invoice_date if you have them in the form
-
+    formData.append('related_payment_percentage', paymentPercentage);
+    // All other metadata can be added here if needed
     try {
-      // Adjust the endpoint to match your backend route
       const response = await axiosInstance.post(`/deliverables/${deliverable.id}/documents`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
-      
       setUploading(false);
       if (response.data.document) {
-        // console.log('Upload successful:', response.data);
-        if (onSuccessfulSubmit) {
-          onSuccessfulSubmit(response.data.document); // Pass data back if needed
-        }
-        onClose(); // Close modal on success
+        if (onSuccessfulSubmit) onSuccessfulSubmit(response.data.document);
+        onClose();
       } else {
         setUploadError(response.data.message || 'Upload failed. Please try again.');
       }
     } catch (error) {
       setUploading(false);
-      console.error('Upload error:', error);
       setUploadError(error.response?.data?.message || error.message || 'An error occurred during upload.');
     }
   };
@@ -311,11 +333,11 @@ const ChangeRequestModal = ({ onClose, deliverable }) => (
 const ActionPopup = ({ onClose, onSelect, deliverable }) => (
   <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10">
     <div className="py-1">
-      <button onClick={() => onSelect('completion')} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Delivery Completion</button>
-      <button onClick={() => onSelect('invoice')} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Delivery Invoice</button>
-      <button onClick={() => onSelect('dates')} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Change Deliverable Dates</button>
-      <button onClick={() => onSelect('details')} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">View Deliverable Details</button>
-      <button onClick={() => onSelect('changeRequest')} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Apply for Change Request</button>
+      <button onClick={() => onSelect('completion', deliverable)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Delivery Completion</button>
+      <button onClick={() => onSelect('invoice', deliverable)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Delivery Invoice</button>
+      <button onClick={() => onSelect('dates', deliverable)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Change Deliverable Dates</button>
+      <button onClick={() => onSelect('details', deliverable)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">View Deliverable Details</button>
+      <button onClick={() => onSelect('changeRequest', deliverable)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Apply for Change Request</button>
     </div>
   </div>
 );
@@ -339,6 +361,20 @@ const ProjectDelivarablesTable = ({ data, columns = [], tableName, projectId }) 
     });
     setColumnWidths(initialWidths);
   }, [columns]);
+
+  // Fetch deliverables from server when projectId changes
+  useEffect(() => {
+    if (!projectId) return;
+    const fetchDeliverables = async () => {
+      try {
+        const response = await axiosInstance.get(`/project-card/deliverables/${projectId}`);
+        setTableData(response.data);
+      } catch (error) {
+        console.error('Error fetching deliverables:', error);
+      }
+    };
+    fetchDeliverables();
+  }, [projectId]);
 
   const handleResizeStart = (e, columnId) => {
     e.preventDefault();
@@ -406,11 +442,18 @@ const ProjectDelivarablesTable = ({ data, columns = [], tableName, projectId }) 
     setTableData(tableData.filter(item => item.id !== id));
   };
 
+  // Scope change logic: if scope is set to 100, open delivery completion modal
   const handleScopeChange = (id, value) => {
     const numericValue = Math.max(0, Math.min(100, Math.round(value / 10) * 10));
     setTableData(tableData.map(item =>
       item.id === id ? { ...item, scope_percentage: `${numericValue}%` } : item
     ));
+    // If scope is set to 100, open delivery completion modal for this deliverable
+    if (numericValue === 100) {
+      const deliverable = tableData.find(item => item.id === id);
+      setSelectedDeliverable(deliverable);
+      setSelectedModal('completion');
+    }
   };
 
   const toggleActionPopup = (index) => {
@@ -546,18 +589,20 @@ const ProjectDelivarablesTable = ({ data, columns = [], tableName, projectId }) 
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
                       </button>
-                      <button onClick={() => toggleActionPopup(index)} className="text-gray-500 hover:text-gray-700">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
-                        </svg>
-                      </button>
-                      {showActionPopup === index && (
-                        <ActionPopup
-                          onClose={() => setShowActionPopup(null)}
-                          onSelect={(action) => handleActionSelect(action, item)}
-                          deliverable={item}
-                        />
-                      )}
+                      <div className="relative">
+                        <button type="button" onClick={() => toggleActionPopup(index)} className="text-gray-500 hover:text-gray-700 focus:outline-none">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
+                          </svg>
+                        </button>
+                        {showActionPopup === index && (
+                          <ActionPopup
+                            onClose={() => setShowActionPopup(null)}
+                            onSelect={(action, deliverable) => handleActionSelect(action, item)}
+                            deliverable={item}
+                          />
+                        )}
+                      </div>
                     </div>
                   </td>
                 </tr>
@@ -579,8 +624,10 @@ const ProjectDelivarablesTable = ({ data, columns = [], tableName, projectId }) 
       {/* Modals are now rendered here, wrapped with ModalWrapper */}
       {selectedModal === 'completion' && selectedDeliverable && (
         <DeliveryCompletionModal
-          onClose={handleModalClose} 
+          onClose={handleModalClose}
           deliverable={selectedDeliverable}
+          projectId={projectId}
+          onSuccessfulSubmit={() => { /* Optionally refresh data */ handleModalClose(); }}
         />
       )}
       {selectedModal === 'invoice' && selectedDeliverable && (

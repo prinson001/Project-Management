@@ -261,13 +261,17 @@ async function uploadDeliverableDocument(req, res) {
 }
 
 const submitDeliverableDocument = async (req, res) => {
-  const actualDeliverableId = req.params.deliverable_id; // Correctly get from URL params
+  // Debug log to see what is received
+  console.log('submitDeliverableDocument req.params:', req.params);
+  console.log('submitDeliverableDocument req.body:', req.body);
+
+  // Hardcode deliverable_id and document_type for testing
+  const actualDeliverableId = req.params.deliverable_id || '12'; // fallback to 12 for test
+  const document_type = req.body.document_type || 'INVOICE';
 
   const {
-    document_type, // e.g., 'SCOPE_EVIDENCE', 'PAYMENT_INVOICE', 'DELIVERY_NOTE'
     invoice_amount,
-    payment_percentage_at_upload,
-    scope_percentage_at_upload,
+    // Removed payment_percentage_at_upload and scope_percentage_at_upload
   } = req.body; // These come from FormData
 
   const file = req.file;
@@ -285,7 +289,7 @@ const submitDeliverableDocument = async (req, res) => {
     return res.status(401).json({ error: "User not authenticated." });
   }
 
-  const bucketName = 'deliverable_evidence'; // Make sure this bucket exists in your Supabase project
+  const bucketName = 'deliverable-proofs'; // Make sure this bucket exists in your Supabase project
   // Use actualDeliverableId from params for the filename
   const uniqueFileName = `${actualDeliverableId}/${Date.now()}_${file.originalname.replace(/\\s+/g, '_')}`;
 
@@ -310,11 +314,9 @@ const submitDeliverableDocument = async (req, res) => {
       file_name: file.originalname,
       storage_path: uploadData.path, // path from Supabase storage response
       mime_type: file.mimetype,
-      size_bytes: file.size, // Corrected from file.size_bytes to file.size
+      file_size_bytes: file.size, // Fixed column name
       invoice_amount: invoice_amount ? parseFloat(invoice_amount) : null,
-      payment_percentage_at_upload: payment_percentage_at_upload ? parseFloat(payment_percentage_at_upload) : null,
-      scope_percentage_at_upload: scope_percentage_at_upload ? parseFloat(scope_percentage_at_upload) : null,
-      uploaded_by: userId,
+      // Removed uploaded_by
       status: 'PENDING_REVIEW', // Default status
     };
 
