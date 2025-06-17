@@ -192,10 +192,20 @@ const TableData = ({
 
   const handleDeleteClick = async (id) => {
     try {
-      const result = await axiosInstance.post(
-        `/data-management/delete${tableName}`,
-        { id }
-      );
+      console.log("the tableName is"+tableName);
+      if(tableName === 'risksAndIssues')
+      {
+        const result = await axiosInstance.delete(`/project-card/risk/${id}`);
+        console.log("the result of deleting risk"),
+        console.log(result);
+      }
+      else
+      {
+          const result = await axiosInstance.post(
+          `/data-management/delete${tableName}`,
+          { id }
+        );
+      } 
       setTableData((prevData) => prevData.filter((e) => e.id !== id));
       toast.success("Record deleted successfully");
     } catch (e) {

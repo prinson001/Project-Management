@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 
 const { getProjectDetails, getPreviousMeetingNotes , createNextWeekProjectTask , getNextWeekProjectTasks, deleteNextWeekProjectTask, getProjectTasksGroupedByWeek,getProjectPhaseNames} = require("../controllers/projectCardController");
-const { getRisks, insertRisk } = require("../controllers/riskIssuesController");
+const { getRisks, insertRisk , deleteRisk } = require("../controllers/riskIssuesController");
 const {
     getDeliverablesByProjectId,
     getProjectDeliverablesFromBody,
@@ -46,6 +46,6 @@ router.get("/next-week-task/:projectId",getNextWeekProjectTasks);
 router.delete("/next-week-task/:id",deleteNextWeekProjectTask);
 router.get("/project-tasks/:projectid",getProjectTasksGroupedByWeek);
 router.get("/project-phase",getProjectPhaseNames);
-
+router.delete("/risk/:riskId",deleteRisk)
 
 module.exports = router;
