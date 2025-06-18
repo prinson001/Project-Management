@@ -7,10 +7,12 @@ const getProjectDetails = async(req,res)=>{
             SELECT 
                 *
             FROM
-                project
+                project p
             WHERE  
-                id = ${projectid}
+              id = ${projectid}
         `
+        console.log("the reuslt from get project details");
+        console.log(result);
         res.status(200).json({
             status:"success",
             message:"successfully retreived project details",
@@ -320,7 +322,117 @@ const getProjectPhaseNames = async(req,res)=>{
     }
 }
 
+const  getProjectDocumentsGrouped = async(req,res) => {
+  const {projectId} = req.params;
+  const result = await sql`
+    SELECT 
+      dt.phase[1] AS project_phase,
+      json_agg(pd.*) AS documents
+    FROM 
+      project_documents pd
+    JOIN 
+      document_template dt ON dt.id = pd.template_id
+    WHERE 
+      pd.project_id = ${projectId}
+    GROUP BY 
+      dt.phase[1]
+    ORDER BY 
+      dt.phase[1];
+  `;
+
+  // Step 1: grouped result
+  const grouped = result;
+
+  // Step 2: flatten all docs and include their phase
+  const all = grouped.flatMap(group =>
+    group.documents.map(doc => ({
+      ...doc,
+      phase: group.project_phase
+    }))
+  );
+
+  res.status(200).json({
+    status:"success",
+    message:"Successfully retrieved the project documents",
+    result :{all  ,grouped}
+  })
+}
+
+// const getProjectDocumentsOverview = async (req, res) => {
+//   const { projectId } = req.params;
+
+//   const result = await sql`
+//     WITH project_phases AS (
+//       SELECT unnest(ARRAY['Planning phase', 'Bidding phase', 'Pre-execution phase', 'Execution phase','Maintenance and operation phase','Closed phase']) AS phase
+//     )
+//     SELECT 
+//       pp.phase AS project_phase,
+//       COUNT(pd.id) AS document_count
+//     FROM 
+//       project_phases pp
+//     LEFT JOIN 
+//       document_template dt 
+//         ON dt.phase[1] = pp.phase
+//     LEFT JOIN 
+//       project_documents pd 
+//         ON pd.template_id = dt.id 
+//         AND pd.project_id = ${projectId}
+//     GROUP BY 
+//       pp.phase
+//     ORDER BY 
+//       pp.phase;
+//   `;
+
+//   res.status(200).json({
+//     status: "success",
+//     message: "Successfully retrieved document overview by phase",
+//     result
+//   });
+// };
+
 // HELPER FUNCTIONS
+
+const getProjectDocumentsOverview = async (req, res) => {
+  const { projectId } = req.params;
+
+  const result = await sql`
+    WITH project_phases AS (
+    SELECT unnest(ARRAY['Planning phase', 'Bidding phase', 'Pre-execution phase', 'Execution phase','Maintenance and operation phase','Closed phase']) AS phase
+    ),
+    templates_with_phase AS (
+    SELECT dt.id, dt.name, dt.phase[1] AS phase
+    FROM document_template dt
+    ),
+    documents_per_template AS (
+    SELECT * FROM project_documents WHERE project_id = ${projectId}
+    )
+    SELECT 
+    pp.phase AS project_phase,
+    COUNT(t.id) AS total_templates,
+    COUNT(d.id) AS submitted_documents,
+    COUNT(t.id) - COUNT(d.id) AS missing_documents,
+    json_agg(
+        CASE 
+        WHEN d.id IS NULL THEN json_build_object('template_id', t.id, 'template_name', t.name)
+        ELSE NULL
+        END
+    ) FILTER (WHERE d.id IS NULL) AS missing_templates
+    FROM 
+    project_phases pp
+    LEFT JOIN 
+    templates_with_phase t ON t.phase = pp.phase
+    LEFT JOIN 
+    documents_per_template d ON d.template_id = t.id
+    GROUP BY 
+    pp.phase
+  `;
+
+  res.status(200).json({
+    status: "success",
+    message: "Successfully retrieved document overview by phase",
+    result
+  });
+};
 
 const getWeekStartDate = ()=>{
     const weekStartIndex = 1;
@@ -359,7 +471,7 @@ function getWeekOfMonth(date) {
 
 
 
-module.exports = {getProjectDetails,getProjectDeliverables , getPreviousMeetingNotes , createNextWeekProjectTask, getProjectTasksGroupedByWeek, getNextWeekProjectTasks, deleteNextWeekProjectTask , getProjectPhaseNames};
+module.exports = {getProjectDetails,getProjectDeliverables , getPreviousMeetingNotes , createNextWeekProjectTask, getProjectTasksGroupedByWeek, getNextWeekProjectTasks, deleteNextWeekProjectTask , getProjectPhaseNames, getProjectDocumentsGrouped , getProjectDocumentsOverview};
 
 
 

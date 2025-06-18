@@ -215,7 +215,7 @@ const ProjectCards = ({ projectId , projectName }) => {
         <h2 className="text-xl font-semibold mb-3 text-gray-800 dark:text-white">
           Project Documents
         </h2>
-        <ProjectDocuments />
+        <ProjectDocuments  projectId={projectId}/>
       </div>
       {/* Project High-level Timeline Section */}
       <div className="my-6">

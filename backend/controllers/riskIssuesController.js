@@ -153,5 +153,7 @@ const deleteRisk = async (req,res)=>{
 }
 
 
+
+
 module.exports = {getRisks,insertRisk, deleteRisk};
 
