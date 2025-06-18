@@ -221,10 +221,24 @@ function DashboardContent() {
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-xl font-bold">{selectedProject.title}</h2>
             <button
-              className="px-3 py-1 text-sm rounded bg-gray-100 border hover:bg-gray-200"
+              className="inline-flex items-center border border-indigo-300 px-3 py-1.5 rounded-md text-blue-600 hover:bg-blue-50 mb-4"
               onClick={() => setSelectedProject(null)}
             >
-              Back to Projects
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                className="h-6 w-6"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M7 16l-4-4m0 0l4-4m-4 4h18"
+                />
+              </svg>
+              <span className="ml-1 font-bold text-lg">Back</span>
             </button>
           </div>
           {/* Project Tiles, Deliverables, Risks, etc. (dummy) */}
