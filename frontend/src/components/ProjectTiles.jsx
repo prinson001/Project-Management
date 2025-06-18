@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 
 const ProjectTiles = ({ project }) => {
+  console.log('selected project data:', project);
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Sample data matching the reference

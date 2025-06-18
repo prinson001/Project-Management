@@ -13,12 +13,12 @@ const UpdateDynamicForm = ({
   portfolios = [],
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [pmRole, setPmRole] = useState(false);
-  const {
+  const [pmRole, setPmRole] = useState(false);  const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
+    watch,
   } = useForm({
     defaultValues: data || {},
   });
@@ -329,8 +329,77 @@ const UpdateDynamicForm = ({
         className: "text-left",
       },
     ],
+    risks: [
+      {
+        name: "caseName",
+        label: "Risk Name",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
+      {
+        name: "type",
+        label: "Type",
+        type: "select",
+        required: true,
+        columnSpan: 1,
+        options: [
+          { value: "Risk", label: "Risk" },
+          { value: "Issue", label: "Issue" },
+        ],
+      },
+      {
+        name: "owner",
+        label: "Owner",
+        type: "text",
+        required: true,
+        columnSpan: 1,
+      },
+      {
+        name: "severity",
+        label: "Severity",
+        type: "select",
+        required: true,
+        columnSpan: 1,
+        options: [
+          { value: "High", label: "High" },
+          { value: "Medium", label: "Medium" },
+          { value: "Low", label: "Low" },
+        ],
+      },
+      {
+        name: "status",
+        label: "Status",
+        type: "select",
+        required: true,
+        columnSpan: 1,
+        options: [
+          { value: "Open", label: "Open" },
+          { value: "Closed", label: "Closed" },
+        ],
+      },
+      {
+        name: "phaseName",
+        label: "Phase",
+        type: "select",
+        required: false,
+        columnSpan: 1,
+        options: [
+          { value: "planning", label: "Planning" },
+          { value: "bidding", label: "Bidding" },
+          { value: "pre-execution", label: "Pre-execution" },
+          { value: "execution", label: "Execution" },
+        ],
+      },
+      {
+        name: "responsePlan",
+        label: "Response Plan",
+        type: "textarea",
+        required: false,
+        columnSpan: 2,
+      },
+    ],
   });
-
   useEffect(() => {
     if (data) {
       const fields = getFormFields()[tableName] || [];
@@ -346,11 +415,25 @@ const UpdateDynamicForm = ({
           } else {
             filteredData[name] = data[name] || "";
           }
+        } else if (tableName === "risks") {
+          // Special handling for risks to map field names correctly
+          if (name === "caseName") {
+            filteredData[name] = data.caseName || data.case_name || data.name || "";
+          } else if (name === "type") {
+            // Ensure the type matches the dropdown options (capitalize first letter)
+            const typeValue = data.type || "";
+            filteredData[name] = typeValue.charAt(0).toUpperCase() + typeValue.slice(1).toLowerCase();
+          } else if (name === "responsePlan") {
+            filteredData[name] = data.responsePlan || data.response_plan || data.comments || "";
+          } else {
+            filteredData[name] = data[name] || "";
+          }
         } else {
           filteredData[name] = data[name] || "";
         }
       });
 
+      console.log("Original data:", data);
       console.log("Form initialized with:", filteredData);
       reset(filteredData);
     }
@@ -421,16 +504,15 @@ const UpdateDynamicForm = ({
       >
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
           {label}
-        </label>
-        {type === "select" ? (
+        </label>        {type === "select" ? (
           <select
             {...register(name, { required })}
             onChange={(e) => {
-              register("role").onChange(e); // This ensures React Hook Form gets the update
+              register(name).onChange(e); // This ensures React Hook Form gets the update
               changeHandler(e);
             }}
             className="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-            defaultValue={data?.[name] || ""}
+            value={watch(name) || ""}
           >
             <option value="">Select</option>
             {options?.map((option, i) => {

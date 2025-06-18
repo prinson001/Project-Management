@@ -13,12 +13,23 @@ import {
   Menu,
 } from "lucide-react";
 
+// Helper to format filter names
+function formatFilterName(name) {
+  // Insert a space before all caps and capitalize each word
+  return name
+    .replace(/([A-Z])/g, " $1")
+    .replace(/^./, (str) => str.toUpperCase())
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 export default function ProjectMeetingSidebar({
   activeSideBarFilter,
   setActiveSideBarFilter,
   handleSideBarOptionClick,
   isSidebarOpen,
-  categories
+  categories,
 }) {
   return (
     <div
@@ -45,7 +56,7 @@ export default function ProjectMeetingSidebar({
                 }`}
               >
                 <Icon className="h-4 w-4 mr-3" />
-                <span>{category.name}</span>
+                <span>{formatFilterName(category.name)}</span>
               </button>
             );
           })}

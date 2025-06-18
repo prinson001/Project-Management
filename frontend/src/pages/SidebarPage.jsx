@@ -39,12 +39,12 @@ const SIDEBAR_ITEMS = [
     href: "/dashboard",
     roles: ["USER", "PMO"],
   },
-  {
-    name: "meetings",
-    icon: Calendar,
-    href: "/meetings",
-    roles: ["USER", "PMO"],
-  },
+  // {
+  //   name: "meetings",
+  //   icon: Calendar,
+  //   href: "/meetings",
+  //   roles: ["USER", "PMO"],
+  // },
 ];
 
 const SidebarPage = ({ isSidebarOpen, toggleSidebar }) => {
