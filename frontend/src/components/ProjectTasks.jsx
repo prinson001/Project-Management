@@ -48,6 +48,8 @@ export default function ProjectTasks({ projectId }) {
     console.log("the previous meeting notes are");
     console.log(response);
     setPreviousWeekTasks(response.data.result);
+    setSelectedTaskWeek(response.data.result[0].name);
+    setSelectedTaskWeekLists(response.data.result[0].project_tasks);
   };
 
   const fetchNextWeekTasks = async () => {
@@ -78,7 +80,9 @@ export default function ProjectTasks({ projectId }) {
 
   const handlePreviousTaskWeekChange = (weekName) => {
     setSelectedTaskWeek(weekName);
+    console.log("selected week name "+weekName);
     const weeklytasks = previousWeekTasks.find((week) => week.name == weekName);
+    console.log("selected tasks"+weeklytasks);
     setSelectedTaskWeekLists(weeklytasks.project_tasks);
   };
 
@@ -208,3 +212,4 @@ export default function ProjectTasks({ projectId }) {
     </div>
   );
 }
+
