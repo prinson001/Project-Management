@@ -252,7 +252,7 @@ const AddRiskModal = ({ onClose, deliverables , projectName, projectPhases ,addR
   );
 };
 
-const RisksAndIssuesTable = ({ risks, onEdit, onAdd, isLoading, projectName, projectPhases, deliverables, addRisk, projectId }) => {
+const RisksAndIssuesTable = ({ risks, onEdit, onAdd, isLoading, projectName, deliverables, addRisk, projectId }) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedRisk, setSelectedRisk] = useState(null);
