@@ -128,6 +128,32 @@ const insertRisk = async (req,res)=>{
     }
 }
 
+const deleteRisk = async (req,res)=>{
+  const {riskId}  = req.params;
+  try{
+    const result = await sql  `
+      DELETE FROM risks
+      WHERE
+        id=${riskId}
+    `;
+    res.status(200).json({
+      status:"success",
+      message:"successfully deleted the risk",
+      result:null
+    })
+  }
+  catch(e)
+  {
+    res.status(500).json({
+      status:"failure",
+      message:"failed to delete the risk",
+      result:e
+    })
+  }
+}
 
-module.exports = {getRisks,insertRisk};
+
+
+
+module.exports = {getRisks,insertRisk, deleteRisk};
 

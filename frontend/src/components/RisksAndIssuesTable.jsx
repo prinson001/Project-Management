@@ -252,11 +252,16 @@ const AddRiskModal = ({ onClose, deliverables , projectName, projectPhases ,addR
   );
 };
 
-const RisksAndIssuesTable = ({ risks, onEdit, onAdd, isLoading, projectName, projectPhases, deliverables, addRisk, projectId }) => {
+const RisksAndIssuesTable = ({ risks, onEdit, onAdd, isLoading, projectName, deliverables, addRisk, projectId }) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedRisk, setSelectedRisk] = useState(null);
   const [tableData, setTableData] = useState(sampleRisks); // Should probably use the `risks` prop or fetch
+  const [projectPhases, setProjectPhases] = useState([]); // If phases need to be managed internally
+
+  // Note: The `projectId` used in the useEffect below is not defined in this component's scope.
+  // It should likely be passed as a prop if it's different from `projectName`.
+  // Also, `setProjectPhases` is called, but `projectPhases` is a prop. This might be an issue.
   // Hardcoded project phases for now
   const hardcodedPhases = [
     { id: 'planning', name: 'Planning' },
@@ -318,6 +323,7 @@ const RisksAndIssuesTable = ({ risks, onEdit, onAdd, isLoading, projectName, pro
       // Optionally, refresh the risks list here or call a prop function to do so
       // e.g., if `addRisk` prop was meant to refresh/notify parent: addRisk(response.data.result);
       // Or, if you have a local fetch function: fetchRiskAndIssues(projectId); (ensure projectId is available)
+      
     } catch (error) {
       console.error("Error adding risk:", error.response?.data || error.message);
     }

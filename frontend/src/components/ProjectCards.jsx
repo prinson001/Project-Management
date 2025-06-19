@@ -17,6 +17,7 @@ import ProjectDelivarablesTable from "./ProjectDelivarablesTable.jsx"; // Change
 import ProjectTasks from "./ProjectTasks.jsx";
 import ProjectDeliverables from "./ProjectDeliverables.jsx";
 import ProjectDocuments from "./ProjectDocuments.jsx";
+import ProjectHighLevelTimeline from "./ProjectHighLevelTimeline.jsx"; // Importing the new component
 
 // Modal Component
 const Modal = ({ isOpen, onClose, title, children }) => {
@@ -40,7 +41,7 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 };
 
 // Main Component
-const ProjectCards = ({ projectId , projectName }) => {
+const ProjectCards = ({ projectId , projectName , phaseName }) => {
   const [deliverables, setDeliverables] = useState([]);
   const [loadingDeliverables, setLoadingDeliverables] = useState(true);
   const [deliverablesError, setDeliverablesError] = useState(null);
@@ -214,7 +215,11 @@ const ProjectCards = ({ projectId , projectName }) => {
         <h2 className="text-xl font-semibold mb-3 text-gray-800 dark:text-white">
           Project Documents
         </h2>
-        <ProjectDocuments />
+        <ProjectDocuments  projectId={projectId} phaseName={phaseName}/>
+      </div>
+      {/* Project High-level Timeline Section */}
+      <div className="my-6">
+        <ProjectHighLevelTimeline projectName={projectName} />
       </div>
     </div>
   );

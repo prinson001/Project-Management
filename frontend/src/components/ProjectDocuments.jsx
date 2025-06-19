@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import React, { useState  , useEffect, use} from "react";
 import { StatusCard } from "../components/StatusCard";
 import { SearchBar } from "../components/SearchBar";
 import TableData from "../components/TableData";
+import axiosInstance from "../axiosInstance";
+import { constructNow } from "date-fns";
 
 const defaultStatusData = [
   { title: "Initiation & Planning", count: 5, status: "completed" },
@@ -28,18 +30,25 @@ const defaultDocumentsData = [
 ];
 
 const columnSetting = [
-  { columnName: "Phase", dbColumn: "phaseName", isVisible: true, isInput: false },
-  { columnName: "Document Name", dbColumn: "documentName", isVisible: true, isInput: false },
-  { columnName: "File Name", dbColumn: "fileName", isVisible: true, isInput: false },
-  { columnName: "Created Date", dbColumn: "creationDate", isVisible: true, isInput: false },
-  { columnName: "Approval Status", dbColumn: "approvalStatus", isVisible: true, isInput: false },
-  { columnName: "Approval Date", dbColumn: "approvalDate", isVisible: true, isInput: false },
-  { columnName: "Approved By", dbColumn: "approvedBy", isVisible: true, isInput: false },
+  { columnName: "Phase", dbColumn: "phase", isVisible: true, isInput: false },
+  { columnName: "Document Name", dbColumn: "document_name", isVisible: true, isInput: false },
+  // { columnName: "Created Date", dbColumn: "created_at", isVisible: true, isInput: false },
+  { columnName: "Document Template", dbColumn: "template_name", isVisible: true, isInput: false }
 ];
 
-export default function ProjectDocuments({ className = "" }) {
+export default function ProjectDocuments({ className = "" , projectId , phaseName }) {
   const [tableData, setTableData] = useState(defaultDocumentsData);
+  const [projectoverviewData, setProjectoverviewData ] = useState([]);
+  const [projectDocumentsData ,setProjectDocumentsData ] = useState([]);
+  const phasesMap = {
+    'Planning phase': 1, 
+    'Bidding phase' : 2, 
+    'Pre-execution phase' : 3, 
+    'Execution phase' : 4,
+    'Maintenance and operation phase' : 5,
+    'Closed phase' : 6
 
+  }
   const sortTableData = (column, order) => {
     const sorted = [...tableData].sort((a, b) => {
       if (order === "ASC") return a[column] > b[column] ? 1 : -1;
@@ -53,16 +62,37 @@ export default function ProjectDocuments({ className = "" }) {
     setTableData(defaultDocumentsData);
   };
 
+  const fetchProjectDocumentOverview = async()=>{
+    const result = await axiosInstance.get(`/project-card/project-documents-overview/${projectId}`)
+    console.log(result);
+    const projectOverView = result.data.result.map((e)=>{
+      return {...e , order : phasesMap[e.project_phase]}
+    })
+    console.log("*******************************************");
+    console.log(projectOverView)
+    setProjectoverviewData(projectOverView);
+  }
+  const fetchProjectDocuments = async()=>{
+    const result = await axiosInstance.get(`/project-card/project-documents/${projectId}`)
+    console.log("the result of project documents");
+    setProjectDocumentsData(result.data.result);
+    setTableData(result.data.result.all);
+  }
+  useEffect(()=>{
+    fetchProjectDocumentOverview();
+    fetchProjectDocuments();
+  },[projectId])
+  
   return (
     <div className={`p-6 bg-white ${className}`}>
       {/* Status Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-8">
-        {defaultStatusData.map((item, index) => (
+        {projectoverviewData.map((item, index) => (
           <StatusCard
             key={index}
-            title={item.title}
-            count={item.count}
-            status={item.status}
+            title={item.project_phase}
+            count={item.submitted_documents}
+            status={item.missing_documents != "0" ? 'warning':'completed' }
           />
         ))}
       </div>
@@ -72,7 +102,7 @@ export default function ProjectDocuments({ className = "" }) {
         <SearchBar
           placeholder="Search files"
           onSearch={(query) => {
-            const filtered = defaultDocumentsData.filter((row) =>
+            const filtered = projectDocumentsData.all.filter((row) =>
               Object.values(row).some((value) =>
                 String(value).toLowerCase().includes(query.toLowerCase())
               )
