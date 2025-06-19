@@ -281,11 +281,14 @@ const fetchProjectsBasedOnProjectType = async (filterType, filterValue) =>{
     const result = await sql`
       SELECT 
         p.*, 
-        pt.name AS project_type
+        pt.name AS project_type,
+        pp.name AS phase_name
       FROM 
         project p
       JOIN 
         project_type pt ON p.project_type_id = pt.id
+      JOIN
+        project_phase pp ON pp.id = p.current_phase_id
       WHERE 
         pt.name = ${filterValue}
     `;
@@ -314,6 +317,7 @@ const fetchProjectsBasedOnProjectPhase = async (filterType, filterValue) =>{
         project p
       JOIN
         project_phase pp ON pp.id = p.current_phase_id
+      
       WHERE
         pp.name = ${filterValue}
     `;
@@ -338,12 +342,15 @@ const fetchProjectsBasedOnPortfolio = async (filterType, filterValue) =>{
         p.*,
         pr.name AS program_name,
         port.name AS portfolio_name
+        pp.name AS phase_name
       FROM
         project p
       JOIN
         program pr ON pr.id = p.program_id
       JOIN
         portfolio port ON port.id = pr.portfolio_id
+      JOIN
+        project_phase pp ON pp.id = p.current_phase_id
       WHERE
         port.name = ${filterValue}
     `
@@ -369,10 +376,13 @@ const fetchProjectBasedOnProgram = async (filterType, filterValue) =>{
       SELECT
         p.*,
         pr.name AS program_name
+        pp.name AS phase_name
       FROM
         project p 
       JOIN 
         program pr ON p.program_id = pr.program.id
+      JOIN
+        project_phase pp ON pp.id = p.current_phase_id
       WHERE
         pr.name = ${filterValue} 
     `
@@ -398,10 +408,13 @@ const fetchProjectBasedOnVendor = async (filterType, filterValue) =>{
       SELECT 
         p.*,
         v.name AS vendor_name
+        pp.name AS phase_name
       FROM 
         project p
       JOIN
         vendor v ON p.vendor_id = v.id
+      JOIN
+        project_phase pp ON pp.id = p.current_phase_id
       WHERE
         v.name = ${filterValue}
     `

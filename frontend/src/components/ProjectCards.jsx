@@ -41,7 +41,7 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 };
 
 // Main Component
-const ProjectCards = ({ projectId , projectName }) => {
+const ProjectCards = ({ projectId , projectName , phaseName }) => {
   const [deliverables, setDeliverables] = useState([]);
   const [loadingDeliverables, setLoadingDeliverables] = useState(true);
   const [deliverablesError, setDeliverablesError] = useState(null);
@@ -215,7 +215,7 @@ const ProjectCards = ({ projectId , projectName }) => {
         <h2 className="text-xl font-semibold mb-3 text-gray-800 dark:text-white">
           Project Documents
         </h2>
-        <ProjectDocuments  projectId={projectId}/>
+        <ProjectDocuments  projectId={projectId} phaseName={phaseName}/>
       </div>
       {/* Project High-level Timeline Section */}
       <div className="my-6">

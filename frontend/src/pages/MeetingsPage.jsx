@@ -139,7 +139,7 @@ const MeetingsPage = () => {
                 <span className="ml-1 font-bold text-lg">Back</span>
               </button>
               <ProjectTiles projectId={selectedProject.id} />
-              <ProjectCards projectId={selectedProject.id} projectName={selectedProject.name} />
+              <ProjectCards projectId={selectedProject.id} projectName={selectedProject.name}  phaseName={selectedProject.phaseName} />
             </div>
           )}
 

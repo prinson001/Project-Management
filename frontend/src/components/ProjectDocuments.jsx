@@ -36,11 +36,19 @@ const columnSetting = [
   { columnName: "Document Template", dbColumn: "template_name", isVisible: true, isInput: false }
 ];
 
-export default function ProjectDocuments({ className = "" , projectId }) {
+export default function ProjectDocuments({ className = "" , projectId , phaseName }) {
   const [tableData, setTableData] = useState(defaultDocumentsData);
   const [projectoverviewData, setProjectoverviewData ] = useState([]);
   const [projectDocumentsData ,setProjectDocumentsData ] = useState([]);
+  const phasesMap = {
+    'Planning phase': 1, 
+    'Bidding phase' : 2, 
+    'Pre-execution phase' : 3, 
+    'Execution phase' : 4,
+    'Maintenance and operation phase' : 5,
+    'Closed phase' : 6
 
+  }
   const sortTableData = (column, order) => {
     const sorted = [...tableData].sort((a, b) => {
       if (order === "ASC") return a[column] > b[column] ? 1 : -1;
@@ -57,7 +65,12 @@ export default function ProjectDocuments({ className = "" , projectId }) {
   const fetchProjectDocumentOverview = async()=>{
     const result = await axiosInstance.get(`/project-card/project-documents-overview/${projectId}`)
     console.log(result);
-    setProjectoverviewData(result.data.result);
+    const projectOverView = result.data.result.map((e)=>{
+      return {...e , order : phasesMap[e.project_phase]}
+    })
+    console.log("*******************************************");
+    console.log(projectOverView)
+    setProjectoverviewData(projectOverView);
   }
   const fetchProjectDocuments = async()=>{
     const result = await axiosInstance.get(`/project-card/project-documents/${projectId}`)
