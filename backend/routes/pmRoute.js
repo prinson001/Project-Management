@@ -7,6 +7,7 @@ const {
   saveDeliverables,
   getItemsWithDeliverables,
   saveDeliverablesItems,
+  getProjectDeliverablesFromBody,
 } = require("../controllers/deliverableController");
 
 const {
@@ -25,5 +26,6 @@ router.post("/getDeliverables", getDeliverables);
 router.post("/saveDeliverables", saveDeliverables);
 router.post("/getProjectDocuments", getProjectPhaseDocuments);
 router.post("/getProjectDetailsWithVendor", getProjectDetailsWithVendor);
+router.post("/getProjectDeliverables", getProjectDeliverablesFromBody);
 
 module.exports = router;

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Disclosure, Transition } from "@headlessui/react";
 import axiosInstance from "../axiosInstance";
 import { toast } from "sonner";
+import { formatCurrency, formatAmount, parseCurrency, convertToFullAmount, formatAmountForInput, parseInputAmount } from "../utils/currencyUtils";
 const PORT = import.meta.env.VITE_PORT;
 
 const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
@@ -40,8 +41,7 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
     console.log("the project id is ", projectId);
     // console.log("the project phase is ", projectPhase);
     const fetchItemsWithDeliverables = async () => {
-      try {
-        const response = await axiosInstance.post(
+      try {        const response = await axiosInstance.post(
           `/pm/items-with-deliverables`,
           {
             projectId,
@@ -49,7 +49,18 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
         );
         console.log("items with deliverables");
         console.log(response);
-        setItems(response.data);
+        
+        // Format the deliverable amounts for display
+        const formattedItems = response.data.map(item => ({
+          ...item,
+          deliverables: item.deliverables ? item.deliverables.map(deliverable => ({
+            ...deliverable,
+            // Keep original amount for calculations, add formatted version for display
+            amount: deliverable.amount || 0,
+          })) : []
+        }));
+        
+        setItems(formattedItems);
       } catch (error) {
         console.error("Error fetching items:", error);
       }
@@ -258,7 +269,6 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
     }
     return true;
   };
-
   const handleSave = async () => {
     try {
       // Validate durations before saving
@@ -273,7 +283,7 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
             .map(
               ({ name, amount, start_date, end_date, duration, item_id }) => ({
                 name,
-                amount,
+                amount: typeof amount === 'string' ? parseInputAmount(amount) : amount || 0,
                 start_date,
                 end_date,
                 duration,
@@ -287,7 +297,7 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
             .map(({ id, name, amount, start_date, end_date, duration }) => ({
               id,
               name,
-              amount,
+              amount: typeof amount === 'string' ? parseInputAmount(amount) : amount || 0,
               start_date,
               end_date,
               duration,
@@ -319,16 +329,14 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
       // Validate durations before saving
       if (!validateDurations()) {
         return;
-      }
-
-      const payload = {
+      }      const payload = {
         newDeliverables: items.flatMap((item) =>
           item.deliverables
             .filter((d) => d.status === "new")
             .map(
               ({ name, amount, start_date, end_date, duration, item_id }) => ({
                 name,
-                amount,
+                amount: typeof amount === 'string' ? parseInputAmount(amount) : amount || 0,
                 start_date,
                 end_date,
                 duration,
@@ -342,7 +350,7 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
             .map(({ id, name, amount, start_date, end_date, duration }) => ({
               id,
               name,
-              amount,
+              amount: typeof amount === 'string' ? parseInputAmount(amount) : amount || 0,
               start_date,
               end_date,
               duration,
@@ -550,14 +558,13 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
                           {item.quantity}
                         </p>
                       </div>
-                      <div>
-                        <p>
+                      <div>                        <p>
                           <span className="font-medium">Unit Amount:</span>{" "}
-                          {item.unit_amount}
+                          {formatCurrency(item.unit_amount, 'SAR', false)}
                         </p>
                         <p>
-                          <span className="font-medium">Total:</span> $
-                          {item.total}
+                          <span className="font-medium">Total:</span>{" "}
+                          {formatCurrency(item.total)}
                         </p>
                         <p>
                           <span className="font-medium">Type:</span> {item.type}
@@ -594,20 +601,19 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
                                 }
                                 className="flex-1 border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 placeholder="Deliverable name"
-                              />
-                              <input
-                                type="number"
-                                value={deliverable.amount || ""}
+                              />                              <input
+                                type="text"
+                                value={formatAmountForInput(deliverable.amount) || ""}
                                 onChange={(e) =>
                                   handleDeliverableChange(
                                     itemIndex,
                                     deliverableIndex,
                                     "amount",
-                                    e.target.value
+                                    parseInputAmount(e.target.value)
                                   )
                                 }
                                 className="flex-1 border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                placeholder="Amount"
+                                placeholder="Amount (e.g., 8,000,000)"
                               />
                               <input
                                 type="date"

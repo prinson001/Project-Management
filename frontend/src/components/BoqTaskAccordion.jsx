@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { toast } from "sonner";
 import axiosInstance from "../axiosInstance";
 import { FileText, Download } from "lucide-react";
+import { formatCurrency, formatAmount, parseCurrency, convertToFullAmount, formatAmountForInput, parseInputAmount } from "../utils/currencyUtils";
 
 const BoqTaskAccordion = ({
   parentId = null,
@@ -19,21 +20,20 @@ const BoqTaskAccordion = ({
   const [error, setError] = useState(null);
 
   console.log("Received project", project);
-
   // Derived calculations
   const { totalExecution, totalOperation, totalProjectCost, isOverBudget } =
     useMemo(() => {
       const exec = items.reduce(
         (sum, item) =>
           item.type === "Execution"
-            ? sum + item.quantity * item.unit_amount
+            ? sum + parseInputAmount(item.quantity) * parseInputAmount(item.unit_amount)
             : sum,
         0
       );
       const oper = items.reduce(
         (sum, item) =>
           item.type === "Operation"
-            ? sum + item.quantity * item.unit_amount
+            ? sum + parseInputAmount(item.quantity) * parseInputAmount(item.unit_amount)
             : sum,
         0
       );
@@ -51,12 +51,13 @@ const BoqTaskAccordion = ({
     try {
       const { data } = await axiosInstance.post(`/pm/getItems`, {
         projectId: parentId,
-      });
-      setItems(
+      });      setItems(
         data.result?.map((item) => ({
           ...item,
           id: item.id.toString(),
-          total: (item.quantity * item.unit_amount).toFixed(2),
+          total: formatAmount(parseInputAmount(item.quantity) * parseInputAmount(item.unit_amount)),
+          quantity: formatAmountForInput(item.quantity),
+          unit_amount: formatAmountForInput(item.unit_amount),
         })) || []
       );
     } catch (err) {
@@ -135,28 +136,32 @@ const BoqTaskAccordion = ({
       setDeletions((prev) => [...prev, id]);
     }
   };
-
   const handleChange = (index, field, value) => {
     if (isReadable) return;
     setItems((prev) =>
       prev.map((item, i) => {
         if (i === index) {
+          let updatedValue = value;
+          
+          // Handle numeric fields with proper formatting
+          if (field === "quantity" || field === "unit_amount") {
+            // Parse the input value to get clean number
+            const cleanValue = parseInputAmount(value);
+            updatedValue = formatAmountForInput(cleanValue);
+          }
+          
           const updatedItem = {
             ...item,
-            [field]: value,
-            // Automatically calculate total when quantity or unit_amount changes
-            total:
-              field === "quantity" || field === "unit_amount"
-                ? (
-                    parseFloat(
-                      field === "quantity" ? value : item.quantity || 0
-                    ) *
-                    parseFloat(
-                      field === "unit_amount" ? value : item.unit_amount || 0
-                    )
-                  ).toFixed(2)
-                : item.total,
+            [field]: updatedValue,
           };
+          
+          // Automatically calculate total when quantity or unit_amount changes
+          if (field === "quantity" || field === "unit_amount") {
+            const quantity = parseInputAmount(field === "quantity" ? updatedValue : item.quantity || 0);
+            const unitAmount = parseInputAmount(field === "unit_amount" ? updatedValue : item.unit_amount || 0);
+            updatedItem.total = formatAmount(quantity * unitAmount);
+          }
+          
           return updatedItem;
         }
         return item;
@@ -206,16 +211,24 @@ const BoqTaskAccordion = ({
         console.log("the project cost exceeds project budget");
         toast.error("Total cost exceeds project budget");
         return;
-      }
-      let newItems = items.filter((item) =>
+      }      let newItems = items.filter((item) =>
         item.id.toString().startsWith("temp-")
       );
       newItems = newItems.map((e) => {
-        return { ...e, project_id: Number(parentId) };
+        return { 
+          ...e, 
+          project_id: Number(parentId),
+          quantity: parseInputAmount(e.quantity),
+          unit_amount: parseInputAmount(e.unit_amount)
+        };
       });
       const updates = items.filter(
         (item) => !item.id.toString().startsWith("temp-")
-      );
+      ).map((item) => ({
+        ...item,
+        quantity: parseInputAmount(item.quantity),
+        unit_amount: parseInputAmount(item.unit_amount)
+      }));
 
       const payload = {
         newItems: newItems.map(({ id, total, ...rest }) => rest),
@@ -342,13 +355,11 @@ const BoqTaskAccordion = ({
             <p className="font-semibold">
               {projectDetails.project_type_id || "N/A"}
             </p>
-          </div>
-
-          {/* Approved Budget */}
+          </div>          {/* Approved Budget */}
           <div className="space-y-1">
             <p className="text-sm font-medium text-gray-500">Approved Budget</p>
             <p className="font-semibold">
-              ${projectDetails.approved_project_budget || "0"}
+              {formatCurrency(projectDetails.approved_project_budget || 0)}
             </p>
           </div>
 
@@ -424,15 +435,12 @@ const BoqTaskAccordion = ({
           </div>
         ))}
       </div>
-      <div className="mb-6 space-y-4">
-        <div className="flex gap-4 flex-wrap">
+      <div className="mb-6 space-y-4">        <div className="flex gap-4 flex-wrap">
           <div className="p-3 bg-blue-50 rounded-md">
-            <span className="font-semibold">Execution Cost:</span> $
-            {totalExecution.toFixed(2)}
+            <span className="font-semibold">Execution Cost:</span> {formatCurrency(totalExecution)}
           </div>
           <div className="p-3 bg-green-50 rounded-md">
-            <span className="font-semibold">Operation Cost:</span> $
-            {totalOperation.toFixed(2)}
+            <span className="font-semibold">Operation Cost:</span> {formatCurrency(totalOperation)}
           </div>
         </div>
 
@@ -442,21 +450,19 @@ const BoqTaskAccordion = ({
               ? "bg-red-100 text-red-800"
               : "bg-green-100 text-green-800"
           }`}
-        >
-          <div className="grid grid-cols-2 gap-4">
+        >          <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="font-medium">Project Budget</p>
-              <p>${projectBudget}</p>
+              <p>{formatCurrency(projectBudget)}</p>
             </div>
             <div>
               <p className="font-medium">Total Cost</p>
-              <p>${totalProjectCost.toFixed(2)}</p>
+              <p>{formatCurrency(totalProjectCost)}</p>
             </div>
           </div>
           {isOverBudget && (
             <p className="mt-2 font-semibold">
-              ⚠️ Exceeds budget by $
-              {(totalProjectCost - projectBudget).toFixed(2)}
+              ⚠️ Exceeds budget by {formatCurrency(totalProjectCost - projectBudget)}
             </p>
           )}
         </div>

@@ -2,6 +2,7 @@ import { useEffect, useState, Fragment, useRef } from "react"; // Added useRef
 import React, { useCallback } from 'react';
 import axiosInstance from '../axiosInstance';
 import useClickOutside from '../hooks/useClickOutside'; // Import the new hook
+import { formatCurrency, formatAmount, parseCurrency, convertToFullAmount, formatAmountForInput, parseInputAmount } from "../utils/currencyUtils";
 
 const DeliveryCompletionModal = ({ onClose, deliverable, projectId, onSuccessfulSubmit }) => {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -130,9 +131,8 @@ const DeliveryInvoiceModal = ({ onClose, deliverable, onSuccessfulSubmit, projec
       setUploadError(error.response?.data?.message || error.message || 'An error occurred during upload.');
     }
   };
-  
-  // Calculate remaining value for display
-  const remainingValue = deliverable.budget - (deliverable.invoiced || 0);
+    // Calculate remaining value for display
+  const remainingValue = (deliverable.budget || 0) - (deliverable.invoiced || 0);
 
   const handleFullAmountChange = (e) => {
     setIsFullAmount(e.target.checked);
@@ -160,21 +160,20 @@ const DeliveryInvoiceModal = ({ onClose, deliverable, onSuccessfulSubmit, projec
           <div>
             <label className="block text-sm font-medium text-gray-700">Deliverable Name</label>
             <input type="text" value={deliverable.name} disabled className="mt-1 block w-full border border-gray-300 rounded-md p-2 bg-gray-100" />
-          </div>
-          <div>
+          </div>          <div>
             <label className="block text-sm font-medium text-gray-700">Deliverable Remaining Value (SAR)</label>
-            <input type="text" value={remainingValue.toLocaleString()} disabled className="mt-1 block w-full border border-gray-300 rounded-md p-2 bg-gray-100" />
+            <input type="text" value={formatCurrency(remainingValue, 'SAR', false)} disabled className="mt-1 block w-full border border-gray-300 rounded-md p-2 bg-gray-100" />
           </div>
           <div>
             <label htmlFor="invoiceAmount" className="block text-sm font-medium text-gray-700">Invoice Amount (SAR)</label>
             <input 
               id="invoiceAmount"
-              type="number" 
-              value={invoiceAmount} 
-              onChange={(e) => setInvoiceAmount(e.target.value)}
+              type="text" 
+              value={formatAmountForInput(invoiceAmount)} 
+              onChange={(e) => setInvoiceAmount(parseInputAmount(e.target.value))}
               disabled={isFullAmount}
               className="mt-1 block w-full border border-gray-300 rounded-md p-2" 
-              placeholder="Enter invoice amount"
+              placeholder="Enter invoice amount (e.g., 100,000)"
             />
           </div>
           <div className="flex items-center space-x-2">
@@ -558,9 +557,10 @@ const ProjectDelivarablesTable = ({ data, columns = [], tableName, projectId }) 
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                           )}
-                        </div>
-                      ) : column.dbColumn === 'start_date' || column.dbColumn === 'end_date' ? (
+                        </div>                      ) : column.dbColumn === 'start_date' || column.dbColumn === 'end_date' ? (
                         <span>{item[column.dbColumn].split('-').reverse().join('-')}</span>
+                      ) : column.dbColumn === 'budget' || column.dbColumn === 'amount' || column.dbColumn === 'invoiced' || column.dbColumn === 'remaining_budget' ? (
+                        <span className="px-2 py-2">{formatCurrency(item[column.dbColumn], 'SAR', false)}</span>
                       ) : (
                         <span className="px-2 py-2">{item[column.dbColumn]}</span>
                       )}

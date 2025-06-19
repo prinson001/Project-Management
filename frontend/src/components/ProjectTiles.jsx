@@ -17,17 +17,19 @@ import {
   ChevronDown,
   MoreHorizontal,
 } from "lucide-react";
-
+import useAuthStore from "../store/authStore"; 
 const ProjectTiles = ({ project }) => {
   console.log('selected project data:', project);
+  const {selectedProject } = useAuthStore();
+  console.log('selected project data from store in project tiles', selectedProject);
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Sample data matching the reference
   const projectData = {
-    id: "12025",
-    title: "External Platform upgrade for long name project applies in this year",
-    type: "Strategic",
-    category: "Capex",
+    id: `${selectedProject.id}`,
+    title:`${selectedProject.name}`,
+    type:   `${selectedProject.project_type}`,
+    category: `${selectedProject.category}`,
     initiative: "Enhance customer experience",
     portfolio: "Portfolio number sixteen",
     altProjectManager: "Abdulaziz Hawara",

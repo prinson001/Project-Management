@@ -199,11 +199,15 @@ const ProjectCards = ({ projectId , projectName , phaseName }) => {
             projectId={projectId} // Add projectId here
           />
         )}
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-        {/* Pass projectId to ProjectDeliverables so it fetches its own data */}
-        <ProjectDeliverables projectId={projectId} />
-        <ProjectTasks projectId={projectId} />
+      </div>      <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 mt-8">
+        {/* Pass projectId to ProjectDeliverables so it fetches its own data - 70% width */}
+        <div className="lg:col-span-7">
+          <ProjectDeliverables projectId={projectId} />
+        </div>
+        {/* ProjectTasks - 30% width */}
+        <div className="lg:col-span-3">
+          <ProjectTasks projectId={projectId} />
+        </div>
       </div>
       <div className="my-6">
         <h2 className="text-xl font-semibold mb-3 text-gray-800 dark:text-white">
