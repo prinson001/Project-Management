@@ -2,8 +2,27 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const errorHandler = require("./middlewares/errorHandler");
+const { testDatabaseConnection } = require("./middlewares/databaseHealth");
 const cronJob = require("./services/cronJob");
 const multer = require("multer");
+
+// Validate environment and database connection on startup
+async function validateStartup() {
+  console.log("🚀 Starting Project Management Server...");
+  console.log("=========================================");
+  
+  // Check database connection
+  console.log("🔍 Checking database connection...");
+  const dbHealthy = await testDatabaseConnection();
+  
+  if (!dbHealthy) {
+    console.error("❌ Database connection failed. Exiting...");
+    process.exit(1);
+  }
+  
+  console.log("✅ Startup validation completed successfully!");
+  return true;
+}
 
 const app = express();
 console.log(process.env.PORT);
@@ -33,10 +52,27 @@ app.post(
 
 app.use(errorHandler);
 
-app.listen(port, (req, res) => {
-  console.log(`App listening at port ${port}`);
-  cronJob();
-});
+// Add health check route
+app.use("/health", require("./routes/healthRoute"));
+
+// Start server with validation
+async function startServer() {
+  try {
+    await validateStartup();
+    
+    app.listen(port, (req, res) => {
+      console.log(`✅ App listening at port ${port}`);
+      console.log(`🔗 Health check available at: http://localhost:${port}/health/health`);
+      cronJob();
+    });
+  } catch (error) {
+    console.error("❌ Failed to start server:", error);
+    process.exit(1);
+  }
+}
+
+startServer();
+
 process.on("SIGINT", () => {
   console.log("Shutting down server gracefully...");
   app.close(() => {
@@ -48,4 +84,14 @@ process.on("SIGINT", () => {
 process.on("SIGTERM", () => {
   console.log("Process terminated.");
   app.close(() => process.exit(0));
+});
+
+// Start the server and validate environment/database
+validateStartup().then(() => {
+  app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+  });
+}).catch((error) => {
+  console.error("Failed to start the server:", error);
+  process.exit(1);
 });

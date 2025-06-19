@@ -1,5 +1,6 @@
 const sql = require("../database/db");
 const supabase = require("../database/supabase");
+const { withRetry } = require("../middlewares/databaseHealth");
 const {
   createProjectCreationTaskForDeputy,
   createBoqTaskForPM,
@@ -26,6 +27,19 @@ const addProject = async (req, res) => {
       status: "failure",
       message: "No data fields provided for insertion",
       result: null,
+    });
+  }
+
+  // Test database connection before proceeding
+  try {
+    await sql`SELECT 1`;
+    console.log("Database connection verified");
+  } catch (connectionError) {
+    console.error("Database connection failed:", connectionError);
+    return res.status(500).json({
+      status: "failure",
+      message: "Database connection failed",
+      result: connectionError.message,
     });
   }
 
@@ -82,15 +96,16 @@ const addProject = async (req, res) => {
       projectData.project_budget = null;
       projectData.approved_project_budget = null;
       projectData.category = null;
-    }
-
-    // Derive portfolio_id and initiative_id from program_id if provided
+    }    // Derive portfolio_id and initiative_id from program_id if provided
     if (projectData.program_id) {
-      const programQuery = await sql`
-        SELECT portfolio_id
-        FROM program
-        WHERE id = ${projectData.program_id}
-      `;
+      const programQuery = await withRetry(async () => {
+        return await sql`
+          SELECT portfolio_id
+          FROM program
+          WHERE id = ${projectData.program_id}
+        `;
+      });
+      
       if (programQuery.length === 0) {
         return res.status(400).json({
           status: "failure",
@@ -101,11 +116,14 @@ const addProject = async (req, res) => {
       projectData.portfolio_id = programQuery[0].portfolio_id;
 
       if (projectData.portfolio_id) {
-        const portfolioQuery = await sql`
-          SELECT initiative_id
-          FROM portfolio
-          WHERE id = ${projectData.portfolio_id}
-        `;
+        const portfolioQuery = await withRetry(async () => {
+          return await sql`
+            SELECT initiative_id
+            FROM portfolio
+            WHERE id = ${projectData.portfolio_id}
+          `;
+        });
+        
         if (portfolioQuery.length === 0) {
           return res.status(400).json({
             status: "failure",
@@ -117,7 +135,7 @@ const addProject = async (req, res) => {
       }
     }
 
-    // Insert project data
+    // Insert project data with retry mechanism
     const columns = Object.keys(projectData).filter(
       (key) => projectData[key] !== undefined
     );
@@ -131,10 +149,10 @@ const addProject = async (req, res) => {
     `;
 
     console.log("Inserting project with data:", projectData);
-    const result = await sql.unsafe(queryText, values);
-    const projectId = result[0].id;
-
-    // Insert beneficiary departments
+    const result = await withRetry(async () => {
+      return await sql.unsafe(queryText, values);
+    });
+    const projectId = result[0].id;    // Insert beneficiary departments
     if (beneficiary_departments && beneficiary_departments.length > 0) {
       console.log(
         "Inserting beneficiary departments:",
@@ -142,10 +160,12 @@ const addProject = async (req, res) => {
       );
       const departmentInsertQueries = beneficiary_departments.map(
         (departmentId) => {
-          return sql`
-            INSERT INTO beneficiary_departments (project_id, department_id)
-            VALUES (${projectId}, ${departmentId});
-          `;
+          return withRetry(async () => {
+            return await sql`
+              INSERT INTO beneficiary_departments (project_id, department_id)
+              VALUES (${projectId}, ${departmentId});
+            `;
+          });
         }
       );
       await Promise.all(departmentInsertQueries);
@@ -162,7 +182,9 @@ const addProject = async (req, res) => {
           INSERT INTO project_objective (project_id, objective_id)
           VALUES ${objectiveValues}
         `;
-        await sql.unsafe(objectiveQuery);
+        await withRetry(async () => {
+          return await sql.unsafe(objectiveQuery);
+        });
         console.log("Project objectives inserted successfully");
       } catch (error) {
         console.error("Error inserting project objectives:", error);
@@ -173,9 +195,22 @@ const addProject = async (req, res) => {
       status: "success",
       message: "Project added successfully",
       result: { id: projectId },
-    });
-  } catch (error) {
+    });  } catch (error) {
     console.error("Error adding project:", error);
+    
+    // Handle specific network/DNS errors
+    if (error.code === 'ENOTFOUND') {
+      return res.status(503).json({
+        status: "failure",
+        message: "Database connection failed - network or DNS issue",
+        result: {
+          error: "Cannot connect to database server",
+          hostname: error.hostname,
+          suggestion: "Please check your internet connection and try again"
+        },
+      });
+    }
+    
     if (error.code === "23505") {
       return res.status(409).json({
         status: "failure",
