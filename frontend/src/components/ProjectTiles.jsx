@@ -20,10 +20,17 @@ import {
 import useAuthStore from "../store/authStore"; 
 const ProjectTiles = ({ project }) => {
   console.log('selected project data:', project);
-  const {selectedProject } = useAuthStore();
+  let {selectedProject } = useAuthStore();
   console.log('selected project data from store in project tiles', selectedProject);
   const [isExpanded, setIsExpanded] = useState(false);
-
+  if(selectedProject==null || selectedProject === undefined){
+    //dummy 
+    selectedProject={
+      ...project,
+      category:"Capex",
+      project_type:"External",
+    }
+  }
   // Sample data matching the reference
   const projectData = {
     id: `${selectedProject.id}`,
