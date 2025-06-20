@@ -72,7 +72,7 @@ export const router = createBrowserRouter([
       {
         path: "/dashboard",
         element: (
-          <ProtectedRoute allowedRoles={["USER", "PMO"]}>
+          <ProtectedRoute allowedRoles={["USER", "PMO","PM"]}>
             <DashboardContainerPage />
           </ProtectedRoute>
         ),
