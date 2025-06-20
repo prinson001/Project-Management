@@ -349,33 +349,14 @@ const UpdateDynamicForm = ({
         ],
       },
       {
-        name: "owner",
-        label: "Owner",
-        type: "text",
-        required: true,
-        columnSpan: 1,
-      },
-      {
-        name: "severity",
-        label: "Severity",
-        type: "select",
-        required: true,
-        columnSpan: 1,
-        options: [
-          { value: "High", label: "High" },
-          { value: "Medium", label: "Medium" },
-          { value: "Low", label: "Low" },
-        ],
-      },
-      {
         name: "status",
         label: "Status",
         type: "select",
         required: true,
         columnSpan: 1,
         options: [
-          { value: "Open", label: "Open" },
-          { value: "Closed", label: "Closed" },
+          { value: "open", label: "Open" },
+          { value: "closed", label: "Closed" },
         ],
       },
       {
