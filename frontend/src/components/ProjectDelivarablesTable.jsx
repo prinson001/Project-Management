@@ -470,9 +470,8 @@ const ProjectDelivarablesTable = ({ data, columns = [], tableName, projectId }) 
     // Keep selectedDeliverable for a moment if needed for animations, or clear it too
     // setSelectedDeliverable(null);
   };
-
   return (
-    <div className="relative text-xs overflow-x-auto rounded-lg shadow-md min-h-[600px]"> {/* Added min-h-[600px] for more height */}
+    <div className="relative text-xs overflow-x-auto rounded-lg shadow-md min-h-[300px]"> {/* Reduced min-h for more compact display */}
       <table className="w-full text-xs text-left text-gray-500">
         <thead className="text-xs text-gray-700 uppercase bg-gray-50">
           <tr>

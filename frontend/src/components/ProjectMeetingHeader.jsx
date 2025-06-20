@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { BarChart3, Menu } from "lucide-react";
 
 export default function ProjectMeetingHeader({
@@ -7,6 +8,12 @@ export default function ProjectMeetingHeader({
   activeSubFilter,
   handleSubOptionClick
 }) {
+  const navigate = useNavigate();
+
+  const handleCloseMeeting = () => {
+    navigate("/dashboard");
+  };
+
   return (
     <header className="bg-white border-b border-gray-200">
       <div className="flex h-16 items-center gap-4 px-6">
@@ -21,7 +28,10 @@ export default function ProjectMeetingHeader({
           <span className="font-medium">Dashboard</span>
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <button className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50">
+          <button 
+            onClick={handleCloseMeeting}
+            className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+          >
             Close meeting
           </button>
         </div>
