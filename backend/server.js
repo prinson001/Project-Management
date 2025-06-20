@@ -85,13 +85,3 @@ process.on("SIGTERM", () => {
   console.log("Process terminated.");
   app.close(() => process.exit(0));
 });
-
-// Start the server and validate environment/database
-validateStartup().then(() => {
-  app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
-  });
-}).catch((error) => {
-  console.error("Failed to start the server:", error);
-  process.exit(1);
-});

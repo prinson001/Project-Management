@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import TopHeader from "../components/TopHeader";
 import SidebarPage from "./SidebarPage";
 import ProjectCards from "../components/ProjectCards";
@@ -6,43 +6,51 @@ import DashboardPage from "./DashboardPage";
 import Accordion from "../components/Accordion";
 import ProjectTiles from "../components/ProjectTiles";
 import ProjectSelectCard from "../components/ProjectSelectCard";
+import useAuthStore from "../store/authStore";
+import axiosInstance from "../axiosInstance";
 
 const DashboardContainerPage = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("projectCards");
   const [selectedProject, setSelectedProject] = useState(null);
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  const { userId } = useAuthStore();
+  console.log("User ID from auth store dashboard:", userId);
   const toggleSidebar = () => setIsSidebarOpen((open) => !open);
 
-  // Dummy projects data for selection
-  const dummyProjects = [
-    {
-      id: 1,
-      title: "External Platform upgrade for long name project applies in this year",
-      amount: "850,000 SAR",
-      percent1: 10,
-      percent2: 60,
-      lastUpdated: "3 days ago",
-      status: "danger",
-    },
-    {
-      id: 2,
-      title: "External Platform upgrade for long name project applies in this year",
-      amount: "1,400,000 SAR",
-      percent1: 0,
-      percent2: 90,
-      lastUpdated: "3 days ago",
-      status: "success",
-    },
-    {
-      id: 3,
-      title: "External Platform upgrade for long name project applies in this year",
-      amount: "120,000 SAR",
-      percent1: 50,
-      percent2: 20,
-      lastUpdated: "3 days ago",
-      status: "danger",
-    },
-  ];
+  // Fetch projects based on logged-in user ID
+  useEffect(() => {
+    const fetchProjects = async () => {
+      if (!userId) {
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        setLoading(true);
+        const response = await axiosInstance.get(`/project-card/projects/${userId}`);
+        
+        if (response.data && response.data.status === "success") {
+          setProjects(response.data.result || []);
+          setError(null);
+        } else {
+          setError("Failed to load projects");
+          setProjects([]);
+        }
+      } catch (err) {
+        console.error("Error fetching projects:", err);
+        setError(err.response?.data?.message || "Failed to load projects");
+        setProjects([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, [userId]);
 
   const tabs = [
     { id: "projectCards", label: "Project Cards" },
@@ -57,18 +65,36 @@ const DashboardContainerPage = () => {
           isSidebarOpen={isSidebarOpen}
           toggleSidebar={toggleSidebar}
         />
-        <main className="flex-1 overflow-auto p-4">
-          <Accordion title="Dashboard" defaultOpen={true} className="mb-4">
+        <main className="flex-1 overflow-auto p-4">          <Accordion title="Dashboard" defaultOpen={true} className="mb-4">
             {/* Project Select Cards - global to accordion */}
             {!selectedProject && (
-              <div className="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                {dummyProjects.map((project) => (
-                  <ProjectSelectCard
-                    key={project.id}
-                    project={project}
-                    onSelect={() => setSelectedProject(project)}
-                  />
-                ))}
+              <div className="p-6">
+                {loading && (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">Loading projects...</p>
+                  </div>
+                )}
+                {error && (
+                  <div className="text-center py-8">
+                    <p className="text-red-500">Error: {error}</p>
+                  </div>
+                )}
+                {!loading && !error && projects.length === 0 && (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No projects found.</p>
+                  </div>
+                )}
+                {!loading && !error && projects.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                    {projects.map((project) => (
+                      <ProjectSelectCard
+                        key={project.id}
+                        project={project}
+                        onSelect={() => setSelectedProject(project)}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
             {/* Tab Navigation - Consistent with DataManagementTabs */}
@@ -98,11 +124,10 @@ const DashboardContainerPage = () => {
               </div>
             </div>
             {/* Tab Content */}
-            <div>
-              {selectedProject && (
+            <div>              {selectedProject && (
                 <div className="mb-6">
                   <div className="mb-4 flex items-center justify-between">
-                    <h2 className="text-xl font-bold">{selectedProject.title}</h2>
+                    <h2 className="text-xl font-bold">{selectedProject.name || selectedProject.title}</h2>
                     <button
                       className="inline-flex items-center border border-indigo-300 px-3 py-1.5 rounded-md text-blue-600 hover:bg-blue-50 mb-4"
                       onClick={() => setSelectedProject(null)}
@@ -129,7 +154,7 @@ const DashboardContainerPage = () => {
               {selectedProject && activeTab === "projectCards" && (
                 <>
                   <ProjectTiles project={selectedProject} />
-                  <ProjectCards project={selectedProject} />
+                  <ProjectCards projectId={selectedProject.id} projectName={selectedProject.name} phaseName={selectedProject.phase_name} />
                 </>
               )}
               {selectedProject && activeTab === "dashboard" && (
