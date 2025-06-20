@@ -3,7 +3,8 @@ const sql = require("../database/db");
 
 
 const getRisks = async (req, res) => {
-  const { sortType, sortOrder, projectid } = req.query;
+  const { sortType, sortOrder, projectid , page =1 , limit = 10 } = req.query;
+  const offset = (page - 1) * limit;
   console.log("the projectId "+projectid );
   try {
     // Base query
@@ -41,12 +42,27 @@ const getRisks = async (req, res) => {
     } else {
       baseQuery = sql`${baseQuery} ORDER BY created_date DESC`;
     }
+    baseQuery+= `
+      LIMIT =${limit}
+      OFFSET=${offset}
+    `;
 
     const result = await sql`${baseQuery}`;
+    const countResult = await sql`
+      SELECT COUNT(*) FROM ${sql(tableName)}
+    `;
+
+    const totalCount = parseInt(countResult[0].count);
     res.status(200).json({
       status: "success",
       message: "Fetched risks successfully",
       result,
+      pagination:{
+        total: totalCount,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(totalCount / limit),
+      }
     });
 
   } catch (e) {
