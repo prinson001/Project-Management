@@ -297,7 +297,7 @@ const RisksAndIssuesTable = ({ risks, onEdit, onAdd, isLoading, projectName, del
       linkedToId = data.deliverableId;
     } else if (data.hasOwnProperty("projectId") && data.projectId) {
       linkedToType = 'project';
-      linkedToId = data.projectId;
+      linkedToId = projectId;
     } else {
       // Handle cases where neither is available if necessary, or ensure one is always present
       console.error("Risk must be linked to either a deliverable or a project.");
@@ -323,6 +323,10 @@ const RisksAndIssuesTable = ({ risks, onEdit, onAdd, isLoading, projectName, del
       // Optionally, refresh the risks list here or call a prop function to do so
       // e.g., if `addRisk` prop was meant to refresh/notify parent: addRisk(response.data.result);
       // Or, if you have a local fetch function: fetchRiskAndIssues(projectId); (ensure projectId is available)
+      setTableData((e)=>{
+        return [...e , ...response.data.result];
+      })
+
       
     } catch (error) {
       console.error("Error adding risk:", error.response?.data || error.message);
@@ -384,7 +388,7 @@ const RisksAndIssuesTable = ({ risks, onEdit, onAdd, isLoading, projectName, del
           deliverables={deliverables}
           projectName={projectName}
           projectPhases={projectPhases}
-          addRisk={addRisk}
+          addRisk={handleRiskSubmission}
         />
       )}      {showEditModal && selectedRisk && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">

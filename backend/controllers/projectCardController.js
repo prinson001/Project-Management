@@ -29,6 +29,28 @@ const getProjectDetails = async(req,res)=>{
     }
 }
 
+const getProjectsBasedOnUserId = async(req,res)=>{
+  const {userId} = req.params;
+  try{
+    const result = await sql `
+      SELECT
+        *
+      FROM
+        project
+      WHERE 
+        project_manager_id = ${userId}
+    `
+  }
+  catch(e)
+  {
+      res.status(500).json({
+        status:"failure",
+        message:"failed to get projects based on user id",
+        result : e
+      })
+  }
+}
+
 const getProjectDeliverables = async(req,res)=>{
     const {projectid} = req.params;
     try{
@@ -471,7 +493,7 @@ function getWeekOfMonth(date) {
 
 
 
-module.exports = {getProjectDetails,getProjectDeliverables , getPreviousMeetingNotes , createNextWeekProjectTask, getProjectTasksGroupedByWeek, getNextWeekProjectTasks, deleteNextWeekProjectTask , getProjectPhaseNames, getProjectDocumentsGrouped , getProjectDocumentsOverview};
+module.exports = {getProjectDetails,getProjectDeliverables , getPreviousMeetingNotes , createNextWeekProjectTask, getProjectTasksGroupedByWeek, getNextWeekProjectTasks, deleteNextWeekProjectTask , getProjectPhaseNames, getProjectDocumentsGrouped , getProjectDocumentsOverview , getProjectsBasedOnUserId};
 
 
 

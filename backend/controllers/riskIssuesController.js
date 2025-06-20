@@ -8,8 +8,13 @@ const getRisks = async (req, res) => {
   try {
     // Base query
     let baseQuery = sql`
-      SELECT r.*
-      FROM risks r
+      SELECT
+       r.*,
+       p.name as phase_name
+      FROM
+       risks r
+      JOIN
+        project_phase p ON r.phase_id = p.id
       WHERE r.linked_project_id = ${projectid}
       OR r.linked_deliverable_id IN (
         SELECT id
@@ -78,7 +83,7 @@ const insertRisk = async (req,res)=>{
       }
       catch(e)
       {
-        res.status(500).json({
+        return res.status(500).json({
           status:"failure",
           message:"Failed to get due date of project",
           result : e
@@ -100,7 +105,7 @@ const insertRisk = async (req,res)=>{
       }
       catch(e)
       {
-        res.status(500).json({
+        return res.status(500).json({
           status:"failure",
           message:"Failed to get due date of deliverable",
           result : e
@@ -112,15 +117,17 @@ const insertRisk = async (req,res)=>{
         const result = await sql `
             INSERT INTO risks(name , status , type , due_date , phase_id , created_date , linked_project_id , linked_deliverable_id, comments )
             VALUES (${riskName},'open','risk',${dueDate},${phaseId},${today},${linkedProjectId},${linkedDeliverableId}, ${comments})
+            RETURNING *
         `
         return res.status(201).json({
             status: "success",
             message: "Risk inserted successfully",
+            result
         });
     }
     catch(e)
     {
-        res.status(500).json({
+      return res.status(500).json({
             status:"failure",
             message:"Failed to insert risk",
             result : e.message
