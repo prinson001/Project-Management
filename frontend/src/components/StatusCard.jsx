@@ -1,26 +1,39 @@
-import { Check, AlertTriangle, FileText } from "lucide-react"
+import { Check, AlertTriangle, FileText } from "lucide-react";
 
-export function StatusCard({ title, count, status = "default", className = "" , statusText }) {
+export function StatusCard({ title, count, status = "default", className = "", statusText }) {
   const getStatusIcon = () => {
     switch (status) {
       case "completed":
-        return <Check className="w-5 h-5 text-green-600" />
+        return <Check className="w-5 h-5 text-green-600" />;
       case "warning":
-        return <AlertTriangle className="w-5 h-5 text-yellow-600" />
+        return <AlertTriangle className="w-5 h-5 text-yellow-600" />;
       default:
-        return null
+        return null;
     }
-  }
+  };
 
   const getCardBackground = () => {
     switch (status) {
       case "completed":
       case "warning":
-        return "bg-blue-50 border-blue-200"
+        return "bg-blue-50 border-blue-200";
       default:
-        return "bg-gray-50 border-gray-200"
+        return "bg-gray-50 border-gray-200";
     }
-  }
+  };
+
+  const getBadgeStyle = () => {
+    switch (status) {
+      case "error":
+        return "inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-red-600/10 ring-inset";
+      case "warning":
+        return "inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-yellow-600/20 ring-inset";
+      case "completed":
+        return "inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-green-600/20 ring-inset";
+      default:
+        return "inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-gray-500/10 ring-inset";
+    }
+  };
 
   return (
     <div className={`rounded-lg border p-4 ${getCardBackground()} ${className}`}>
@@ -37,10 +50,12 @@ export function StatusCard({ title, count, status = "default", className = "" , 
           </div>
           {getStatusIcon()}
         </div>
-        <div>
-          {statusText}
+        <div className="mt-2">
+          {statusText && (
+            <span className={getBadgeStyle()}>{statusText}</span>
+          )}
         </div>
       </div>
     </div>
-  )
+  );
 }
