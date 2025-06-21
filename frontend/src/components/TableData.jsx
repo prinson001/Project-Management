@@ -6,6 +6,7 @@ import {
   ChevronDown,
   ChevronsUpDown,
   ExternalLink,
+  Eye
 } from "lucide-react";
 import UserAccordion from "./UserAccordion";
 import BoqTaskAccordion from "../components/BoqTaskAccordion";
@@ -487,7 +488,7 @@ const TableData = ({
                             rel="noopener noreferrer"
                             className="text-blue-600 hover:underline cursor-pointer"
                           >
-                            <ExternalLink className="w-6 h-5" />
+                            <Eye className="w-6 h-5" />
                           </a>
                         )}
 
