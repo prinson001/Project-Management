@@ -470,6 +470,28 @@ const TableData = ({
                             <ExternalLink className="w-6 h-5" />
                           </a>
                         )}
+                        {tableName === "ProjectDocuments" && (
+                          <a
+                            href={`${item.document_url}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline cursor-pointer"
+                          >
+                            <ExternalLink className="w-6 h-5" />
+                          </a>
+                        )}
+                        {tableName === "ProjectDocuments" && (
+                          <a
+                            href={`https://jswiqxlveqcgrdnohbcn.supabase.co/storage/v1/object/public/project_documents/${encodeURIComponent(item.file_url.replace(/^.*?projects/, "projects"))}`}
+
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline cursor-pointer"
+                          >
+                            <ExternalLink className="w-6 h-5" />
+                          </a>
+                        )}
+
                         {/* {tableName === "document" && (
                           <button
                             onClick={() => toggleForm(index)}

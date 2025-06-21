@@ -413,7 +413,8 @@ const getProjectDocuments = async (req, res) => {
       SELECT 
         pd.*,
         dt.name AS template_name,
-        dt.phase[1] AS project_phase
+        dt.phase[1] AS project_phase,
+        dt.document_url AS document_url
       FROM 
         project_documents pd
       JOIN 
