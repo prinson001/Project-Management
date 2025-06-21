@@ -1,33 +1,57 @@
 const sql = require("../database/db");
 
-const getProjectDetails = async(req,res)=>{
-    const {projectid} = req.params;
-    try{
-        const result = await sql `
-            SELECT 
-                *
-            FROM
-                project p
-            WHERE  
-              id = ${projectid}
-        `
-        console.log("the reuslt from get project details");
-        console.log(result);
-        res.status(200).json({
-            status:"success",
-            message:"successfully retreived project details",
-            result
-        })
-    }
-    catch(e)
-    {
-        res.status(500).json({
-            status:"failure",
-            message:"Failed to get Project Details",
-            result:e
-        })
-    }
-}
+const getProjectDetails = async (req, res) => {
+  const { projectid } = req.params;
+
+  try {
+    const result = await sql`
+      SELECT 
+        p.*, 
+        pr.name AS program_name,
+        pf.name AS portfolio_name,
+        i.name AS initiative_name,
+        u.first_name AS alt_project_manager_first_name,
+        u.family_name AS alt_project_manager_family_name,
+        v.name AS vendor_name,
+        pt.name AS project_type_name,
+        pp.name AS project_phase_name
+      FROM 
+        project p
+      LEFT JOIN 
+        program pr ON pr.id = p.program_id
+      LEFT JOIN 
+        portfolio pf ON pf.id = pr.portfolio_id
+      LEFT JOIN 
+        initiative i ON i.id = pf.initiative_id
+      LEFT JOIN 
+        users u ON u.id = p.alternative_project_manager_id
+      LEFT JOIN 
+        vendor v ON v.id = p.vendor_id
+      LEFT JOIN 
+        project_type pt ON pt.id = p.project_type_id
+      LEFT JOIN 
+        project_phase pp ON pp.id = p.current_phase_id
+      WHERE 
+        p.id = ${projectid};
+    `;
+
+    res.status(200).json({
+      status: "success",
+      message: "Successfully retrieved project details with linked hierarchy",
+      result,
+    });
+  } catch (e) {
+    console.error("Error fetching project details:", e);
+    res.status(500).json({
+      status: "failure",
+      message: "Failed to get Project Details",
+      result: e,
+    });
+  }
+};
+
+
+
 
 const getProjectsBasedOnUserId = async(req,res)=>{
   const {userId} = req.params;
