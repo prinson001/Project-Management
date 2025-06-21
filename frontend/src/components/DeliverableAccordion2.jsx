@@ -574,9 +574,17 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
 
                     <h3 className="font-medium text-lg mb-3 text-gray-700">
                       Deliverables
-                    </h3>
-
-                    <div className="space-y-4">
+                    </h3>                    <div className="space-y-4">
+                      {item.deliverables && item.deliverables.length > 0 && (
+                        <div className="flex gap-4 items-center p-2 bg-gray-100 rounded-lg font-medium text-sm text-gray-600">
+                          <div className="flex-1">Deliverable Name</div>
+                          <div className="flex-1">Amount</div>
+                          <div className="flex-1">Start Date</div>
+                          <div className="flex-1">End Date</div>
+                          <div className="flex-1">Duration</div>
+                          <div className="w-12 text-center">Action</div>
+                        </div>
+                      )}
                       {item.deliverables && item.deliverables.length > 0 ? (
                         item.deliverables.map(
                           (deliverable, deliverableIndex) => (
@@ -587,8 +595,7 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
                                 deliverableIndex
                               }
                               className="flex gap-4 items-center p-3 bg-gray-50 rounded-lg"
-                            >
-                              <input
+                            >                              <input
                                 type="text"
                                 value={deliverable.name || ""}
                                 onChange={(e) =>
@@ -600,7 +607,8 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
                                   )
                                 }
                                 className="flex-1 border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                placeholder="Deliverable name"
+                                placeholder="Enter deliverable name"
+                                title="Deliverable Name"
                               />                              <input
                                 type="text"
                                 value={formatAmountForInput(deliverable.amount) || ""}
@@ -613,7 +621,8 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
                                   )
                                 }
                                 className="flex-1 border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                placeholder="Amount (e.g., 8,000,000)"
+                                placeholder="Enter amount"
+                                title="Amount"
                               />
                               <input
                                 type="date"
@@ -627,6 +636,7 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
                                   )
                                 }
                                 className="flex-1 border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                title="Start Date"
                               />
                               <input
                                 type="date"
@@ -640,15 +650,15 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
                                   )
                                 }
                                 className="flex-1 border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                title="End Date"
                               />
                               <input
                                 type="text"
                                 value={deliverable.duration + " months "}
                                 disabled={true}
-                                className="flex-1 border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              />
-
-                              <button
+                                className="flex-1 border rounded-md px-3 py-2 bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                title="Duration (calculated automatically)"
+                              />                              <button
                                 onClick={(e) => {
                                   e.preventDefault();
                                   deleteDeliverable(
@@ -656,7 +666,7 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
                                     deliverableIndex
                                   );
                                 }}
-                                className="text-red-600 hover:text-red-800 px-3 py-2 transition-colors rounded-md hover:bg-red-50"
+                                className="text-red-600 hover:text-red-800 px-3 py-2 transition-colors rounded-md hover:bg-red-50 w-12 flex justify-center"
                                 title="Delete deliverable"
                               >
                                 <svg
