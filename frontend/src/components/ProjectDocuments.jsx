@@ -52,6 +52,7 @@ export default function ProjectDocuments({ className = "" , projectId , phaseNam
     'Closed phase' : 6
 
   }
+  let currentProjectPhaseIndex = phasesMap[`${phaseName+' phase'}`];
   let page = 1;
   let limit = 5;
   let searchTerm = ""
@@ -78,6 +79,7 @@ export default function ProjectDocuments({ className = "" , projectId , phaseNam
     })
     console.log("*******************************************");
     console.log(projectOverView)
+    console.log("the currrent phase order is "+currentProjectPhaseIndex+"   the phase name is "+phaseName);
     setProjectoverviewData(projectOverView);
   }
   const fetchProjectDocuments = async()=>{
@@ -115,7 +117,8 @@ export default function ProjectDocuments({ className = "" , projectId , phaseNam
             key={index}
             title={item.project_phase}
             count={item.submitted_documents}
-            status={item.missing_documents != "0" ? 'warning':'completed' }
+            status={item.order>currentProjectPhaseIndex ? "error" : item.missing_documents != "0" ? 'warning':'completed' }
+            statusText={item.order>currentProjectPhaseIndex ? "Phase not started yet" : item.missing_documents != "0" ? `${item.missing_documents} missing`:'' }
           />
         ))}
       </div>
