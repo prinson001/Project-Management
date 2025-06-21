@@ -40,6 +40,11 @@ const getProjectsBasedOnUserId = async(req,res)=>{
       WHERE 
         project_manager_id = ${userId}
     `
+    res.status(200).json({
+      status:"success",
+      message:"Successfully retrieved projects for user",
+      result
+    })
   }
   catch(e)
   {
