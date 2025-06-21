@@ -193,7 +193,7 @@ const TableData = ({
   const handleDeleteClick = async (id) => {
     try {
       console.log("the tableName is"+tableName);
-      if(tableName === 'risksAndIssues')
+      if(tableName === 'risks')
       {
         const result = await axiosInstance.delete(`/project-card/risk/${id}`);
         console.log("the result of deleting risk"),

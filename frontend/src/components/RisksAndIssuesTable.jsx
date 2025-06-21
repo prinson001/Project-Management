@@ -4,6 +4,7 @@ import { X, Edit } from "lucide-react";
 import TableData from "../components/TableData";
 import axiosInstance from "../axiosInstance";
 import UpdateDynamicForm from "./UpdateDynamicForm";
+import Pagination from "./Pagination";
 
 const sampleRisks = [
   {
@@ -30,28 +31,11 @@ const sampleRisks = [
 
 const columnSetting = [
   { columnName: "ID", dbColumn: "id", isVisible: true, isInput: false },
-  { columnName: "Case Name", dbColumn: "caseName", isVisible: true, isInput: false, type: "text" },
+  { columnName: "Case Name", dbColumn: "name", isVisible: true, isInput: false, type: "text" },
   { columnName: "Type", dbColumn: "type", isVisible: true, isInput: false },
-  { columnName: "Created By", dbColumn: "createdBy", isVisible: true, isInput: false },
-  { columnName: "Creation Date", dbColumn: "creationDate", isVisible: true, isInput: false },
-  { columnName: "Owner", dbColumn: "owner", isVisible: true, isInput: false },
-  { columnName: "Severity", dbColumn: "severity", isVisible: true, isInput: false },
+  { columnName: "Creation Date", dbColumn: "created_date", isVisible: true, isInput: false },
   { columnName: "Status", dbColumn: "status", isVisible: true, isInput: false },
-  {
-    columnName: "Actions",
-    dbColumn: "actions",
-    isVisible: true,
-    isInput: false,
-    render: (row, onEdit) => (
-      <button
-        onClick={() => onEdit(row)}
-        className="text-blue-600 hover:text-blue-800"
-      >
-        <Edit size={16} />
-      </button>
-    ),
-  },
-];
+]
 
 const AddRiskModal = ({ onClose, deliverables , projectName, projectPhases ,addRisk }) => {
   const {
@@ -258,7 +242,9 @@ const RisksAndIssuesTable = ({ risks, onEdit, onAdd, isLoading, projectName, del
   const [selectedRisk, setSelectedRisk] = useState(null);
   const [tableData, setTableData] = useState(sampleRisks); // Should probably use the `risks` prop or fetch
   const [projectPhases, setProjectPhases] = useState([]); // If phases need to be managed internally
-
+  const [pagination , setPagination] = useState([]);
+  let page = 1 ,
+  limit = 5;
   // Note: The `projectId` used in the useEffect below is not defined in this component's scope.
   // It should likely be passed as a prop if it's different from `projectName`.
   // Also, `setProjectPhases` is called, but `projectPhases` is a prop. This might be an issue.
@@ -272,15 +258,22 @@ const RisksAndIssuesTable = ({ risks, onEdit, onAdd, isLoading, projectName, del
 
   const fetchRiskAndIssues = async (id) => {
     if (!id) return; // Add a guard clause to prevent calling with undefined id
-    const response =await  axiosInstance.get(`/project-card/risk?projectid=${id}`);
+    const response =await  axiosInstance.get(`/project-card/risk?projectid=${id}&page=${page}&limit=${limit}`);
     console.log("risks and issues");
     console.log(response);
     setTableData(response.data.result);
+    setPagination(response.data.pagination);
+  }
+
+  const reFetchRiskAndIssues = async (NavigatePage) =>{
+    page =NavigatePage;
+    fetchRiskAndIssues(projectId);
   }
 
   useEffect(()=>{
     if (projectId) { // Add a check to ensure projectId is defined
       fetchRiskAndIssues(projectId);
+
     }
   },[projectId]);
 
@@ -410,7 +403,9 @@ const RisksAndIssuesTable = ({ risks, onEdit, onAdd, isLoading, projectName, del
           </div>
         </div>
       )}
+      <Pagination pagination={pagination} getPageData={reFetchRiskAndIssues} />
     </div>
+    
   );
 };
 

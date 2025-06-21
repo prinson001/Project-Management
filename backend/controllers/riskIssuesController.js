@@ -3,17 +3,27 @@ const sql = require("../database/db");
 
 
 const getRisks = async (req, res) => {
-  const { sortType, sortOrder, projectid , page =1 , limit = 10 } = req.query;
+  const { sortType, sortOrder, projectid, page = 1, limit = 10 } = req.query;
   const offset = (page - 1) * limit;
-  console.log("the projectId "+projectid );
+  console.log("the projectId " + projectid);
+
   try {
-    // Base query
-    let baseQuery = sql`
+    const allowedSortColumns = ['name', 'created_date', 'priority']; // example
+    const allowedSortOrders = ['ASC', 'DESC'];
+
+    let orderByClause = sql`ORDER BY created_date DESC`;
+    if (sortType && allowedSortColumns.includes(sortType) && allowedSortOrders.includes(sortOrder?.toUpperCase())) {
+      orderByClause = sql`ORDER BY ${sql(sortType)} ${sql.raw(sortOrder.toUpperCase())}`;
+    } else if (sortType) {
+      return res.status(400).json({ status: "Failure", message: "Invalid sortType or sortOrder" });
+    }
+
+    const result = await sql`
       SELECT
-       r.*,
-       p.name as phase_name
+        r.*,
+        p.name as phase_name
       FROM
-       risks r
+        risks r
       JOIN
         project_phase p ON r.phase_id = p.id
       WHERE r.linked_project_id = ${projectid}
@@ -26,30 +36,23 @@ const getRisks = async (req, res) => {
           WHERE project_id = ${projectid}
         )
       )
+      ${orderByClause}
+      LIMIT ${limit}
+      OFFSET ${offset}
     `;
 
-    // Append ORDER BY
-    if (sortType) {
-      // Ensure sortType and sortOrder are safe (to avoid SQL injection)
-      const allowedSortColumns = ['name', 'created_date', 'priority']; // example
-      const allowedSortOrders = ['ASC', 'DESC'];
-
-      if (!allowedSortColumns.includes(sortType) || !allowedSortOrders.includes(sortOrder?.toUpperCase())) {
-        return res.status(400).json({ status: "Failure", message: "Invalid sortType or sortOrder" });
-      }
-
-      baseQuery = sql`${baseQuery} ORDER BY ${sql(sortType)} ${sql([sortOrder.toUpperCase()])}`;
-    } else {
-      baseQuery = sql`${baseQuery} ORDER BY created_date DESC`;
-    }
-    baseQuery+= `
-      LIMIT =${limit}
-      OFFSET=${offset}
-    `;
-
-    const result = await sql`${baseQuery}`;
     const countResult = await sql`
-      SELECT COUNT(*) FROM ${sql(tableName)}
+      SELECT COUNT(*) FROM risks
+      WHERE linked_project_id = ${projectid}
+      OR linked_deliverable_id IN (
+        SELECT id
+        FROM deliverable
+        WHERE item_id IN (
+          SELECT id
+          FROM item
+          WHERE project_id = ${projectid}
+        )
+      )
     `;
 
     const totalCount = parseInt(countResult[0].count);
@@ -57,7 +60,7 @@ const getRisks = async (req, res) => {
       status: "success",
       message: "Fetched risks successfully",
       result,
-      pagination:{
+      pagination: {
         total: totalCount,
         page: parseInt(page),
         limit: parseInt(limit),
@@ -74,6 +77,7 @@ const getRisks = async (req, res) => {
     });
   }
 };
+
 
 
 const insertRisk = async (req,res)=>{
