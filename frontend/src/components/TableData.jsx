@@ -482,8 +482,7 @@ const TableData = ({
                         )}
                         {tableName === "ProjectDocuments" && (
                           <a
-                            href={`https://jswiqxlveqcgrdnohbcn.supabase.co/storage/v1/object/public/project_documents/${encodeURIComponent(item.file_url.replace(/^.*?projects/, "projects"))}`}
-
+                            href={`https://jswiqxlveqcgrdnohbcn.supabase.co/storage/v1/object/public/${encodeURIComponent(item.file_url)}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-blue-600 hover:underline cursor-pointer"

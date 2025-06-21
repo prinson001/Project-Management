@@ -6,7 +6,7 @@ router.get("/main-filters",getMainFilters);
 router.get("/sub-filters/:type",getSubFilters);
 router.post("/meeting",createMeeting);
 router.post("/add-meeting-notes",addMeetingNotes);
-router.get("/previous-meeting-notes",getPreviousMeetingNotes);
+router.get("/previous-meeting-notes/:projectId",getPreviousMeetingNotes);
 router.get("/projects",getProjects)
 
 module.exports =  router

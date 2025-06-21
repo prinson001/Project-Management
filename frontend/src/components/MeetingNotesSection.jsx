@@ -29,7 +29,7 @@ const allMeetingNotes = {
   },
 };
 
-const MeetingNotesSection = ({meetingId}) => {
+const MeetingNotesSection = ({meetingId , projectId}) => {
   const [showModal, setShowModal] = useState(false);
   const [newNote, setNewNote] = useState("");
   const [selectedMeetingDate, setSelectedMeetingDate] = useState([]);
@@ -45,17 +45,21 @@ const MeetingNotesSection = ({meetingId}) => {
     console.log("meeting id in meeting page "+meetingId);
     fetchPreviousMeetings();
 
-  },[])
+  },[projectId])
 
   const fetchPreviousMeetings = async()=>
   {
-    const response = await axiosInstance.get('/meeting/previous-meeting-notes?max=5');
+    console.log("the project id is "+projectId);
+    const response = await axiosInstance.get(`/meeting/previous-meeting-notes/${projectId}?max=10`);
+    console.log("the prvious meetings //////////////////////////////////////////")
     console.log(response.data.result);
     const meetings = response.data.result;
     setPreviousMeetings(response.data.result);
     if(meetings.length > 0)
     {
-      selectedPreviousMeeting(meetings[0].name);
+      console.log("the first meeting iss/////////////////////////////////");
+      console.log(meetings[0]);
+      setSelectedPreviousMeeting(meetings[0].name);
       setSelectedPreviousMeetingNotes(meetings[0].meeting_notes);
     }
   }
@@ -65,8 +69,8 @@ const MeetingNotesSection = ({meetingId}) => {
     if (!newNote.trim()) return;
     const response = await axiosInstance.post("meeting/add-meeting-notes",{
       notes : newNote,
-      project_id : 200,
-      meeting_id : 1
+      project_id : projectId,
+      meeting_id : meetingId
     })
     console.log(response.data.result);
     setCurrentMeetingNotes((prev) => [
@@ -77,10 +81,12 @@ const MeetingNotesSection = ({meetingId}) => {
     setShowModal(false);
   };
 
-  const handlePreviousMeetingChange = (meetingName)=>
+  const handlePreviousMeetingChange = (i)=>
   {
-    setSelectedPreviousMeeting(meetingName);
-    const meeting = previousMeetings.find(meeting=> meeting.name == meetingName);
+    console.log(previousMeetings[i]);
+    setSelectedPreviousMeeting(previousMeetings[i].name);
+    // const meeting = previousMeetings.find(meeting=> meeting.name == meetingName);
+    const meeting = previousMeetings[i];
     setSelectedPreviousMeetingNotes(meeting.meeting_notes);
   }
 
@@ -97,8 +103,8 @@ const MeetingNotesSection = ({meetingId}) => {
             value={selectedPreviousMeeting}
             onChange={(e) => handlePreviousMeetingChange(e.target.value)}
           >
-            {previousMeetings.map((meeting) => (
-              <option key={meeting.name} value={meeting.name}>
+            {previousMeetings.map((meeting , i) => (
+              <option key={meeting.name} value={i} >
                 {meeting.name}
               </option>
             ))}

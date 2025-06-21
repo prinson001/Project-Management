@@ -110,7 +110,7 @@ const MeetingsPage = () => {
 
           {/* Main Section: Show project cards for any tab (demo) */}
           {!selectedProject && projects && projects.length > 0 && (
-            <div className="p-6 overflow-x-auto h-64">
+            <div className="p-6 overflow-x-auto h-55">
               <div className="flex space-x-4 min-w-max">
                 {projects.map((project) => (
                   <ProjectSelectCard
@@ -139,7 +139,7 @@ const MeetingsPage = () => {
                 <span className="ml-1 font-bold text-lg">Back</span>
               </button>
               <ProjectTiles projectId={selectedProject.id} />
-              <ProjectCards projectId={selectedProject.id} projectName={selectedProject.name}  phaseName={selectedProject.phaseName} />
+              <ProjectCards projectId={selectedProject.id} projectName={selectedProject.name}  phaseName={selectedProject.phase_name} />
             </div>
           )}
 
@@ -154,7 +154,7 @@ const MeetingsPage = () => {
         </div>
 
         {/* Sticky Toggle for Notes Panel */}
-        {!isNotesPanelOpen && (
+        {!isNotesPanelOpen && selectedProject &&  (
           <button
             onClick={toggleNotesPanel}
             className="fixed right-4 bottom-4 p-3 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-colors z-50"
@@ -186,9 +186,13 @@ const MeetingsPage = () => {
               )}{" "}
               {/* Arrow icon */}
             </button>
-            <MeetingNotesSection 
+            {selectedProject &&
+              <MeetingNotesSection 
               meetingId = {meetingId}
+              projectId = {selectedProject?.id}
             />
+            }
+            
           </div>
         </div>
       </div>
