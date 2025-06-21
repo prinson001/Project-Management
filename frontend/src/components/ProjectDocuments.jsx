@@ -4,6 +4,8 @@ import { SearchBar } from "../components/SearchBar";
 import TableData from "../components/TableData";
 import axiosInstance from "../axiosInstance";
 import { constructNow } from "date-fns";
+import Pagination from "./Pagination";
+import { Hand } from "lucide-react";
 
 const defaultStatusData = [
   { title: "Initiation & Planning", count: 5, status: "completed" },
@@ -30,9 +32,9 @@ const defaultDocumentsData = [
 ];
 
 const columnSetting = [
-  { columnName: "Phase", dbColumn: "phase", isVisible: true, isInput: false },
+  { columnName: "Phase", dbColumn: "project_phase", isVisible: true, isInput: false },
   { columnName: "Document Name", dbColumn: "document_name", isVisible: true, isInput: false },
-  // { columnName: "Created Date", dbColumn: "created_at", isVisible: true, isInput: false },
+  { columnName: "Created Date", dbColumn: "updated_at", isVisible: true, isInput: false },
   { columnName: "Document Template", dbColumn: "template_name", isVisible: true, isInput: false }
 ];
 
@@ -40,6 +42,7 @@ export default function ProjectDocuments({ className = "" , projectId , phaseNam
   const [tableData, setTableData] = useState(defaultDocumentsData);
   const [projectoverviewData, setProjectoverviewData ] = useState([]);
   const [projectDocumentsData ,setProjectDocumentsData ] = useState([]);
+  const [pagination , setPagination] = useState([]);
   const phasesMap = {
     'Planning phase': 1, 
     'Bidding phase' : 2, 
@@ -49,12 +52,17 @@ export default function ProjectDocuments({ className = "" , projectId , phaseNam
     'Closed phase' : 6
 
   }
+  let page = 1;
+  let limit = 5;
+  let searchTerm = ""
+  let sortType ="updated_at";
+  let sortOrder = "DESC";
   const sortTableData = (column, order) => {
-    const sorted = [...tableData].sort((a, b) => {
-      if (order === "ASC") return a[column] > b[column] ? 1 : -1;
-      else return a[column] < b[column] ? 1 : -1;
-    });
-    setTableData(sorted);
+    console.log(column);
+    console.log(order);
+    sortType = column;
+    sortOrder = order;
+    fetchProjectDocuments();
   };
 
   const getData = async () => {
@@ -73,15 +81,30 @@ export default function ProjectDocuments({ className = "" , projectId , phaseNam
     setProjectoverviewData(projectOverView);
   }
   const fetchProjectDocuments = async()=>{
-    const result = await axiosInstance.get(`/project-card/project-documents/${projectId}`)
+    const result = await axiosInstance.get(`/project-card/project-documents/${projectId}?page=${page}&limit=${limit}&searchTerm=${searchTerm}&sortType=${sortType}&sortOrder=${sortOrder}`)
     console.log("the result of project documents");
+    console.log(result.data.result);
     setProjectDocumentsData(result.data.result);
-    setTableData(result.data.result.all);
+    setTableData(result.data.result);
+    setPagination(result.data.pagination);
+  }
+  const  refetchProjectDocuments = async(NavigatePage) =>{
+    page = NavigatePage;
+    fetchProjectDocuments();
   }
   useEffect(()=>{
     fetchProjectDocumentOverview();
     fetchProjectDocuments();
   },[projectId])
+
+
+
+  const handleSearch = (term)=>
+  {
+    searchTerm = term;
+    fetchProjectDocuments();
+    console.log(term);
+  }
   
   return (
     <div className={`p-6 bg-white ${className}`}>
@@ -101,14 +124,15 @@ export default function ProjectDocuments({ className = "" , projectId , phaseNam
       <div className="mb-6">
         <SearchBar
           placeholder="Search files"
-          onSearch={(query) => {
-            const filtered = projectDocumentsData.all.filter((row) =>
-              Object.values(row).some((value) =>
-                String(value).toLowerCase().includes(query.toLowerCase())
-              )
-            );
-            setTableData(filtered);
-          }}
+          // onSearch={(query) => {
+          //   const filtered = projectDocumentsData.filter((row) =>
+          //     Object.values(row).some((value) =>
+          //       String(value).toLowerCase().includes(query.toLowerCase())
+          //     )
+          //   );
+          //   setTableData(filtered);
+          // }}
+          onSearch={(query)=>handleSearch(query)}
           className="max-w-md ml-auto"
         />
       </div>
@@ -119,10 +143,12 @@ export default function ProjectDocuments({ className = "" , projectId , phaseNam
         tableData={tableData}
         tableName="ProjectDocuments"
         setTableData={setTableData}
-        showDate={true}
+        showDate={false}
         sortTableData={sortTableData}
         columnSetting={columnSetting}
+        showActionButtons={false}
       />
+      <Pagination pagination={pagination} getPageData={refetchProjectDocuments} />
     </div>
   );
 }
