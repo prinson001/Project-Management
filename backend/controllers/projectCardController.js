@@ -384,6 +384,86 @@ const  getProjectDocumentsGrouped = async(req,res) => {
     result :{all  ,grouped}
   })
 }
+const getProjectDocuments = async (req, res) => {
+  const { projectId } = req.params;
+  const {
+    page = 1,
+    limit = 10,
+    searchTerm = "",
+    sortType = "updated_at",
+    sortOrder = "DESC"
+  } = req.query;
+
+  const offset = (page - 1) * limit;
+  const trimmedSearch = searchTerm.trim();
+
+  // Safe allowed values
+  const allowedSortColumns = ["updated_at", "created_at", "name", "template_name", "project_phase"];
+  const allowedSortOrder = ["ASC", "DESC"];
+  const sortBy = allowedSortColumns.includes(sortType) ? sortType : "updated_at";
+  const sortDir = allowedSortOrder.includes(sortOrder.toUpperCase()) ? sortOrder.toUpperCase() : "DESC";
+  console.log("sort Direction "+sortDir)
+  // Search condition
+  const searchCondition = trimmedSearch
+    ? sql`AND (
+        dt.name ILIKE ${trimmedSearch + '%'} OR
+        dt.phase[1]::text ILIKE ${ trimmedSearch + '%'} OR
+        pd.document_name ILIKE ${ trimmedSearch + '%'} OR
+        pd.updated_at::text ILIKE ${ trimmedSearch + '%'}
+      )`
+    : sql``;
+
+  try {
+    const documents = await sql`
+      SELECT 
+        pd.*,
+        dt.name AS template_name,
+        dt.phase[1] AS project_phase
+      FROM 
+        project_documents pd
+      JOIN 
+        document_template dt ON dt.id = pd.template_id
+      WHERE 
+        pd.project_id = ${projectId}
+        ${searchCondition}
+      ORDER BY 
+        ${sql([sortBy])} ${sql.unsafe(sortDir)}
+      LIMIT ${limit}
+      OFFSET ${offset};
+    `;
+
+    const totalResult = await sql`
+      SELECT COUNT(*) 
+      FROM project_documents pd
+      JOIN document_template dt ON dt.id = pd.template_id
+      WHERE 
+        pd.project_id = ${projectId}
+        ${searchCondition};
+    `;
+    const total = Number(totalResult[0].count);
+
+    res.status(200).json({
+      status: "success",
+      message: "Successfully retrieved project documents",
+      result: documents,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / limit),
+      }
+    });
+  } catch (err) {
+    console.error("Error fetching project documents:", err);
+    res.status(500).json({
+      status: "error",
+      message: "Something went wrong",
+      result: { ...err }
+    });
+  }
+};
+
+
 
 // const getProjectDocumentsOverview = async (req, res) => {
 //   const { projectId } = req.params;
@@ -498,7 +578,7 @@ function getWeekOfMonth(date) {
 
 
 
-module.exports = {getProjectDetails,getProjectDeliverables , getPreviousMeetingNotes , createNextWeekProjectTask, getProjectTasksGroupedByWeek, getNextWeekProjectTasks, deleteNextWeekProjectTask , getProjectPhaseNames, getProjectDocumentsGrouped , getProjectDocumentsOverview , getProjectsBasedOnUserId};
+module.exports = {getProjectDetails,getProjectDeliverables , getPreviousMeetingNotes , createNextWeekProjectTask, getProjectTasksGroupedByWeek, getNextWeekProjectTasks, deleteNextWeekProjectTask , getProjectPhaseNames, getProjectDocumentsGrouped , getProjectDocumentsOverview , getProjectsBasedOnUserId , getProjectDocuments};
 
 
 

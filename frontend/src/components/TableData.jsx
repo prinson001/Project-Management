@@ -35,6 +35,7 @@ const TableData = ({
   tableName,
   setTableData,
   showDate,
+  showActionButtons = true,
   sortTableData,
   columnSetting,
 }) => {
@@ -477,7 +478,8 @@ const TableData = ({
                             <Edit className="w-5 h-5" />
                           </button>
                         )} */}
-                        {tableName !== "tasks" && tableName !== "document" && (
+
+                        {showActionButtons && tableName !== "tasks" && tableName !== "document" && (
                           <button
                             onClick={() => toggleForm(index)}
                             className="text-blue-500 hover:text-blue-700"
@@ -485,7 +487,7 @@ const TableData = ({
                             <Edit className="w-5 h-5" />
                           </button>
                         )}
-                        {tableName !== "tasks" && (
+                        {showActionButtons && tableName !== "tasks" && (
                           <button
                             onClick={() => handleDeleteClick(item.id)}
                             className="text-red-500 hover:text-red-700"
@@ -493,7 +495,8 @@ const TableData = ({
                             <Trash2 className="w-5 h-5" />
                           </button>
                         )}
-                        <button
+                        {showActionButtons &&
+                          <button
                           onClick={() => toggleAccordion(index)}
                           className="text-gray-500 hover:text-gray-700"
                         >
@@ -503,6 +506,8 @@ const TableData = ({
                             }`}
                           />
                         </button>
+                        }
+                        
                       </div>
                     </td>
                   </tr>
