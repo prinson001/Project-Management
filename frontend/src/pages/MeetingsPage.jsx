@@ -154,7 +154,7 @@ const MeetingsPage = () => {
         </div>
 
         {/* Sticky Toggle for Notes Panel */}
-        {!isNotesPanelOpen && (
+        {!isNotesPanelOpen && selectedProject &&  (
           <button
             onClick={toggleNotesPanel}
             className="fixed right-4 bottom-4 p-3 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-colors z-50"
@@ -186,9 +186,13 @@ const MeetingsPage = () => {
               )}{" "}
               {/* Arrow icon */}
             </button>
-            <MeetingNotesSection 
+            {selectedProject &&
+              <MeetingNotesSection 
               meetingId = {meetingId}
+              projectId = {selectedProject?.id}
             />
+            }
+            
           </div>
         </div>
       </div>
