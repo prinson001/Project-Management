@@ -110,7 +110,7 @@ const MeetingsPage = () => {
 
           {/* Main Section: Show project cards for any tab (demo) */}
           {!selectedProject && projects && projects.length > 0 && (
-            <div className="p-6 overflow-x-auto h-64">
+            <div className="p-6 overflow-x-auto h-55">
               <div className="flex space-x-4 min-w-max">
                 {projects.map((project) => (
                   <ProjectSelectCard
