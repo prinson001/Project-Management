@@ -26,10 +26,11 @@ export default function ProjectTasks({ projectId }) {
   const [newTask, setNewTask] = useState("");
   const [showAddTask, setShowAddTask] = useState(false);
   const [previousMeetings, setPreviousMeetings] = useState([]);
-  const [selectedMeeting, setSelectedMeeting] = useState("");
+  const [selectedMeetingIndex, setSelectedMeetingIndex] = useState(0);
   const [selectedMeetingNotes, setSelectedMeetingNotes] = useState([]);
   const [previousWeekTasks, setPreviousWeekTasks] = useState([]);
   const [selectedTaskWeek, setSelectedTaskWeek] = useState("");
+  const [selectedTaskWeekIndex, setSelectedTaskWeekIndex] = useState(0)
   const [selectedTaskWeekLists, setSelectedTaskWeekLists] = useState([]);
   const [nextWeekTasks, setNextWeekTasks] = useState([]);
   const { userId, role } = useAuthStore();
@@ -41,6 +42,8 @@ export default function ProjectTasks({ projectId }) {
     console.log("meeting notes in project task");
     console.log(response.data.result);
     setPreviousMeetings(response.data.result);
+    setSelectedMeetingIndex(0);
+    setSelectedMeetingNotes(response.data.result[0].meeting_notes);
   };
 
   const fetchPreviousTasks = async () => {
@@ -48,7 +51,7 @@ export default function ProjectTasks({ projectId }) {
     console.log("the previous meeting notes are");
     console.log(response);
     setPreviousWeekTasks(response.data.result);
-    setSelectedTaskWeek(response.data.result[0].name);
+    setSelectedTaskWeekIndex(0);
     setSelectedTaskWeekLists(response.data.result[0].project_tasks);
   };
 
@@ -73,14 +76,14 @@ export default function ProjectTasks({ projectId }) {
   }, [projectId]);
 
   const handlePreviousMeetingChange = (i) => {
-    setSelectedMeeting(previousMeetings[i].name);
+    setSelectedMeetingIndex(i)
     const meeting = previousMeetings[i];
     console.log(meeting);
     setSelectedMeetingNotes(meeting.meeting_notes);
   };
 
   const handlePreviousTaskWeekChange = (i) => {
-    setSelectedTaskWeek(previousWeekTasks[i].name);
+    setSelectedTaskWeekIndex(i);
     console.log("selected week name "+weekName);
     const weeklytasks = previousWeekTasks[i];
     console.log("selected tasks"+weeklytasks);
@@ -117,7 +120,7 @@ export default function ProjectTasks({ projectId }) {
           <select
             className="text-sm border rounded px-2 py-1 text-gray-700 bg-white shadow-sm"
             value={selectedFilterOption}
-            onChange={(e) => onChangeHandler(e.target.value)}
+            onChange={(e) => onChangeHandler(Number(e.target.value))}
           >
             {filterOptions.map((option, i) => (
               <option key={i} value={i}>
@@ -194,7 +197,7 @@ export default function ProjectTasks({ projectId }) {
         title="Previous Meeting Notes"
         showFilter={true}
         onChangeHandler={handlePreviousMeetingChange}
-        selectedFilterOption={selectedMeeting}
+        selectedFilterOption={selectedMeetingIndex}
         filterOptions={previousMeetings}
         records={selectedMeetingNotes}
       />
@@ -202,7 +205,7 @@ export default function ProjectTasks({ projectId }) {
         title="Previous tasks"
         showFilter={true}
         onChangeHandler={handlePreviousTaskWeekChange}
-        selectedFilterOption={selectedTaskWeek}
+        selectedFilterOption={selectedTaskWeekIndex}
         filterOptions={previousWeekTasks}
         records={selectedTaskWeekLists}
       />

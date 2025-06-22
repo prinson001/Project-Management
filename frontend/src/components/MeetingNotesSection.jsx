@@ -38,8 +38,9 @@ const MeetingNotesSection = ({meetingId , projectId}) => {
   );
   const [currentMeetingNotes , setCurrentMeetingNotes] = useState([]);
   const [previousMeetings, setPreviousMeetings] = useState([]);
-  const [selectedPreviousMeeting, setSelectedPreviousMeeting] = useState("");
   const [selectedPreviousMeetingNotes, setSelectedPreviousMeetingNotes] = useState([]);
+  const [selectedPreviousMeetingIndex, setSelectedPreviousMeetingIndex] = useState(0);
+
 
   useEffect(()=>{
     console.log("meeting id in meeting page "+meetingId);
@@ -59,7 +60,7 @@ const MeetingNotesSection = ({meetingId , projectId}) => {
     {
       console.log("the first meeting iss/////////////////////////////////");
       console.log(meetings[0]);
-      setSelectedPreviousMeeting(meetings[0].name);
+      setSelectedPreviousMeetingIndex(0);
       setSelectedPreviousMeetingNotes(meetings[0].meeting_notes);
     }
   }
@@ -84,7 +85,10 @@ const MeetingNotesSection = ({meetingId , projectId}) => {
   const handlePreviousMeetingChange = (i)=>
   {
     console.log(previousMeetings[i]);
-    setSelectedPreviousMeeting(previousMeetings[i].name);
+    console.log("index"+i);
+    console.log(previousMeetings[i].name)
+    setSelectedPreviousMeetingIndex(i);
+    console.log("hello");
     // const meeting = previousMeetings.find(meeting=> meeting.name == meetingName);
     const meeting = previousMeetings[i];
     setSelectedPreviousMeetingNotes(meeting.meeting_notes);
@@ -100,11 +104,11 @@ const MeetingNotesSection = ({meetingId , projectId}) => {
           <h4 className="font-medium text-gray-700">Previous Meeting Notes</h4>
           <select
             className="text-sm border rounded px-2 py-1 text-gray-700 bg-white shadow-sm"
-            value={selectedPreviousMeeting}
-            onChange={(e) => handlePreviousMeetingChange(e.target.value)}
+            value={selectedPreviousMeetingIndex}
+            onChange={(e) => handlePreviousMeetingChange(Number(e.target.value))}
           >
             {previousMeetings.map((meeting , i) => (
-              <option key={meeting.name} value={i} >
+              <option key={meeting.id} value={i} >
                 {meeting.name}
               </option>
             ))}
