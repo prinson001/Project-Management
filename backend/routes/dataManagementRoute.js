@@ -179,7 +179,7 @@ router.post("/updatevendor", updateVendor);
 router.post("/getVendors", getVendors);
 router.post("/deletevendor", deleteVendor);
 
-router.post("/addobjective", addObjective);
+router.post("/addObjective", addObjective);
 router.post("/getObjectives", getObjectives);
 router.post("/updateObjective", updateObjective);
 router.post("/deleteObjective", deleteObjective);
@@ -219,6 +219,9 @@ router.post("/updateTaskStatusToDone", updateTaskStatusToDone);
 
 // Deliverable completion status routes
 router.post("/getDeliverableCompletionStatus", getDeliverableCompletionStatus);
-router.post("/updateDeliverableCompletionApproval", updateDeliverableCompletionApproval);
+router.post(
+  "/updateDeliverableCompletionApproval",
+  updateDeliverableCompletionApproval
+);
 
 module.exports = router;

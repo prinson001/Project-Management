@@ -368,10 +368,18 @@ const ProjectDelivarablesTable = ({ data, columns = [], tableName, projectId }) 
   const [startX, setStartX] = useState(null);
   const [startWidth, setStartWidth] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ASC' });
-  const [tableData, setTableData] = useState(data);
+  const [tableData, setTableData] = useState(() => {
+    // Initialize data with proper progress field mapping
+    return data.map(item => ({
+      ...item,
+      progress: item.progress || (item.scope_percentage ? parseInt(item.scope_percentage.toString().replace('%', '')) : 0)
+    }));
+  });
   const [showActionPopup, setShowActionPopup] = useState(null);
   const [selectedModal, setSelectedModal] = useState(null);
   const [selectedDeliverable, setSelectedDeliverable] = useState(null);
+  const [progressUpdates, setProgressUpdates] = useState({});
+  const [savingProgress, setSavingProgress] = useState({});
 
   useEffect(() => {
     const initialWidths = {};
@@ -380,20 +388,36 @@ const ProjectDelivarablesTable = ({ data, columns = [], tableName, projectId }) 
     });
     setColumnWidths(initialWidths);
   }, [columns]);
-
   // Fetch deliverables from server when projectId changes
   useEffect(() => {
     if (!projectId) return;
     const fetchDeliverables = async () => {
       try {
         const response = await axiosInstance.get(`/project-card/deliverables/${projectId}`);
-        setTableData(response.data);
+        console.log('Fetched deliverables data:', response.data);
+        
+        // Ensure progress field is synced with scope_percentage if not present
+        const processedData = response.data.map(item => ({
+          ...item,
+          progress: item.progress || (item.scope_percentage ? parseInt(item.scope_percentage.toString().replace('%', '')) : 0)
+        }));
+        
+        setTableData(processedData);
       } catch (error) {
         console.error('Error fetching deliverables:', error);
       }
     };
     fetchDeliverables();
   }, [projectId]);
+
+  // Update tableData when data prop changes
+  useEffect(() => {
+    const processedData = data.map(item => ({
+      ...item,
+      progress: item.progress || (item.scope_percentage ? parseInt(item.scope_percentage.toString().replace('%', '')) : 0)
+    }));
+    setTableData(processedData);
+  }, [data]);
 
   const handleResizeStart = (e, columnId) => {
     e.preventDefault();
@@ -459,19 +483,62 @@ const ProjectDelivarablesTable = ({ data, columns = [], tableName, projectId }) 
   const handleDeleteClick = (id) => {
     console.log(`Deleting item with id: ${id}`);
     setTableData(tableData.filter(item => item.id !== id));
-  };
-
-  // Scope change logic: if scope is set to 100, open delivery completion modal
+  };  // Scope change logic: if scope is set to 100, open delivery completion modal
   const handleScopeChange = (id, value) => {
-    const numericValue = Math.max(0, Math.min(100, Math.round(value / 10) * 10));
+    const numericValue = Math.max(0, Math.min(100, Math.round(Number(value) / 10) * 10));
+    setProgressUpdates((prev) => ({
+      ...prev,
+      [id]: numericValue,
+    }));
+    // Also update the tableData to reflect the change immediately in both scope and progress columns
     setTableData(tableData.map(item =>
-      item.id === id ? { ...item, scope_percentage: `${numericValue}%` } : item
+      item.id === id ? { 
+        ...item, 
+        scope_percentage: `${numericValue}%`
+      } : item
     ));
-    // If scope is set to 100, open delivery completion modal for this deliverable
-    if (numericValue === 100) {
-      const deliverable = tableData.find(item => item.id === id);
-      setSelectedDeliverable(deliverable);
-      setSelectedModal('completion');
+  };
+  const handleSaveProgress = async (id) => {
+    setSavingProgress((prev) => ({ ...prev, [id]: true }));
+    try {
+      const progressValue = progressUpdates[id];
+      
+      // Make API call to save progress
+      const response = await axiosInstance.put(`/deliverables/${id}/progress`, {
+        scope_percentage: progressValue,
+        progress_percentage: progressValue,
+        status: progressValue === 100 ? 'COMPLETED' : 'IN_PROGRESS'
+      });
+
+      console.log(`Progress saved for deliverable ${id}: ${progressValue}%`);
+        // Update UI optimistically - update both scope_percentage and progress
+      setTableData(tableData.map(item =>
+        item.id === id ? { 
+          ...item, 
+          scope_percentage: `${progressValue}%`,
+          progress: progressValue // Also update the progress field to match the column definition
+        } : item
+      ));
+
+      // Clear the progress update for this item since it's been saved
+      setProgressUpdates((prev) => {
+        const updated = { ...prev };
+        delete updated[id];
+        return updated;
+      });
+
+      // If scope is set to 100, open delivery completion modal for this deliverable
+      if (progressValue === 100) {
+        const deliverable = tableData.find(item => item.id === id);
+        setSelectedDeliverable(deliverable);
+        setSelectedModal('completion');
+      }
+
+    } catch (error) {
+      console.error('Error saving progress:', error);
+      // You might want to show a user-friendly error message here
+    } finally {
+      setSavingProgress((prev) => ({ ...prev, [id]: false }));
     }
   };
 
@@ -541,30 +608,57 @@ const ProjectDelivarablesTable = ({ data, columns = [], tableName, projectId }) 
                       key={`${index}-${column.dbColumn}`}
                       className="px-2 h-16 border-r border-gray-200 overflow-hidden"
                       style={{ width: columnWidths[column.dbColumn] }}
-                    >
-                      {column.dbColumn === 'scope_percentage' ? (
-                        <div className="flex items-center space-x-1">
+                    >                      {column.dbColumn === 'scope_percentage' ? (
+                        <div className="flex items-center space-x-2">
                           <input
                             type="number"
                             min="0"
                             max="100"
                             step="10"
-                            value={parseInt(item[column.dbColumn])}
-                            onChange={(e) => handleScopeChange(item.id, parseInt(e.target.value))}
-                            className="w-16 border border-gray-300 rounded-md p-1"
+                            value={progressUpdates[item.id] ?? (parseInt(item[column.dbColumn]) || 0)}
+                            onChange={(e) => handleScopeChange(item.id, e.target.value)}
+                            className="w-16 border border-gray-300 rounded-md p-1 text-xs"
                           />
-                          <span>%</span>
+                          <span>%</span>                          <button
+                            onClick={() => handleSaveProgress(item.id)}
+                            disabled={savingProgress[item.id] || progressUpdates[item.id] === undefined}
+                            className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            title="Save progress"
+                          >
+                            {savingProgress[item.id] ? 'Saving...' : 'Save'}
+                          </button>
                           {item[column.dbColumn] === '100%' ? (
-                            <svg xmlns="http://www.w3.org/2000/svg" className="text-green-500 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="text-green-500 w-4 h-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
                             </svg>
                           ) : (
-                            <svg xmlns="http://www.w3.org/2000/svg" className="text-gray-500 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="text-gray-500 w-4 h-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
                             </svg>
                           )}
-                        </div>
-                      ) : column.dbColumn === 'payment_percentage' ? (
+                        </div>                      ) : column.dbColumn === 'payment_percentage' ? (
                         <div className="flex items-center space-x-1">
                           <span>{item[column.dbColumn]}</span>
                           {item[column.dbColumn] === '100%' ? (
@@ -576,7 +670,38 @@ const ProjectDelivarablesTable = ({ data, columns = [], tableName, projectId }) 
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                           )}
-                        </div>                      ) : column.dbColumn === 'start_date' || column.dbColumn === 'end_date' ? (
+                        </div>                      ) : column.dbColumn === 'progress' ? (
+                        <div className="flex items-center space-x-1">
+                          {(() => {
+                            // Get the current progress value - either from pending updates or from the current scope
+                            const currentProgress = progressUpdates[item.id] !== undefined 
+                              ? progressUpdates[item.id] 
+                              : (item.scope_percentage ? parseInt(item.scope_percentage.toString().replace('%', '')) : 0);
+                            
+                            // Debug logging
+                            console.log(`Progress for item ${item.id}:`, {
+                              pendingUpdate: progressUpdates[item.id],
+                              scope_percentage: item.scope_percentage,
+                              progress: item.progress,
+                              currentProgress
+                            });
+                            
+                            return (
+                              <>
+                                <span>{currentProgress}%</span>
+                                {currentProgress === 100 ? (
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="text-green-500 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                ) : (
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="text-gray-500 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </div>) : column.dbColumn === 'start_date' || column.dbColumn === 'end_date' ? (
                         <span>{item[column.dbColumn].split('-').reverse().join('-')}</span>
                       ) : column.dbColumn === 'budget' || column.dbColumn === 'amount' || column.dbColumn === 'invoiced' || column.dbColumn === 'remaining_budget' ? (
                         <span className="px-2 py-2">{formatCurrency(item[column.dbColumn], 'SAR', false)}</span>

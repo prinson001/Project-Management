@@ -1436,22 +1436,34 @@ const getDeliverableCompletionStatus = async (req, res) => {
     return res.status(400).json({
       status: "failure",
       message: "Deliverable ID is required",
-      result: null,
     });
   }
 
   try {
-    const result = await sql`
-      SELECT completion_status
-      FROM deliverable_progress
-      WHERE deliverable_id = ${deliverableId}
+    const idAsInt = parseInt(deliverableId, 10);
+    if (isNaN(idAsInt)) {
+      return res.status(400).json({
+        status: "failure",
+        message: "Invalid Deliverable ID format",
+      });
+    }
+
+    const [deliverable] = await sql`
+      SELECT status
+      FROM deliverable
+      WHERE id = ${idAsInt};
     `;
 
-    const completionStatus = result.length > 0 ? result[0].completion_status : "PENDING";
+    if (!deliverable) {
+      return res.status(404).json({
+        status: "failure",
+        message: "Deliverable not found",
+      });
+    }
 
     return res.status(200).json({
       status: "success",
-      completion_status: completionStatus,
+      completion_status: deliverable.status,
     });
   } catch (error) {
     console.error("Error fetching deliverable completion status:", error);
@@ -1465,36 +1477,54 @@ const getDeliverableCompletionStatus = async (req, res) => {
 
 // Update deliverable completion approval status
 const updateDeliverableCompletionApproval = async (req, res) => {
-  const { deliverableId, completionStatus, reviewedAt } = req.body;
+  const { deliverableId, completionStatus } = req.body;
 
   if (!deliverableId || !completionStatus) {
     return res.status(400).json({
       status: "failure",
       message: "Deliverable ID and completion status are required",
-      result: null,
     });
   }
 
   try {
-    // Update the deliverable_progress table with completion status
+    const idAsInt = parseInt(deliverableId, 10);
+    if (isNaN(idAsInt)) {
+      return res.status(400).json({
+        status: "failure",
+        message: "Invalid Deliverable ID format",
+      });
+    }
+
+    const [updatedDeliverable] = await sql`
+      UPDATE deliverable
+      SET status = ${completionStatus},
+          updated_at = NOW()
+      WHERE id = ${idAsInt}
+      RETURNING id, status;
+    `;
+
+    if (!updatedDeliverable) {
+      return res.status(404).json({
+        status: "failure",
+        message: "Deliverable not found",
+      });
+    }
+
     await sql`
-      INSERT INTO deliverable_progress (deliverable_id, completion_status, reviewed_at, last_updated)
-      VALUES (${deliverableId}, ${completionStatus}, ${reviewedAt}, NOW())
-      ON CONFLICT (deliverable_id) DO UPDATE SET
-        completion_status = EXCLUDED.completion_status,
-        reviewed_at = EXCLUDED.reviewed_at,
-        last_updated = NOW()
+      INSERT INTO deliverable_progress_history (deliverable_id, status, created_at, description)
+      VALUES (${idAsInt}, ${completionStatus}, NOW(), 'Completion status updated via approval')
     `;
 
     return res.status(200).json({
       status: "success",
       message: "Deliverable completion status updated successfully",
+      result: updatedDeliverable,
     });
   } catch (error) {
-    console.error("Error updating deliverable completion approval:", error);
+    console.error("Error updating deliverable completion status:", error);
     return res.status(500).json({
       status: "failure",
-      message: "Error updating deliverable completion approval",
+      message: "Error updating deliverable completion status",
       result: error.message || error,
     });
   }

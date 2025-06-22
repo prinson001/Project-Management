@@ -76,43 +76,41 @@ function DeliverableCompletionApprovalAccordion({
   }, [task]);
 
   const updateCompletionApprovalStatus = async (status) => {
-    if (!task?.id) {
-      console.error("Task ID is missing");
+    if (!deliverable?.id) {
+      setError("Deliverable ID is missing, cannot update status.");
       return;
     }
 
     try {
-      // Update the deliverable completion status
-      const response = await axiosInstance.post(
-        `/data-management/updateDeliverableCompletionApproval`,
+      // Update deliverable completion status
+      await axiosInstance.post(
+        "/data-management/updateDeliverableCompletionApproval",
         {
-          deliverableId: task.related_entity_id,
+          deliverableId: deliverable.id,
           completionStatus: status,
-          reviewedAt: new Date().toISOString(),
         }
       );
 
-      if (response.data.status === "success") {
-        // Update task status to Done
-        const taskResponse = await axiosInstance.post(
-          `/data-management/updateTaskStatusToDone`,
-          {
-            taskId: task.id,
-          }
-        );
+      // Update the task status to "Done"
+      await axiosInstance.post("/data-management/updateTaskStatusToDone", {
+        taskId: task.id,
+      });
 
-        if (taskResponse.data.status === "success") {
-          toast.success(`Deliverable completion ${status.toLowerCase()} successfully`);
-          closeAccordion();
-        } else {
-          toast.error("Failed to update task status");
-        }
-      } else {
-        toast.error(response.data.message || "Failed to update completion status");
+      // Refetch details to show updated status
+      fetchDeliverableDetails();
+      setApprovalStatus(status);
+
+      if (status === "APPROVED") {
+        toast.success("Deliverable approved successfully!");
+        closeAccordion();
       }
     } catch (error) {
-      console.error("Error updating completion approval status:", error);
-      toast.error("Error updating completion approval status");
+      console.error("Error updating completion status:", error);
+      setError(
+        `Failed to update status: ${
+          error.response?.data?.message || error.message
+        }`
+      );
     }
   };
 

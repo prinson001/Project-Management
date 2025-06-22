@@ -654,70 +654,30 @@ const getDeliverablesByProject = async (req, res) => {
 };
 
 const getDeliverableById = async (req, res) => {
-  const { id } = req.params; // This is deliverable ID
-  if (!id) {
+  const { deliverableId } = req.params;
+  if (!deliverableId) {
     return res.status(400).json({ message: "Deliverable ID is required" });
   }
   try {
-    const result = await sql`
-      WITH payment_summary AS (
-        SELECT 
-          deliverable_id,
-          COALESCE(SUM(invoice_amount), 0) as total_invoiced,
-          MAX(related_payment_percentage) as latest_payment_percentage
-        FROM deliverable_payment_history 
-        WHERE deliverable_id = ${id}
-        GROUP BY deliverable_id
-      ),
-      scope_summary AS (
-        SELECT 
-          deliverable_id,
-          MAX(related_scope_percentage) as latest_scope_percentage
-        FROM deliverable_progress_history 
-        WHERE deliverable_id = ${id}
-        GROUP BY deliverable_id
-      )
-      SELECT
-        d.id,
-        d.name,
-        TO_CHAR(d.start_date, 'YYYY-MM-DD') as start_date,
-        TO_CHAR(d.end_date, 'YYYY-MM-DD') as end_date,
-        d.amount,
-        d.duration,
-        d.status as deliverable_status,
-        i.project_id, 
-        dp.id as progress_id,
-        COALESCE(dp.progress_percentage, 0) as progress_percentage,
-        COALESCE(dp.status, 'NOT_STARTED') as progress_status,        COALESCE(dp.scope_percentage, ss.latest_scope_percentage, 0) as scope_percentage,
-        dp.notes as progress_notes,
-        dp.updated_at as progress_last_updated,
-        COALESCE(ps.total_invoiced, 0) as total_invoiced,
-        COALESCE(d.amount, 0) - COALESCE(ps.total_invoiced, 0) as remaining_budget,
-        COALESCE(
-          ps.latest_payment_percentage,
-          CASE 
-            WHEN d.amount > 0 THEN ROUND((COALESCE(ps.total_invoiced, 0) / d.amount) * 100)
-            ELSE 0
-          END
-        ) as payment_percentage,
-        d.item_id,
-        d.created_at,
-        d.updated_at
-      FROM deliverable d
-      JOIN item i ON d.item_id = i.id 
-      LEFT JOIN deliverable_progress dp ON d.id = dp.deliverable_id
-      LEFT JOIN payment_summary ps ON d.id = ps.deliverable_id
-      LEFT JOIN scope_summary ss ON d.id = ss.deliverable_id
-      WHERE d.id = ${id}
+    const idAsInt = parseInt(deliverableId, 10);
+    if (isNaN(idAsInt)) {
+        return res.status(400).json({ message: "Invalid Deliverable ID" });
+    }
+
+    const [deliverable] = await sql`
+      SELECT * FROM deliverable WHERE id = ${idAsInt}
     `;
-    
-    if (result.length === 0) {
+
+    if (!deliverable) {
       return res.status(404).json({ message: 'Deliverable not found' });
     }
     
+    // Add budget alias for frontend compatibility
+    deliverable.budget = deliverable.amount;
+
     res.json({ 
       success: true,
-      deliverable: result[0] 
+      deliverable: deliverable 
     });
   } catch (error) {
     console.error('Error fetching deliverable by ID:', error);
@@ -727,6 +687,9 @@ const getDeliverableById = async (req, res) => {
 
 // NEW: Manually update deliverable progress
 const updateDeliverableProgressManual = async (req, res) => {
+  console.log('updateDeliverableProgressManual called with params:', req.params);
+  console.log('updateDeliverableProgressManual called with body:', req.body);
+  
   const { deliverableId } = req.params;
   const {
     scope_percentage,
@@ -748,68 +711,37 @@ const updateDeliverableProgressManual = async (req, res) => {
   if (parsedProgressPercentage !== undefined && (isNaN(parsedProgressPercentage) || parsedProgressPercentage < 0 || parsedProgressPercentage > 100)) {
     return res.status(400).json({ message: "Invalid progress_percentage. Must be a number between 0 and 100." });
   }
-  // TODO: Add validation for 'status' against an enum or predefined list if applicable
 
   try {
-    const updateFields = {};
-    const setClauses = [];
-    const values = [deliverableId];
-    let valueCounter = 2; // Start after deliverableId
-
-    if (parsedScopePercentage !== undefined) {
-      updateFields.scope_percentage = parsedScopePercentage;
-      setClauses.push(sql`scope_percentage = ${parsedScopePercentage}`);
-    }
-    if (parsedProgressPercentage !== undefined) {
-      updateFields.progress_percentage = parsedProgressPercentage;
-      setClauses.push(sql`progress_percentage = ${parsedProgressPercentage}`);
-    } else if (parsedScopePercentage !== undefined && parsedProgressPercentage === undefined) {
-      // Default progress_percentage to scope_percentage if scope is given and progress is not
-      updateFields.progress_percentage = parsedScopePercentage;
-      setClauses.push(sql`progress_percentage = ${parsedScopePercentage}`);
-    }
-    if (status !== undefined) {
-      updateFields.status = status;
-      setClauses.push(sql`status = ${status}`);
-    }
-    if (notes !== undefined) { // Allow empty string for notes
-      updateFields.notes = notes;
-      setClauses.push(sql`notes = ${notes}`);
-    }    
-    updateFields.updated_at = sql`NOW()`; // Always update timestamp
-    setClauses.push(sql`updated_at = NOW()`);
-
-
-    if (setClauses.length === 1 && updateFields.updated_at) { // Only updated_at means no effective change
-        return res.status(400).json({ message: "No effective update data provided beyond timestamp." });
-    }
-    
-    // Prepare for INSERT part
-    const insertColumns = ['deliverable_id'];
-    const insertValuesPlaceholders = [deliverableId]; // SQL injection safe placeholder for deliverableId
-
-    if (updateFields.scope_percentage !== undefined) {
-        insertColumns.push('scope_percentage');
-        insertValuesPlaceholders.push(updateFields.scope_percentage);
-    }
-    if (updateFields.progress_percentage !== undefined) {
-        insertColumns.push('progress_percentage');
-        insertValuesPlaceholders.push(updateFields.progress_percentage);
-    }
-    if (updateFields.status !== undefined) {
-        insertColumns.push('status');
-        insertValuesPlaceholders.push(updateFields.status);
-    }
-    if (updateFields.notes !== undefined) {
-        insertColumns.push('notes');
-        insertValuesPlaceholders.push(updateFields.notes);    }
-    // updated_at will be handled by default or NOW() on insert/update
+    // Prepare values for upsert
+    const finalScopePercentage = parsedScopePercentage !== undefined ? parsedScopePercentage : null;
+    const finalProgressPercentage = parsedProgressPercentage !== undefined ? parsedProgressPercentage : (parsedScopePercentage !== undefined ? parsedScopePercentage : null);
+    const finalStatus = status !== undefined ? status : null;
+    const finalNotes = notes !== undefined ? notes : null;
 
     const [updatedProgress] = await sql`
-      INSERT INTO deliverable_progress (${sql(insertColumns)})
-      VALUES (${sql(insertValuesPlaceholders)})
+      INSERT INTO deliverable_progress (
+        deliverable_id, 
+        scope_percentage, 
+        progress_percentage, 
+        status, 
+        notes, 
+        updated_at
+      )
+      VALUES (
+        ${deliverableId}, 
+        ${finalScopePercentage}, 
+        ${finalProgressPercentage}, 
+        ${finalStatus}, 
+        ${finalNotes}, 
+        NOW()
+      )
       ON CONFLICT (deliverable_id) DO UPDATE SET
-        ${sql.join(setClauses, sql`, `)}
+        scope_percentage = CASE WHEN EXCLUDED.scope_percentage IS NOT NULL THEN EXCLUDED.scope_percentage ELSE deliverable_progress.scope_percentage END,
+        progress_percentage = CASE WHEN EXCLUDED.progress_percentage IS NOT NULL THEN EXCLUDED.progress_percentage ELSE deliverable_progress.progress_percentage END,
+        status = CASE WHEN EXCLUDED.status IS NOT NULL THEN EXCLUDED.status ELSE deliverable_progress.status END,
+        notes = CASE WHEN EXCLUDED.notes IS NOT NULL THEN EXCLUDED.notes ELSE deliverable_progress.notes END,
+        updated_at = NOW()
       RETURNING *
     `;
 
@@ -821,7 +753,7 @@ const updateDeliverableProgressManual = async (req, res) => {
 
   } catch (error) {
     console.error("Error updating deliverable progress manually:", error);
-    if (error.message.includes("check constraint")) { // More specific error for check constraint
+    if (error.message.includes("check constraint")) {
         return res.status(400).json({ message: "Update failed due to invalid data (e.g., percentage out of range).", error: error.message });
     }
     res.status(500).json({ message: "Server error while updating progress.", error: error.message });
