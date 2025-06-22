@@ -1,33 +1,57 @@
 const sql = require("../database/db");
 
-const getProjectDetails = async(req,res)=>{
-    const {projectid} = req.params;
-    try{
-        const result = await sql `
-            SELECT 
-                *
-            FROM
-                project p
-            WHERE  
-              id = ${projectid}
-        `
-        console.log("the reuslt from get project details");
-        console.log(result);
-        res.status(200).json({
-            status:"success",
-            message:"successfully retreived project details",
-            result
-        })
-    }
-    catch(e)
-    {
-        res.status(500).json({
-            status:"failure",
-            message:"Failed to get Project Details",
-            result:e
-        })
-    }
-}
+const getProjectDetails = async (req, res) => {
+  const { projectid } = req.params;
+
+  try {
+    const result = await sql`
+      SELECT 
+        p.*, 
+        pr.name AS program_name,
+        pf.name AS portfolio_name,
+        i.name AS initiative_name,
+        u.first_name AS alt_project_manager_first_name,
+        u.family_name AS alt_project_manager_family_name,
+        v.name AS vendor_name,
+        pt.name AS project_type_name,
+        pp.name AS project_phase_name
+      FROM 
+        project p
+      LEFT JOIN 
+        program pr ON pr.id = p.program_id
+      LEFT JOIN 
+        portfolio pf ON pf.id = pr.portfolio_id
+      LEFT JOIN 
+        initiative i ON i.id = pf.initiative_id
+      LEFT JOIN 
+        users u ON u.id = p.alternative_project_manager_id
+      LEFT JOIN 
+        vendor v ON v.id = p.vendor_id
+      LEFT JOIN 
+        project_type pt ON pt.id = p.project_type_id
+      LEFT JOIN 
+        project_phase pp ON pp.id = p.current_phase_id
+      WHERE 
+        p.id = ${projectid};
+    `;
+
+    res.status(200).json({
+      status: "success",
+      message: "Successfully retrieved project details with linked hierarchy",
+      result,
+    });
+  } catch (e) {
+    console.error("Error fetching project details:", e);
+    res.status(500).json({
+      status: "failure",
+      message: "Failed to get Project Details",
+      result: e,
+    });
+  }
+};
+
+
+
 
 const getProjectsBasedOnUserId = async(req,res)=>{
   const {userId} = req.params;
@@ -83,52 +107,49 @@ const getProjectDeliverables = async(req,res)=>{
     }
 }
 
-const getPreviousMeetingNotes = async(req,res)=>{
-  let maxRecords = 5;
-  const {max , projectid} = req.query;
-  maxRecords = max ?? maxRecords; 
+const getPreviousMeetingNotes = async (req, res) => {
+  const { projectId } = req.params;
+  const { max = 5 } = req.query;
 
-  try{
-    const result = await sql  `
-        SELECT * FROM (
-          SELECT 
-            m.id AS meeting_id,
-            m.name,
-            m.started_at,
-            COALESCE(
-              json_agg(
-                json_build_object(
-                  'notes', n.notes
-                )
-              ) FILTER (WHERE n.id IS NOT NULL),
-              '[]'
-            ) AS meeting_notes
-          FROM meeting m
-          LEFT JOIN meeting_notes n ON m.id = n.meeting_id AND n.project_id = ${projectid}
-          GROUP BY m.id, m.name, m.started_at
-          ORDER BY m.started_at DESC
-          LIMIT 5
-        ) AS latest_meetings
-        ORDER BY started_at DESC;
-
-    `
+  try {
+    const result = await sql`
+      SELECT 
+        m.id AS meeting_id,
+        m.name,
+        m.started_at,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'name', n.notes
+            )
+          ) FILTER (WHERE n.id IS NOT NULL AND n.project_id = ${projectId}),
+          '[]'
+        ) AS meeting_notes
+      FROM (
+        SELECT *
+        FROM meeting
+        ORDER BY started_at DESC
+        LIMIT ${max}
+      ) m
+      LEFT JOIN meeting_notes n ON n.meeting_id = m.id
+      GROUP BY m.id, m.name, m.started_at
+      ORDER BY m.started_at DESC;
+    `;
+    console.log(result)
     res.status(200).json({
-      status:"success",
-      message:"retreived the latest meeting and meeting notes",
+      status: "success",
+      message: "Latest 5 meetings with notes (if any) for the project",
       result,
-    })
-
-  }
-  catch(e)
-  {
-    console.log(e);
+    });
+  } catch (e) {
+    console.error("Error fetching meeting notes:", e);
     res.status(500).json({
-      status:"failure",
-      message:"failed to get previous meeting notes",
-      result:e
-    })
+      status: "failure",
+      message: "Failed to get previous meeting notes",
+      result: e,
+    });
   }
-}
+};
 
 const getProjectTasksGroupedByWeek = async (req, res) => {
  const {projectid} = req.params;

@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState , useEffect} from "react";
 import { motion, AnimatePresence } from "motion/react";
+import axiosInstance from "../axiosInstance";
 import {
   Target,
   Puzzle,
@@ -18,32 +19,24 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import useAuthStore from "../store/authStore"; 
-const ProjectTiles = ({ project }) => {
-  console.log('selected project data:', project);
-  let {selectedProject } = useAuthStore();
-  console.log('selected project data from store in project tiles', selectedProject);
+import axios from "axios";
+const ProjectTiles = ({ project , projectId }) => {
+  // console.log('selected project data:', project);
+  // // let {selectedProject } = useAuthStore();
+  // console.log('selected project data from store in project tiles', selectedProject);
   const [isExpanded, setIsExpanded] = useState(false);
-  if(selectedProject==null || selectedProject === undefined){
-    //dummy 
-    selectedProject={
-      ...project,
-      category:"Capex",
-      project_type:"External",
-    }
-  }
-  // Sample data matching the reference
-  const projectData = {
-    id: `${selectedProject.id}`,
-    title:`${selectedProject.name}`,
-    type:   `${selectedProject.project_type}`,
-    category: `${selectedProject.category}`,
-    initiative: "Enhance customer experience",
-    portfolio: "Portfolio number sixteen",
-    altProjectManager: "Abdulaziz Hawara",
-    vendor: "PwC",
-    program: "Programmed projects now",
-    mainBusinessOwner: "Information Technology",
-    creationDate: "25-MAY-2025",
+  const [projectData ,setProjectData] = useState({
+    id: ``,
+    title:``,
+    type:   ``,
+    category: ``,
+    initiative: "",
+    portfolio: "",
+    altProjectManager: "",
+    vendor: "",
+    program: "",
+    mainBusinessOwner: "",
+    creationDate: "",
     plannedBudget: "1,500,000 SAR",
     plannedInvoices: "900,000 SAR",
     plannedInvoicesPercentage: "60%",
@@ -57,17 +50,109 @@ const ProjectTiles = ({ project }) => {
     delayedInvoices: "100,000 SAR",
     delayedInvoicesPercentage: "6%",
     schedulePerformanceIndex: ".78",
-    scheduleVariance: "75,000 SAR",
-    actualCompletion: "45%",
-    actualCompletionPercentage: "10%",
-    plannedCompletion: "55%",
-    executionStartDate: "18-Aug-2024",
-    executionEndDate: "18-Aug-2024",
-    duration: "7 months",
-    maintenanceStartDate: "18-Aug-2024",
-    maintenanceEndDate: "18-Aug-2024",
-    maintenanceDuration: "7 months",
-  };
+    scheduleVariance: "",
+    actualCompletion: "",
+    actualCompletionPercentage: "",
+    plannedCompletion: "",
+    executionStartDate: "",
+    executionEndDate: "",
+    duration: "",
+    maintenanceStartDate: "",
+    maintenanceEndDate: "",
+    maintenanceDuration: "",
+  })
+  // if(selectedProject==null || selectedProject === undefined){
+  //   //dummy 
+  //   selectedProject={
+  //     ...project,
+  //     category:"Capex",
+  //     project_type:"External",
+  //   }
+  // } 
+  const fetchProjectAndRelatedDetails = async ()=>{
+    const response = await axiosInstance.get(`/project-card/project-details/${projectId}`);
+    const data = response.data.result[0];
+    console.log("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&");
+    console.log(data);
+    const dataObject = {
+    id: data?.id,
+    title: data?.name,
+    type:   data?.project_type_name,
+    category: data?.category,
+    initiative: data.initiative_name,
+    portfolio: data.portfolio_name,
+    altProjectManager: `${data.alt_project_manager_first_name+' '+data.alt_project_manager_family_name}`,
+    vendor: data.vendor_name,
+    program: data.program_name,
+    mainBusinessOwner: "",
+    creationDate: data?.created_date.split('T')[0],
+    plannedBudget: `${data.project_budget} SAR`,
+    plannedInvoices: "900,000 SAR",
+    plannedInvoicesPercentage: "60%",
+    deliverables: "8",
+    partiallyDelayed: "1",
+    delayed: "1",
+    onPlan: "3",
+    notStarted: "1",
+    completed: "2",
+    invoiced: "500,000 SAR",
+    delayedInvoices: "100,000 SAR",
+    delayedInvoicesPercentage: "6%",
+    schedulePerformanceIndex: ".78",
+    scheduleVariance: "",
+    actualCompletion: "",
+    actualCompletionPercentage: "",
+    plannedCompletion: "",
+    executionStartDate: "",
+    executionEndDate: "",
+    duration: "",
+    maintenanceStartDate: "",
+    maintenanceEndDate: "",
+    maintenanceDuration: "",
+  }
+  setProjectData(dataObject);
+
+  }
+  useState(()=>{
+    fetchProjectAndRelatedDetails();
+  },[projectId])
+  // Sample data matching the reference
+  // const projectData = {
+  //   id: `${selectedProject.id}`,
+  //   title:`${selectedProject.name}`,
+  //   type:   `${selectedProject.project_type}`,
+  //   category: `${selectedProject.category}`,
+  //   initiative: "Enhance customer experience",
+  //   portfolio: "Portfolio number sixteen",
+  //   altProjectManager: "Abdulaziz Hawara",
+  //   vendor: "PwC",
+  //   program: "Programmed projects now",
+  //   mainBusinessOwner: "Information Technology",
+  //   creationDate: "25-MAY-2025",
+  //   plannedBudget: "1,500,000 SAR",
+  //   plannedInvoices: "900,000 SAR",
+  //   plannedInvoicesPercentage: "60%",
+  //   deliverables: "8",
+  //   partiallyDelayed: "1",
+  //   delayed: "1",
+  //   onPlan: "3",
+  //   notStarted: "1",
+  //   completed: "2",
+  //   invoiced: "500,000 SAR",
+  //   delayedInvoices: "100,000 SAR",
+  //   delayedInvoicesPercentage: "6%",
+  //   schedulePerformanceIndex: ".78",
+  //   scheduleVariance: "75,000 SAR",
+  //   actualCompletion: "45%",
+  //   actualCompletionPercentage: "10%",
+  //   plannedCompletion: "55%",
+  //   executionStartDate: "18-Aug-2024",
+  //   executionEndDate: "18-Aug-2024",
+  //   duration: "7 months",
+  //   maintenanceStartDate: "18-Aug-2024",
+  //   maintenanceEndDate: "18-Aug-2024",
+  //   maintenanceDuration: "7 months",
+  // };
 
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },

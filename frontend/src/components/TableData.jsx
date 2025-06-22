@@ -170,7 +170,35 @@ const TableData = ({
   const handleFormData = async (formData) => {
     console.log(formData);
     const { id, ...updatedData } = formData;
+    console.log(updatedData);
     toggleForm(-1);
+    if(tableName == 'risks'){
+      try{
+        const response =await  axiosInstance.patch(`/project-card/risk`,{
+          id,updatedData
+        })
+        console.log(response);
+        if(response.status == 200)
+        {
+          console.log("status is 200");
+          setTableData((prevData) =>
+            prevData.map((item) =>
+              item.id === id ? { ...item, name :updatedData.caseName , comments:updatedData.responsePlan } : item
+            )
+          );
+          toast.success("Record updated successfully");
+        }
+      }
+      catch(e)
+      {
+        console.log("there was an error in updating the risks");
+        console.log(e);
+      }
+      finally
+      {
+        return;
+      }
+    }
     try {
       const result = await axiosInstance.post(
         `/data-management/update${tableName}`,
@@ -449,7 +477,7 @@ const TableData = ({
                                   column.dbColumn === "status"
                                     ? item[column.dbColumn] === "Delayed"
                                       ? "text-red-600 dark:text-red-400 bg-red-50"
-                                      : item[column.dbColumn] === "Open"
+                                      : item[column.dbColumn] === "Open".toLowerCase()
                                       ? "text-yellow-600 bg-yellow-50 dark:text-yellow-400"
                                       : "text-green-600 bg-green-50 dark:text-green-400"
                                     : "dark:text-white"

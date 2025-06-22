@@ -338,17 +338,6 @@ const UpdateDynamicForm = ({
         columnSpan: 1,
       },
       {
-        name: "type",
-        label: "Type",
-        type: "select",
-        required: true,
-        columnSpan: 1,
-        options: [
-          { value: "Risk", label: "Risk" },
-          { value: "Issue", label: "Issue" },
-        ],
-      },
-      {
         name: "status",
         label: "Status",
         type: "select",
@@ -366,10 +355,12 @@ const UpdateDynamicForm = ({
         required: false,
         columnSpan: 1,
         options: [
-          { value: "planning", label: "Planning" },
-          { value: "bidding", label: "Bidding" },
-          { value: "pre-execution", label: "Pre-execution" },
-          { value: "execution", label: "Execution" },
+          { value: "1", label: "Planning" },
+          { value: "2", label: "Bidding" },
+          { value: "3", label: "Pre-execution" },
+          { value: "4", label: "Execution" },
+          { value: "5", label: "Maintenance and operation" },
+          { value: "6", label: "Closed" }
         ],
       },
       {
@@ -406,6 +397,9 @@ const UpdateDynamicForm = ({
             filteredData[name] = typeValue.charAt(0).toUpperCase() + typeValue.slice(1).toLowerCase();
           } else if (name === "responsePlan") {
             filteredData[name] = data.responsePlan || data.response_plan || data.comments || "";
+          }
+          else if(name === 'phaseName') {
+            filteredData[name] = data.phase_id
           } else {
             filteredData[name] = data[name] || "";
           }

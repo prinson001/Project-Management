@@ -6,17 +6,16 @@ const getRisks = async (req, res) => {
   const { sortType, sortOrder, projectid, page = 1, limit = 10 } = req.query;
   const offset = (page - 1) * limit;
   console.log("the projectId " + projectid);
+  console.log(sortType+"-"+sortOrder);
 
+  // Safe allowed values
+  const allowedSortColumns = ["due_date", "created_date", "name", "status", "type","comments"];
+  const allowedSortOrder = ["ASC", "DESC"];
+  const sortBy = allowedSortColumns.includes(sortType) ? sortType : "due_date";
+  const sortDir = allowedSortOrder.includes(sortOrder.toUpperCase()) ? sortOrder.toUpperCase() : "DESC";
+  console.log(sortBy+"-"+sortOrder);
   try {
-    const allowedSortColumns = ['name', 'created_date', 'priority']; // example
-    const allowedSortOrders = ['ASC', 'DESC'];
-
-    let orderByClause = sql`ORDER BY created_date DESC`;
-    if (sortType && allowedSortColumns.includes(sortType) && allowedSortOrders.includes(sortOrder?.toUpperCase())) {
-      orderByClause = sql`ORDER BY ${sql(sortType)} ${sql.raw(sortOrder.toUpperCase())}`;
-    } else if (sortType) {
-      return res.status(400).json({ status: "Failure", message: "Invalid sortType or sortOrder" });
-    }
+    
 
     const result = await sql`
       SELECT
@@ -36,7 +35,8 @@ const getRisks = async (req, res) => {
           WHERE project_id = ${projectid}
         )
       )
-      ${orderByClause}
+      ORDER BY
+      ${sql([sortBy])} ${sql.unsafe(sortDir)}
       LIMIT ${limit}
       OFFSET ${offset}
     `;
@@ -54,7 +54,7 @@ const getRisks = async (req, res) => {
         )
       )
     `;
-
+    console.log(result);
     const totalCount = parseInt(countResult[0].count);
     res.status(200).json({
       status: "success",
@@ -77,8 +77,6 @@ const getRisks = async (req, res) => {
     });
   }
 };
-
-
 
 const insertRisk = async (req,res)=>{
     console.log(req.body);
@@ -179,8 +177,61 @@ const deleteRisk = async (req,res)=>{
   }
 }
 
+const updateRisk = async (req, res) => {
+  const { id, updatedData } = req.body;
+  console.log(updatedData);
+  const keyMap = {
+    caseName: 'name',
+    phaseName: 'phase_id',
+    status: 'status',
+    responsePlan: 'comments',
+  };
+
+  const dataToUpdate = {};
+
+  for (const key in updatedData) {
+    if (keyMap[key]) {
+      dataToUpdate[keyMap[key]] = updatedData[key];
+    }
+  }
+
+  console.log("Data to update:", dataToUpdate);
+  if(Object.keys(dataToUpdate).length === 0)
+  {
+    res.status(200).json({
+      status:"success",
+      message:"nothing to updated",
+      result : null
+    })
+    return;
+  }
+  try {
+    const result = await sql`
+      UPDATE risks
+      SET ${sql(dataToUpdate)}
+      WHERE id = ${id}
+    `;
+
+    res.status(200).json({
+      status: "success",
+      message: "Successfully updated the risk data",
+      result,
+    });
+  } catch (e) {
+    console.error("Error updating risk:", e);
+    res.status(500).json({
+      status: "failure",
+      message: "Failed to update risk",
+      result: e,
+    });
+  }
+};
 
 
 
-module.exports = {getRisks,insertRisk, deleteRisk};
+
+
+
+
+module.exports = {getRisks,insertRisk, deleteRisk, updateRisk};
 
