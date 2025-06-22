@@ -107,52 +107,49 @@ const getProjectDeliverables = async(req,res)=>{
     }
 }
 
-const getPreviousMeetingNotes = async(req,res)=>{
-  let maxRecords = 5;
-  const {max , projectid} = req.query;
-  maxRecords = max ?? maxRecords; 
+const getPreviousMeetingNotes = async (req, res) => {
+  const { projectId } = req.params;
+  const { max = 5 } = req.query;
 
-  try{
-    const result = await sql  `
-        SELECT * FROM (
-          SELECT 
-            m.id AS meeting_id,
-            m.name,
-            m.started_at,
-            COALESCE(
-              json_agg(
-                json_build_object(
-                  'notes', n.notes
-                )
-              ) FILTER (WHERE n.id IS NOT NULL),
-              '[]'
-            ) AS meeting_notes
-          FROM meeting m
-          LEFT JOIN meeting_notes n ON m.id = n.meeting_id AND n.project_id = ${projectid}
-          GROUP BY m.id, m.name, m.started_at
-          ORDER BY m.started_at DESC
-          LIMIT 5
-        ) AS latest_meetings
-        ORDER BY started_at DESC;
-
-    `
+  try {
+    const result = await sql`
+      SELECT 
+        m.id AS meeting_id,
+        m.name,
+        m.started_at,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'name', n.notes
+            )
+          ) FILTER (WHERE n.id IS NOT NULL AND n.project_id = ${projectId}),
+          '[]'
+        ) AS meeting_notes
+      FROM (
+        SELECT *
+        FROM meeting
+        ORDER BY started_at DESC
+        LIMIT ${max}
+      ) m
+      LEFT JOIN meeting_notes n ON n.meeting_id = m.id
+      GROUP BY m.id, m.name, m.started_at
+      ORDER BY m.started_at DESC;
+    `;
+    console.log(result)
     res.status(200).json({
-      status:"success",
-      message:"retreived the latest meeting and meeting notes",
+      status: "success",
+      message: "Latest 5 meetings with notes (if any) for the project",
       result,
-    })
-
-  }
-  catch(e)
-  {
-    console.log(e);
+    });
+  } catch (e) {
+    console.error("Error fetching meeting notes:", e);
     res.status(500).json({
-      status:"failure",
-      message:"failed to get previous meeting notes",
-      result:e
-    })
+      status: "failure",
+      message: "Failed to get previous meeting notes",
+      result: e,
+    });
   }
-}
+};
 
 const getProjectTasksGroupedByWeek = async (req, res) => {
  const {projectid} = req.params;

@@ -39,8 +39,7 @@ router.get("/project-details/:projectid",getProjectDetails);
 // router.get("/deliverables/:projectid",getProjectDeliverables);
 router.get("/risk",getRisks);
 router.post("/risk",insertRisk);
-router.get("/meeting-notes",getPreviousMeetingNotes);``
-router.get("/meeting-notes",getPreviousMeetingNotes);
+router.get("/meeting-notes/:projectId",getPreviousMeetingNotes);
 router.post("/next-week-task",createNextWeekProjectTask);
 router.get("/next-week-task/:projectId",getNextWeekProjectTasks);
 router.delete("/next-week-task/:id",deleteNextWeekProjectTask);

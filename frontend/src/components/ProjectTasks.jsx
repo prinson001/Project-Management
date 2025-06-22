@@ -37,7 +37,7 @@ export default function ProjectTasks({ projectId }) {
   console.log("role in project tasks", role);
 
   const fetchPreviousMeetingNotes = async () => {
-    const response = await axiosInstance.get(`/project-card/meeting-notes?projectid=${projectId}`);
+    const response = await axiosInstance.get(`/project-card/meeting-notes/${projectId}`);
     console.log("meeting notes in project task");
     console.log(response.data.result);
     setPreviousMeetings(response.data.result);
@@ -72,16 +72,17 @@ export default function ProjectTasks({ projectId }) {
     fetchNextWeekTasks();
   }, [projectId]);
 
-  const handlePreviousMeetingChange = (meetingName) => {
-    setSelectedMeeting(meetingName);
-    const meeting = previousMeetings.find((meeting) => meeting.name == meetingName);
+  const handlePreviousMeetingChange = (i) => {
+    setSelectedMeeting(previousMeetings[i].name);
+    const meeting = previousMeetings[i];
+    console.log(meeting);
     setSelectedMeetingNotes(meeting.meeting_notes);
   };
 
-  const handlePreviousTaskWeekChange = (weekName) => {
-    setSelectedTaskWeek(weekName);
+  const handlePreviousTaskWeekChange = (i) => {
+    setSelectedTaskWeek(previousWeekTasks[i].name);
     console.log("selected week name "+weekName);
-    const weeklytasks = previousWeekTasks.find((week) => week.name == weekName);
+    const weeklytasks = previousWeekTasks[i];
     console.log("selected tasks"+weeklytasks);
     setSelectedTaskWeekLists(weeklytasks.project_tasks);
   };
@@ -119,7 +120,7 @@ export default function ProjectTasks({ projectId }) {
             onChange={(e) => onChangeHandler(e.target.value)}
           >
             {filterOptions.map((option, i) => (
-              <option key={i} value={option.name}>
+              <option key={i} value={i}>
                 {option.name}
               </option>
             ))}
