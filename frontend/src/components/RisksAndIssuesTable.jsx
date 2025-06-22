@@ -30,11 +30,12 @@ const sampleRisks = [
 ];
 
 const columnSetting = [
-  { columnName: "ID", dbColumn: "id", isVisible: true, isInput: false },
   { columnName: "Case Name", dbColumn: "name", isVisible: true, isInput: false, type: "text" },
   { columnName: "Type", dbColumn: "type", isVisible: true, isInput: false },
   { columnName: "Creation Date", dbColumn: "created_date", isVisible: true, isInput: false },
+  { columnName: "Due Date", dbColumn: "due_date", isVisible: true, isInput: false },
   { columnName: "Status", dbColumn: "status", isVisible: true, isInput: false },
+  { columnName: "Response Plan", dbColumn: "comments", isVisible: true, isInput: false },
 ]
 
 const AddRiskModal = ({ onClose, deliverables , projectName, projectPhases ,addRisk }) => {
@@ -393,13 +394,13 @@ const RisksAndIssuesTable = ({ risks, onEdit, onAdd, isLoading, projectName, del
               <X size={20} />
             </button>
             <h2 className="text-xl font-semibold mb-4">Edit Risk</h2>
-            <UpdateDynamicForm
+            {/* <UpdateDynamicForm
               title=""
               onSubmit={handleUpdateRisk}
               isEmbedded={true}
               data={selectedRisk}
               tableName="risks"
-            />
+            /> */}
           </div>
         </div>
       )}

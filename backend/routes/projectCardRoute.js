@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 
 const { getProjectDetails, getPreviousMeetingNotes , createNextWeekProjectTask , getNextWeekProjectTasks, deleteNextWeekProjectTask, getProjectTasksGroupedByWeek,getProjectPhaseNames, getProjectDocumentsGrouped , getProjectDocumentsOverview, getProjectsBasedOnUserId , getProjectDocuments}  = require("../controllers/projectCardController");
-const { getRisks, insertRisk , deleteRisk } = require("../controllers/riskIssuesController");
+const { getRisks, insertRisk , deleteRisk, updateRisk } = require("../controllers/riskIssuesController");
 const {
     getDeliverablesByProjectId,
     getProjectDeliverablesFromBody,
@@ -46,7 +46,8 @@ router.get("/next-week-task/:projectId",getNextWeekProjectTasks);
 router.delete("/next-week-task/:id",deleteNextWeekProjectTask);
 router.get("/project-tasks/:projectid",getProjectTasksGroupedByWeek);
 router.get("/project-phase",getProjectPhaseNames);
-router.delete("/risk/:riskId",deleteRisk)
+router.delete("/risk/:riskId",deleteRisk);
+router.patch("/risk", updateRisk);
 
 router.get("/project-documents/:projectId",getProjectDocuments);
 router.get("/project-documents-overview/:projectId",getProjectDocumentsOverview);

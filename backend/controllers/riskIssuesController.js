@@ -78,8 +78,6 @@ const getRisks = async (req, res) => {
   }
 };
 
-
-
 const insertRisk = async (req,res)=>{
     console.log(req.body);
     const {riskName , comments  , phaseId , linkedToType , linkedToId } = req.body;
@@ -179,8 +177,61 @@ const deleteRisk = async (req,res)=>{
   }
 }
 
+const updateRisk = async (req, res) => {
+  const { id, updatedData } = req.body;
+  console.log(updatedData);
+  const keyMap = {
+    caseName: 'name',
+    phaseName: 'phase_id',
+    status: 'status',
+    responsePlan: 'comments',
+  };
+
+  const dataToUpdate = {};
+
+  for (const key in updatedData) {
+    if (keyMap[key]) {
+      dataToUpdate[keyMap[key]] = updatedData[key];
+    }
+  }
+
+  console.log("Data to update:", dataToUpdate);
+  if(Object.keys(dataToUpdate).length === 0)
+  {
+    res.status(200).json({
+      status:"success",
+      message:"nothing to updated",
+      result : null
+    })
+    return;
+  }
+  try {
+    const result = await sql`
+      UPDATE risks
+      SET ${sql(dataToUpdate)}
+      WHERE id = ${id}
+    `;
+
+    res.status(200).json({
+      status: "success",
+      message: "Successfully updated the risk data",
+      result,
+    });
+  } catch (e) {
+    console.error("Error updating risk:", e);
+    res.status(500).json({
+      status: "failure",
+      message: "Failed to update risk",
+      result: e,
+    });
+  }
+};
 
 
 
-module.exports = {getRisks,insertRisk, deleteRisk};
+
+
+
+
+module.exports = {getRisks,insertRisk, deleteRisk, updateRisk};
 
