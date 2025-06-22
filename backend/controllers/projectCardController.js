@@ -35,10 +35,66 @@ const getProjectDetails = async (req, res) => {
         p.id = ${projectid};
     `;
 
+
+    const deliverableResult = await sql`
+      SELECT 
+        d.id AS deliverable_id,
+        d.name,
+        d.start_date,
+        d.end_date,
+        dp.scope_percentage,
+        dp.updated_at
+      FROM project p
+      JOIN item i ON i.project_id = p.id
+      JOIN deliverable d ON d.item_id = i.id
+      LEFT JOIN LATERAL (
+        SELECT dp.scope_percentage, dp.updated_at
+        FROM deliverable_progress dp
+        WHERE dp.deliverable_id = d.id
+        ORDER BY dp.updated_at DESC
+        LIMIT 1
+      ) dp ON true
+      WHERE p.id = ${projectid};
+    `;  
+    let total = 0, completed = 0, delayed = 0, partialDelayed = 0 , notStarted = 0 , onPlan = 0;
+    const today = new Date();
+    for (const row of deliverableResult) {
+      total++;
+      console.log(row);
+      const { start_date, end_date, scope_percentage } = row;
+      if (scope_percentage == null) {
+        notStarted++;
+        continue;
+      }
+      if (scope_percentage === 100) {
+        completed++;
+        continue;
+      }
+
+      const start = new Date(start_date);
+      const end = new Date(end_date);
+      const totalDays = (end - start) / (1000 * 60 * 60 * 24) + 1;
+      const elapsedDays = (today - start) / (1000 * 60 * 60 * 24) + 1;
+
+      const expected = Math.min(100, Math.max(0, (elapsedDays / totalDays) * 100));
+      if(scope_percentage != 0 && scope_percentage != 100 && scope_percentage>= expected)
+      {
+        onPlan++;
+      }
+      if (scope_percentage < expected) {
+        if (scope_percentage > 0) {
+          partialDelayed++;
+        } else {
+          delayed++;
+        }
+      }
+
+    }
+    const finalResponse = { ...result[0], total, notStarted, completed, partialDelayed, onPlan , delayed };
     res.status(200).json({
       status: "success",
       message: "Successfully retrieved project details with linked hierarchy",
-      result,
+      result:finalResponse
     });
   } catch (e) {
     console.error("Error fetching project details:", e);

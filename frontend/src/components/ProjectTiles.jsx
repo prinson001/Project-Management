@@ -71,7 +71,7 @@ const ProjectTiles = ({ project , projectId }) => {
   // } 
   const fetchProjectAndRelatedDetails = async ()=>{
     const response = await axiosInstance.get(`/project-card/project-details/${projectId}`);
-    const data = response.data.result[0];
+    const data = response.data.result;
     console.log("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&");
     console.log(data);
     const dataObject = {
@@ -89,12 +89,12 @@ const ProjectTiles = ({ project , projectId }) => {
     plannedBudget: `${data.project_budget} SAR`,
     plannedInvoices: "900,000 SAR",
     plannedInvoicesPercentage: "60%",
-    deliverables: "8",
-    partiallyDelayed: "1",
-    delayed: "1",
-    onPlan: "3",
-    notStarted: "1",
-    completed: "2",
+    deliverables: data.total,
+    partiallyDelayed: data.partialDelayed,
+    delayed: data.delayed,
+    onPlan: data.onPlan,
+    notStarted: data.notStarted,
+    completed: data.completed,
     invoiced: "500,000 SAR",
     delayedInvoices: "100,000 SAR",
     delayedInvoicesPercentage: "6%",
@@ -103,9 +103,9 @@ const ProjectTiles = ({ project , projectId }) => {
     actualCompletion: "",
     actualCompletionPercentage: "",
     plannedCompletion: "",
-    executionStartDate: "",
-    executionEndDate: "",
-    duration: "",
+    executionStartDate: data.execution_start_date.split('T')[0],
+    executionEndDate: new Date(new Date(data.execution_start_date).setDate(new Date(data.execution_start_date).getDate() + parseInt(data.execution_duration))).toISOString().split('T')[0],
+    duration: data.execution_duration,
     maintenanceStartDate: "",
     maintenanceEndDate: "",
     maintenanceDuration: "",
