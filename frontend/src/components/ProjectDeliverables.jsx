@@ -786,11 +786,13 @@ export default function ProjectDeliverables({ projectId }) {
                     <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => handleModalOpen('changeRequest', deliverable)}>Apply for Change Request</button>
                   </div>
                 )}
-              </div>              {/* Status and Duration Row */}
-              <div className="flex items-center justify-between text-xs mb-2">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-600">Status:</span>                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+              </div>{/* Four Column Layout: Status/Progress/Payment, Scope, Start Date, End Date */}
+              <div className="grid grid-cols-4 gap-4 text-xs mt-2">                {/* Status, Progress, Payment Column */}
+                <div className="flex flex-col space-y-2">
+                  {/* Status */}
+                  <div className="flex flex-col">
+                    <span className="text-gray-600 font-medium mb-1">Status</span>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium text-center ${
                       deliverable.status?.toLowerCase() === 'completed' ? 'bg-green-100 text-green-800' :
                       deliverable.status?.toLowerCase() === 'in_progress' || deliverable.status?.toLowerCase() === 'in progress' ? 'bg-blue-100 text-blue-800' :
                       deliverable.status?.toLowerCase() === 'pending' ? 'bg-yellow-100 text-yellow-800' :
@@ -800,34 +802,46 @@ export default function ProjectDeliverables({ projectId }) {
                       {deliverable.status?.replace('_', ' ').toUpperCase() || 'NOT STARTED'}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-600">Duration:</span>
-                    <span className="font-medium">{deliverable.duration || 'N/A'} days</span>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-4 text-gray-500">
-                  <span>{formatDate(deliverable.startDate)}</span>
-                  <span>{formatDate(deliverable.endDate)}</span>
-                </div>
-              </div>              {/* Progress Bar with percentage */}
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2 flex-1">
-                  <span className="text-gray-600 w-12">Progress</span>                  <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-green-500 transition-all duration-300"
-                      style={{ width: `${deliverable.displayProgress}%` }}
-                    />
-                  </div>
-                  <span className="font-medium w-8">{deliverable.displayProgress}%</span>
-                </div>
-              </div>
 
-              {/* Scope Input with Save Button */}
-              <div className="flex items-center justify-between text-xs mt-2">
-                <div className="flex items-center gap-2 flex-1">
-                  <span className="text-gray-600 w-12">Scope</span>
-                  <div className="flex items-center gap-2">
+                  {/* Progress */}
+                  <div className="flex flex-col">
+                    <span className="text-gray-600 font-medium mb-1">Progress</span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-green-500 transition-all duration-300"
+                          style={{ width: `${deliverable.displayProgress}%` }}
+                        />
+                      </div>
+                      <span className="font-medium text-xs">{deliverable.displayProgress}%</span>
+                    </div>
+                  </div>
+
+                  {/* Payment */}
+                  <div className="flex flex-col">
+                    <span className="text-gray-600 font-medium mb-1">Payment</span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-green-500 transition-all duration-300"
+                          style={{ width: `${deliverable.paymentProgress}%` }}
+                        />
+                      </div>
+                      <span className="font-medium text-xs">{deliverable.paymentProgress}%</span>
+                    </div>
+                  </div>
+
+                  {/* Duration Info */}
+                  <div className="flex flex-col mt-1">
+                    <span className="text-gray-600 font-medium text-xs">Duration</span>
+                    <span className="text-gray-800 text-xs">{deliverable.duration || 'N/A'} days</span>
+                  </div>
+                </div>
+
+                {/* Scope Input Column */}
+                <div className="flex flex-col">
+                  <span className="text-gray-600 font-medium mb-1">Scope</span>
+                  <div className="flex items-center gap-2 mb-2">
                     <input
                       type="number"
                       min="0"
@@ -835,34 +849,36 @@ export default function ProjectDeliverables({ projectId }) {
                       step="10"
                       value={progressUpdates[deliverable.id] ?? (deliverable.scope_percentage || 0)}
                       onChange={(e) => handleScopeChange(deliverable.id, e.target.value)}
-                      className="w-12 border border-gray-300 rounded-md p-1 text-xs"
+                      className="w-16 border border-gray-300 rounded-md p-1 text-xs"
                     />
                     <span className="text-xs">%</span>
-                    <button
-                      onClick={() => handleSaveProgress(deliverable.id)}
-                      disabled={savingProgress[deliverable.id] || progressUpdates[deliverable.id] === undefined}
-                      className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                      title="Save progress"
-                    >
-                      {savingProgress[deliverable.id] ? 'Saving...' : 'Save'}
-                    </button>
-                    {deliverable.scope_percentage === 100 && (
-                      <span className="text-green-600 text-xs">✓ Complete</span>
-                    )}
                   </div>
+                  <button
+                    onClick={() => handleSaveProgress(deliverable.id)}
+                    disabled={savingProgress[deliverable.id] || progressUpdates[deliverable.id] === undefined}
+                    className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed w-full mb-1"
+                    title="Save progress"
+                  >
+                    {savingProgress[deliverable.id] ? 'Saving...' : 'Save'}
+                  </button>
+                  {deliverable.scope_percentage === 100 && (
+                    <span className="text-green-600 text-xs text-center">✓ Complete</span>
+                  )}
+                </div>                {/* Start Date Column */}
+                <div className="flex flex-col">
+                  <span className="text-gray-600 font-medium mb-1">Start Date</span>
+                  <span className="text-gray-800 bg-gray-50 p-2 rounded text-xs">
+                    {formatDate(deliverable.startDate) || 'Not set'}
+                  </span>
                 </div>
-              </div>{/* Payment Bar */}
-              <div className="flex items-center justify-between text-xs mt-1">
-                <div className="flex items-center gap-2 flex-1">
-                  <span className="text-gray-600 w-12">Payment</span>                  <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-green-500 transition-all duration-300"
-                      style={{ width: `${deliverable.paymentProgress}%` }}
-                    />
-                  </div>
-                  <span className="font-medium w-8">{deliverable.paymentProgress}%</span>
-                </div>
-              </div>
+
+                {/* End Date Column */}
+                <div className="flex flex-col">
+                  <span className="text-gray-600 font-medium mb-1">End Date</span>
+                  <span className="text-gray-800 bg-gray-50 p-2 rounded text-xs">
+                    {formatDate(deliverable.endDate) || 'Not set'}
+                  </span>
+                </div>              </div>
             </div>
           ))}
         </div>
