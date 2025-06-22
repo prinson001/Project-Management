@@ -267,6 +267,13 @@ const calculateDelaySegments = (startDate, endDate, status) => {
   return { greenWidth: progress, redWidth: 0 };
 };
 
+// Calculate payment progress based on budget and invoiced amounts
+const calculatePaymentProgress = (amount, invoiced) => {
+  if (!amount || amount === 0) return 0;
+  const progress = (invoiced / amount) * 100;
+  return Math.min(Math.max(Math.round(progress), 0), 100);
+};
+
 export default function ProjectDeliverables({ projectId }) {
   const [deliverables, setDeliverables] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -359,21 +366,46 @@ export default function ProjectDeliverables({ projectId }) {
       setLoading(false);
       setError("No projectId provided. Please pass a valid projectId prop to ProjectDeliverables.");
       console.warn('No projectId provided to ProjectDeliverables component.');
-      return;
-    }
+      return;    }
 
-    const fetchDeliverables = async () => {
-      setLoading(true);
-      console.log('Fetching deliverables for projectId:', projectId);
-      try {
-        const res = await axiosInstance.get(`/project-card/deliverables/${projectId}`);
-        console.log('Deliverables API response data:', res.data);
-        const enhancedDeliverables = res.data.map(deliverable => {
-          console.log('Raw deliverable from API:', deliverable);
-          
-          // The API provides `payment_percentage` directly. Use it to avoid calculation errors.
-          const paymentProgress = Number(deliverable.payment_percentage) || 0;
-          console.log(`Deliverable: ${deliverable.name}, Using provided Payment Percentage: ${paymentProgress}%`);
+    // Fetch real deliverables data from backend
+    setLoading(true);
+    console.log('Fetching deliverables for projectId:', projectId);
+    axiosInstance
+      .get(`/project-card/deliverables/${projectId}`)
+      .then((res) => {
+        console.log('Deliverables API response:', res);        const enhancedDeliverables = res.data.map(deliverable => {
+          // Calculate duration if not provided
+          const calculateDuration = (startDate, endDate) => {
+            if (!startDate || !endDate) return null;
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            if (isNaN(start) || isNaN(end)) return null;
+            const diffTime = Math.abs(end - start);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return diffDays;
+          };
+
+          // Convert months to days (quick fix for DB storage issue)
+          const convertMonthsToDays = (months) => {
+            if (!months || months === 0) return null;
+            // Assuming average month = 30.44 days (365.25 days / 12 months)
+            return Math.round(months * 30.44);
+          };
+
+          // Determine duration in days
+          const getDurationInDays = () => {
+            if (deliverable.duration) {
+              // If duration exists and is less than 10, assume it's in months and convert
+              if (deliverable.duration < 10) {
+                return convertMonthsToDays(deliverable.duration);
+              }
+              // If duration is 10 or more, assume it's already in days
+              return Math.round(deliverable.duration);
+            }
+            // Fallback to date calculation
+            return calculateDuration(deliverable.start_date, deliverable.end_date);
+          };
 
           return {
             ...deliverable,
@@ -381,21 +413,22 @@ export default function ProjectDeliverables({ projectId }) {
             startDate: deliverable.start_date,
             endDate: deliverable.end_date,
             status: deliverable.status || 'NOT_STARTED',
+            duration: getDurationInDays(),
+            // Use scope_percentage as the primary progress indicator
+            displayProgress: deliverable.scope_percentage || deliverable.progress_percentage || 0,
             calculatedProgress: calculateProgress(deliverable.start_date, deliverable.end_date, deliverable.status || 'NOT_STARTED'),
-            calculatedPaymentProgress: paymentProgress, // Use the value directly from the API
+            calculatedPaymentProgress: calculatePaymentProgress(deliverable.amount, deliverable.invoiced),
             delaySegments: calculateDelaySegments(deliverable.start_date, deliverable.end_date, deliverable.status || 'NOT_STARTED'),
           };
         });
         setDeliverables(enhancedDeliverables);
-      } catch (err) {
+        setLoading(false);
+      })
+      .catch((err) => {
         console.error('Error fetching deliverables:', err);
         setError("Failed to fetch deliverables");
-      } finally {
         setLoading(false);
-      }
-    };
-
-    fetchDeliverables();
+      });
   }, [projectId]);
 
   const toggleDropdown = (id) => {
@@ -430,67 +463,65 @@ export default function ProjectDeliverables({ projectId }) {
         <div>Loading...</div>
       ) : error ? (
         <div className="text-red-500">{error}</div>
-      ) : (
-        <div className="space-y-3">
-          <div className="flex items-center justify-end text-xs font-medium text-gray-500 pb-2">
-            <span className="w-20 text-center">Start Date</span>
-            <span className="w-20 text-center mx-4">End Date</span>
-            <span className="w-6 ml-2" /> {/* Spacer for dropdown */}
-          </div>
+      ) : (        <div className="space-y-3">
           {deliverables.map((deliverable) => (
-            <div key={deliverable.id} className="border-b border-gray-200 pb-3">
-              <div className="mb-2">
+            <div key={deliverable.id} className="border-b border-gray-200 pb-3 relative">
+              <div className="flex items-center justify-between mb-2">
                 <h3 className="font-medium text-sm text-gray-900">{deliverable.name}</h3>
-              </div>
+                <button
+                  onClick={() => toggleDropdown(deliverable.id)}
+                  className="h-6 w-6 p-0 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded relative"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </button>
 
-              {/* Progress Bar with percentage and dates in table-like row */}
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2 flex-1">
-                  <span className="text-gray-600 w-12">Progress</span>
-                  <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden relative">
-                    {/* Green progress section */}
-                    <div
-                      className="h-full bg-green-500 transition-all duration-300 absolute left-0 top-0"
-                      style={{ width: `${deliverable.delaySegments.greenWidth}%` }}
-                    />
-                    {/* Red delay section */}
-                    {deliverable.delaySegments.redWidth > 0 && (
-                      <div
-                        className="h-full bg-red-500 transition-all duration-300 absolute top-0"
-                        style={{ 
-                          left: `${deliverable.delaySegments.greenWidth}%`,
-                          width: `${deliverable.delaySegments.redWidth}%` 
-                        }}
-                      />
-                    )}
+                {openDropdownId === deliverable.id && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white border rounded shadow z-10">
+                    <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => handleModalOpen('completion', deliverable)}>Delivery Completion</button>
+                    <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => handleModalOpen('invoice', deliverable)}>Delivery Invoice</button>
+                    <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => handleModalOpen('dates', deliverable)}>Change Deliverable Dates</button>
+                    <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => handleModalOpen('details', deliverable)}>View Deliverable Details</button>
+                    <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => handleModalOpen('changeRequest', deliverable)}>Apply for Change Request</button>
                   </div>
-                  <span className="font-medium w-8">{deliverable.progress_percentage || deliverable.calculatedProgress}%</span>
+                )}
+              </div>              {/* Status and Duration Row */}
+              <div className="flex items-center justify-between text-xs mb-2">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600">Status:</span>                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      deliverable.status?.toLowerCase() === 'completed' ? 'bg-green-100 text-green-800' :
+                      deliverable.status?.toLowerCase() === 'in_progress' || deliverable.status?.toLowerCase() === 'in progress' ? 'bg-blue-100 text-blue-800' :
+                      deliverable.status?.toLowerCase() === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                      deliverable.status?.toLowerCase() === 'not_started' || deliverable.status?.toLowerCase() === 'not started' ? 'bg-gray-100 text-gray-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {deliverable.status?.replace('_', ' ').toUpperCase() || 'NOT STARTED'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600">Duration:</span>
+                    <span className="font-medium">{deliverable.duration || 'N/A'} days</span>
+                  </div>
                 </div>
                 
-                <div className="flex items-center text-gray-500">
-                  <span className="w-20 text-center">{formatDate(deliverable.startDate)}</span>
-                  <span className="w-20 text-center mx-4">{formatDate(deliverable.endDate)}</span>
-                  <div className="relative w-6 ml-2">
-                    <button
-                      onClick={() => toggleDropdown(deliverable.id)}
-                      className="h-6 w-6 p-0 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded"
-                    >
-                      <MoreHorizontal className="h-4 w-4" />
-                    </button>
-                    {openDropdownId === deliverable.id && (
-                      <div className="absolute right-0 mt-2 w-48 bg-white border rounded shadow z-10">
-                        <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => handleModalOpen('completion', deliverable)}>Delivery Completion</button>
-                        <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => handleModalOpen('invoice', deliverable)}>Delivery Invoice</button>
-                        <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => handleModalOpen('dates', deliverable)}>Change Deliverable Dates</button>
-                        <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => handleModalOpen('details', deliverable)}>View Deliverable Details</button>
-                        <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => handleModalOpen('changeRequest', deliverable)}>Apply for Change Request</button>
-                      </div>
-                    )}
-                  </div>
+                <div className="flex items-center gap-4 text-gray-500">
+                  <span>{formatDate(deliverable.startDate)}</span>
+                  <span>{formatDate(deliverable.endDate)}</span>
                 </div>
               </div>
 
-              {/* Payment Bar in table-like row */}
+              {/* Progress Bar with percentage */}
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2 flex-1">
+                  <span className="text-gray-600 w-12">Progress</span>                  <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-green-500 transition-all duration-300"
+                      style={{ width: `${deliverable.displayProgress}%` }}
+                    />
+                  </div>
+                  <span className="font-medium w-8">{deliverable.displayProgress}%</span>
+                </div>
+              </div>              {/* Payment Bar */}
               <div className="flex items-center justify-between text-xs mt-1">
                 <div className="flex items-center gap-2 flex-1">
                   <span className="text-gray-600 w-12">Payment</span>
@@ -501,13 +532,6 @@ export default function ProjectDeliverables({ projectId }) {
                     />
                   </div>
                   <span className="font-medium w-8">{deliverable.calculatedPaymentProgress}%</span>
-                </div>
-                
-                {/* Empty space to align with dates above */}
-                <div className="flex items-center text-transparent">
-                  <span className="w-20 text-center">spacer</span>
-                  <span className="w-20 text-center mx-4">spacer</span>
-                  <span className="w-6 ml-2" />
                 </div>
               </div>
             </div>

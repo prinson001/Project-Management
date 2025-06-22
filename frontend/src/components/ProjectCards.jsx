@@ -199,13 +199,13 @@ const ProjectCards = ({ projectId , projectName , phaseName }) => {
             projectId={projectId} // Add projectId here
           />
         )}
-      </div>      <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 mt-8">
-        {/* Pass projectId to ProjectDeliverables so it fetches its own data - 70% width */}
-        <div className="lg:col-span-7">
+      </div>      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+        {/* Pass projectId to ProjectDeliverables so it fetches its own data - 50% width */}
+        <div>
           <ProjectDeliverables projectId={projectId} />
         </div>
-        {/* ProjectTasks - 30% width */}
-        <div className="lg:col-span-3">
+        {/* ProjectTasks - 50% width */}
+        <div>
           <ProjectTasks projectId={projectId} />
         </div>
       </div>
