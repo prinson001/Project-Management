@@ -75,6 +75,7 @@ const MeetingsPage = () => {
     console.log("the option is"+option);
     console.log("the sidebar filter is"+activeSideBarFilter);
     const response = await axiosInstance.get(`/meeting/projects?filterType=${activeSideBarFilter}&filterValue=${option}`);
+    console.log(response);
     const projects = response.data.result;
     console.log(projects);
     setProjects(projects);

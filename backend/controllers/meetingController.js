@@ -321,8 +321,12 @@ const fetchProjectsBasedOnProjectPhase = async (filterType, filterValue) =>{
       WHERE
         pp.name = ${filterValue}
     `;
-    
-    return result;
+    console.log(result);
+    return {
+      status:"success",
+      message:"Succefully fetched projects",
+      result
+    };
   }
   catch(e)
   {
@@ -341,19 +345,17 @@ const fetchProjectsBasedOnPortfolio = async (filterType, filterValue) =>{
       SELECT
         p.*,
         pr.name AS program_name,
-        port.name AS portfolio_name
-        pp.name AS phase_name
+        port.name AS portfolio_names
       FROM
         project p
       JOIN
         program pr ON pr.id = p.program_id
       JOIN
         portfolio port ON port.id = pr.portfolio_id
-      JOIN
-        project_phase pp ON pp.id = p.current_phase_id
       WHERE
         port.name = ${filterValue}
     `
+    console.log(result);
     return {
       status:"success",
       message:"Successfully fetched projects",
@@ -362,6 +364,7 @@ const fetchProjectsBasedOnPortfolio = async (filterType, filterValue) =>{
   }
   catch(e)
   {
+    console.log(e);
     return {
       status:"failure",
       message:"Error fetching project by portfolio",
@@ -376,16 +379,14 @@ const fetchProjectBasedOnProgram = async (filterType, filterValue) =>{
       SELECT
         p.*,
         pr.name AS program_name
-        pp.name AS phase_name
       FROM
         project p 
       JOIN 
-        program pr ON p.program_id = pr.program.id
-      JOIN
-        project_phase pp ON pp.id = p.current_phase_id
+        program pr ON pr.id = p.program_id
       WHERE
         pr.name = ${filterValue} 
     `
+    console.log(result);
     return {
       status:"success",
       message:"Successfully fetched projects",
@@ -394,6 +395,7 @@ const fetchProjectBasedOnProgram = async (filterType, filterValue) =>{
   }
   catch(e)
   {
+    console.log(e);
     return {
       status:"failure",
       message:"Error fetching project by portfolio",
@@ -407,7 +409,7 @@ const fetchProjectBasedOnVendor = async (filterType, filterValue) =>{
     const result = await sql `
       SELECT 
         p.*,
-        v.name AS vendor_name
+        v.name AS vendor_name,
         pp.name AS phase_name
       FROM 
         project p
@@ -418,6 +420,7 @@ const fetchProjectBasedOnVendor = async (filterType, filterValue) =>{
       WHERE
         v.name = ${filterValue}
     `
+    console.log(result);
     return {
       status:"success",
       message:"Successfully fetched projects",
@@ -426,6 +429,7 @@ const fetchProjectBasedOnVendor = async (filterType, filterValue) =>{
   }
   catch(e)
   {
+    console.log(e);
     return {
       status:"failure",
       message:"Error fetching project by portfolio",
