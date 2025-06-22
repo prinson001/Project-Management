@@ -71,8 +71,7 @@ const ProjectTiles = ({ project , projectId }) => {
   // } 
   const fetchProjectAndRelatedDetails = async ()=>{
     const response = await axiosInstance.get(`/project-card/project-details/${projectId}`);
-    const data = response.data.result;
-    console.log("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&");
+    const data = response.data.result;    console.log("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&");
     console.log(data);
     const dataObject = {
     id: data?.id,
@@ -81,34 +80,31 @@ const ProjectTiles = ({ project , projectId }) => {
     category: data?.category,
     initiative: data.initiative_name,
     portfolio: data.portfolio_name,
-    altProjectManager: `${data.alt_project_manager_first_name+' '+data.alt_project_manager_family_name}`,
+    altProjectManager: `${(data.alt_project_manager_first_name || '') + ' ' + (data.alt_project_manager_family_name || '')}`.trim(),
     vendor: data.vendor_name,
     program: data.program_name,
     mainBusinessOwner: "",
-    creationDate: data?.created_date.split('T')[0],
-    plannedBudget: `${data.project_budget} SAR`,
-    plannedInvoices: "900,000 SAR",
-    plannedInvoicesPercentage: "60%",
-    deliverables: data.total,
-    partiallyDelayed: data.partialDelayed,
-    delayed: data.delayed,
-    onPlan: data.onPlan,
-    notStarted: data.notStarted,
-    completed: data.completed,
-    invoiced: "500,000 SAR",
-    delayedInvoices: "100,000 SAR",
-    delayedInvoicesPercentage: "6%",
-    schedulePerformanceIndex: ".78",
-    scheduleVariance: "",
-    actualCompletion: "",
+    creationDate: data?.created_date ? data.created_date.split('T')[0] : "",
+    plannedBudget: `${data.project_budget || 0} SAR`,
+    plannedInvoices: `${data.plannedInvoices || 0} SAR`,
+    plannedInvoicesPercentage: `${data.plannedInvoicesPercentage || 0}%`,
+    deliverables: data.total || 0,
+    partiallyDelayed: data.partialDelayed || 0,
+    delayed: data.delayed || 0,
+    onPlan: data.onPlan || 0,
+    notStarted: data.notStarted || 0,
+    completed: data.completed || 0,
+    invoiced: `${data.totalInvoiced || 0} SAR`,
+    delayedInvoices: `${data.delayedInvoices || 0} SAR`,    delayedInvoicesPercentage: `${data.delayedInvoicesPercentage || 0}%`,
+    schedulePerformanceIndex: data.schedulePerformanceIndex || "0.00",
+    scheduleVariance: `${data.scheduleVariance || 0}%`,
+    actualCompletion: `${data.actualCompletion || 0}%`,
     actualCompletionPercentage: "",
-    plannedCompletion: "",
-    executionStartDate: data.execution_start_date.split('T')[0],
-    executionEndDate: new Date(new Date(data.execution_start_date).setDate(new Date(data.execution_start_date).getDate() + parseInt(data.execution_duration))).toISOString().split('T')[0],
-    duration: data.execution_duration,
-    maintenanceStartDate: "",
-    maintenanceEndDate: "",
-    maintenanceDuration: "",
+    plannedCompletion: `${data.plannedCompletion || 0}%`,
+    executionStartDate: data.execution_start_date ? data.execution_start_date.split('T')[0] : "",
+    executionEndDate: data.execution_start_date && data.execution_duration ? 
+      new Date(new Date(data.execution_start_date).setDate(new Date(data.execution_start_date).getDate() + parseInt(data.execution_duration))).toISOString().split('T')[0] : "",
+    duration: data.execution_duration || "",
   }
   setProjectData(dataObject);
 
@@ -217,9 +213,9 @@ const ProjectTiles = ({ project , projectId }) => {
     { label: "EXECUTION START DATE", value: projectData.executionStartDate },
     { label: "EXECUTION END DATE", value: projectData.executionEndDate },
     { label: "Duration", value: projectData.duration },
-    { label: "Maintenance and operation", value: projectData.maintenanceStartDate },
-    { label: "Maintenance and operation", value: projectData.maintenanceEndDate },
-    { label: "Duration", value: projectData.maintenanceDuration },
+    // { label: "Maintenance and operation", value: projectData.maintenanceStartDate },
+    // { label: "Maintenance and operation", value: projectData.maintenanceEndDate },
+    // { label: "Duration", value: projectData.maintenanceDuration },
   ];
 
   const getStatTileStyles = (stat) => {
