@@ -22,6 +22,8 @@ import ProjectAccordion from "./ProjectAccordion";
 import DepartmentAccordion from "./DepartmentAccordion";
 import ObjectiveAccordion from "./ObjectiveAccordion";
 import BoqTaskApprovalAccordion from "./BoqTaskApprovalAccordion";
+import DeliverableInvoiceApprovalAccordion from "./DeliverableInvoiceApprovalAccordion";
+import DeliverableCompletionApprovalAccordion from "./DeliverableCompletionApprovalAccordion";
 import axiosInstance from "../axiosInstance";
 import { toast } from "sonner";
 import Loader from "./Loader";
@@ -499,7 +501,7 @@ const TableData = ({
                           >
                             <Edit className="w-5 h-5" />
                           </button>
-                        )} */}
+                        } */}
 
                         {showActionButtons && tableName !== "tasks" && tableName !== "document" && (
                           <button
@@ -567,6 +569,17 @@ const TableData = ({
                               projectBudget={
                                 tableData[index]?.approved_project_budget
                               }
+                              closeAccordion={closeAccordion}
+                            />                          )}
+                          {(item.title === "Approve Uploaded Invoice" || item.title.startsWith("Approve Uploaded Invoice -")) && (
+                            <DeliverableInvoiceApprovalAccordion
+                              task={tableData[index]}
+                              closeAccordion={closeAccordion}
+                            />
+                          )}
+                          {item.title === "Approve Deliverable Completion" && (
+                            <DeliverableCompletionApprovalAccordion
+                              task={tableData[index]}
                               closeAccordion={closeAccordion}
                             />
                           )}

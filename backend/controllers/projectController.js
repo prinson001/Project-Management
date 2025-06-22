@@ -1371,41 +1371,44 @@ const getProjectObjectives = async (req, res) => {
 // @Description Update objectives for a project
 // @Route POST /data-management/updateProjectObjectives
 const updateProjectObjectives = async (req, res) => {
-  const { projectId, objectiveIds } = req.body;
+  console.log("Update project objectives invoked");
+  console.log("Body:", req.body);
 
-  if (!projectId || !Array.isArray(objectiveIds)) {
+  const { id, objective_ids } = req.body;
+
+  if (!id) {
     return res.status(400).json({
       status: "failure",
-      message: "projectId and objectiveIds array are required",
+      message: "Required field missing: id is required",
+      result: null,
+    });
+  }
+
+  if (!Array.isArray(objective_ids)) {
+    return res.status(400).json({
+      status: "failure",
+      message: "Invalid objective_ids format: must be an array",
       result: null,
     });
   }
 
   try {
-    await sql.begin(async (sql) => {
-      await sql`
-        DELETE FROM project_objective 
-        WHERE project_id = ${projectId}
+    await sql.begin(async (trx) => {
+      // Clear existing objectives
+      await trx`
+        DELETE FROM project_objective
+        WHERE project_id = ${id}
       `;
 
-      // Insert new objectives if any
-      if (objectiveIds.length > 0) {
-        // Validate objective IDs exist
-        const validObjectives = await sql`
-          SELECT id FROM objective WHERE id IN ${sql(objectiveIds)}
-        `;
+      // Insert new objectives if any provided
+      if (objective_ids.length > 0) {
+        const objectiveData = objective_ids.map((objective_id) => ({
+          project_id: id,
+          objective_id: objective_id,
+        }));
 
-        if (validObjectives.length !== objectiveIds.length) {
-          const invalidIds = objectiveIds.filter(
-            (id) => !validObjectives.some((o) => o.id === id)
-          );
-          throw new Error(`Invalid objective IDs: ${invalidIds.join(", ")}`);
-        }
-
-        // Insert valid objectives
-        await sql`
-          INSERT INTO project_objective (project_id, objective_id)
-          VALUES ${sql(objectiveIds.map((id) => [projectId, id]))}
+        await trx`
+          INSERT INTO project_objective ${sql(objectiveData)}
         `;
       }
     });
@@ -1420,6 +1423,78 @@ const updateProjectObjectives = async (req, res) => {
     return res.status(500).json({
       status: "failure",
       message: "Error updating project objectives",
+      result: error.message || error,
+    });
+  }
+};
+
+// Get deliverable completion status
+const getDeliverableCompletionStatus = async (req, res) => {
+  const { deliverableId } = req.body;
+
+  if (!deliverableId) {
+    return res.status(400).json({
+      status: "failure",
+      message: "Deliverable ID is required",
+      result: null,
+    });
+  }
+
+  try {
+    const result = await sql`
+      SELECT completion_status
+      FROM deliverable_progress
+      WHERE deliverable_id = ${deliverableId}
+    `;
+
+    const completionStatus = result.length > 0 ? result[0].completion_status : "PENDING";
+
+    return res.status(200).json({
+      status: "success",
+      completion_status: completionStatus,
+    });
+  } catch (error) {
+    console.error("Error fetching deliverable completion status:", error);
+    return res.status(500).json({
+      status: "failure",
+      message: "Error fetching deliverable completion status",
+      result: error.message || error,
+    });
+  }
+};
+
+// Update deliverable completion approval status
+const updateDeliverableCompletionApproval = async (req, res) => {
+  const { deliverableId, completionStatus, reviewedAt } = req.body;
+
+  if (!deliverableId || !completionStatus) {
+    return res.status(400).json({
+      status: "failure",
+      message: "Deliverable ID and completion status are required",
+      result: null,
+    });
+  }
+
+  try {
+    // Update the deliverable_progress table with completion status
+    await sql`
+      INSERT INTO deliverable_progress (deliverable_id, completion_status, reviewed_at, last_updated)
+      VALUES (${deliverableId}, ${completionStatus}, ${reviewedAt}, NOW())
+      ON CONFLICT (deliverable_id) DO UPDATE SET
+        completion_status = EXCLUDED.completion_status,
+        reviewed_at = EXCLUDED.reviewed_at,
+        last_updated = NOW()
+    `;
+
+    return res.status(200).json({
+      status: "success",
+      message: "Deliverable completion status updated successfully",
+    });
+  } catch (error) {
+    console.error("Error updating deliverable completion approval:", error);
+    return res.status(500).json({
+      status: "failure",
+      message: "Error updating deliverable completion approval",
       result: error.message || error,
     });
   }
@@ -1448,4 +1523,6 @@ module.exports = {
   addProjectObjectives,
   getProjectObjectives,
   updateProjectObjectives,
+  getDeliverableCompletionStatus,
+  updateDeliverableCompletionApproval,
 };

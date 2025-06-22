@@ -3,6 +3,10 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY
 const sql = require('../database/db'); // Your existing postgres.js instance
 const multer = require('multer');
 const path = require('path');
+const { 
+  createDeliverableInvoiceApprovalTaskForPMO, 
+  createDeliverableCompletionApprovalTaskForPMO 
+} = require('./taskCreationController');
 
 // Configure multer for memory storage to pass buffer to Supabase
 const storage = multer.memoryStorage();
@@ -285,17 +289,16 @@ async function uploadDeliverableDocument(req, res) {
         SET payment_percentage = ${insertedDocument.related_payment_percentage} 
         WHERE id = ${insertedDocument.deliverable_id}
         RETURNING id, payment_percentage
-      `;
-    } else if (insertedDocument.document_type === 'DELIVERY_NOTE') {
+      `;    } else if (insertedDocument.document_type === 'DELIVERY_NOTE') {
       // Update deliverable progress when delivery note is uploaded
       try {
         await sql`
-          INSERT INTO deliverable_progress (deliverable_id, scope_percentage, status, last_updated)
+          INSERT INTO deliverable_progress (deliverable_id, scope_percentage, status, updated_at)
           VALUES (${insertedDocument.deliverable_id}, 100, 'COMPLETED', NOW())
           ON CONFLICT (deliverable_id) DO UPDATE SET
             scope_percentage = 100,
             status = 'COMPLETED',
-            last_updated = NOW()
+            updated_at = NOW()
         `;
       } catch (progressError) {
         console.error("Error updating deliverable_progress for delivery completion:", progressError);
@@ -412,14 +415,13 @@ const submitDeliverableDocument = async (req, res) => {
         newStatus = 'NOT_STARTED';
       }
 
-      try {
-        const [updatedProgress] = await sql`
-          INSERT INTO deliverable_progress (deliverable_id, scope_percentage, status, last_updated)
+      try {        const [updatedProgress] = await sql`
+          INSERT INTO deliverable_progress (deliverable_id, scope_percentage, status, updated_at)
           VALUES (${insertedDocument.deliverable_id}, ${newScopePercentage}, ${newStatus}, NOW())
           ON CONFLICT (deliverable_id) DO UPDATE SET
             scope_percentage = EXCLUDED.scope_percentage,
             status = EXCLUDED.status,
-            last_updated = NOW()
+            updated_at = NOW()
           RETURNING *
         `;
         // console.log('Updated deliverable_progress:', updatedProgress);
@@ -428,22 +430,27 @@ const submitDeliverableDocument = async (req, res) => {
       }
     } else if (insertedDocument.document_type === 'DELIVERY_NOTE') {
       // Update deliverable progress when delivery note is uploaded
-      try {
-        const [updatedProgress] = await sql`
-          INSERT INTO deliverable_progress (deliverable_id, scope_percentage, status, last_updated)
+      try {        const [updatedProgress] = await sql`
+          INSERT INTO deliverable_progress (deliverable_id, scope_percentage, status, updated_at)
           VALUES (${insertedDocument.deliverable_id}, 100, 'COMPLETED', NOW())
           ON CONFLICT (deliverable_id) DO UPDATE SET
             scope_percentage = 100,
             status = 'COMPLETED',
-            last_updated = NOW()
+            updated_at = NOW()
           RETURNING *
         `;
         // console.log('Updated deliverable_progress for delivery completion:', updatedProgress);
       } catch (progressError) {
         console.error("Error updating deliverable_progress for delivery completion:", progressError);
       }
+    }    // Create approval tasks based on document type
+    if (insertedDocument.document_type === 'INVOICE') {
+      // Create task for PMO to approve invoice
+      await createDeliverableInvoiceApprovalTaskForPMO(insertedDocument.deliverable_id);
+    } else if (insertedDocument.document_type === 'DELIVERY_NOTE') {
+      // Create task for PMO to approve deliverable completion
+      await createDeliverableCompletionApprovalTaskForPMO(insertedDocument.deliverable_id);
     }
-    // TODO: Consider if other document_types (e.g., INVOICE, DELIVERY_NOTE) should affect deliverable_progress.status
 
     res.status(201).json({
       success: true,
@@ -522,7 +529,8 @@ const getProjectDeliverablesFromBody = async (req, res) => {
     return res.status(400).json({ message: "Project ID is required in body" });
   }
 
-  try {    const deliverables = await sql`
+  try {
+    const deliverables = await sql`
       WITH latest_payment_percentage AS (
         SELECT 
           deliverable_id,
@@ -530,6 +538,14 @@ const getProjectDeliverablesFromBody = async (req, res) => {
           ROW_NUMBER() OVER (PARTITION BY deliverable_id ORDER BY uploaded_at DESC) as rn
         FROM deliverable_payment_history 
         WHERE related_payment_percentage IS NOT NULL
+      ),
+      latest_scope_percentage AS (
+        SELECT 
+          deliverable_id,
+          related_scope_percentage,
+          ROW_NUMBER() OVER (PARTITION BY deliverable_id ORDER BY uploaded_at DESC) as rn
+        FROM deliverable_progress_history 
+        WHERE related_scope_percentage IS NOT NULL
       )
       SELECT 
         d.id, 
@@ -538,17 +554,21 @@ const getProjectDeliverablesFromBody = async (req, res) => {
         d.start_date,
         d.end_date,
         d.duration,
+        d.status as deliverable_status,
         d.item_id, 
         i.project_id,
         COALESCE(dp.progress_percentage, 0) as progress_percentage,
-        COALESCE(dp.scope_percentage, 0) as scope_percentage,
+        COALESCE(dp.scope_percentage, lsp.related_scope_percentage, 0) as scope_percentage,
         COALESCE(dp.status, 'NOT_STARTED') as status,
         dp.notes as progress_notes,
         COALESCE(SUM(dph.invoice_amount), 0) as invoiced,
         COALESCE(d.amount, 0) - COALESCE(SUM(dph.invoice_amount), 0) as remaining_budget,
         COALESCE(
           lpp.related_payment_percentage, 
-          ROUND(LEAST( (COALESCE(SUM(dph.invoice_amount), 0) / NULLIF(d.amount, 0)) * 100 , 100))
+          CASE 
+            WHEN d.amount > 0 THEN ROUND(LEAST( (COALESCE(SUM(dph.invoice_amount), 0) / d.amount) * 100 , 100))
+            ELSE 0
+          END
         ) as payment_percentage,
         d.created_at,
         d.updated_at,
@@ -558,8 +578,9 @@ const getProjectDeliverablesFromBody = async (req, res) => {
       LEFT JOIN deliverable_progress dp ON d.id = dp.deliverable_id
       LEFT JOIN deliverable_payment_history dph ON d.id = dph.deliverable_id
       LEFT JOIN latest_payment_percentage lpp ON d.id = lpp.deliverable_id AND lpp.rn = 1
+      LEFT JOIN latest_scope_percentage lsp ON d.id = lsp.deliverable_id AND lsp.rn = 1
       WHERE i.project_id = ${projectId}
-      GROUP BY d.id, i.project_id, dp.id, lpp.related_payment_percentage
+      GROUP BY d.id, i.project_id, dp.id, lpp.related_payment_percentage, lsp.related_scope_percentage
       ORDER BY d.start_date ASC, d.created_at ASC
     `;
     return res.status(200).json(deliverables);
@@ -576,26 +597,52 @@ const getDeliverablesByProject = async (req, res) => {
   }
   try {
     const result = await sql`
+      WITH payment_summary AS (
+        SELECT 
+          deliverable_id,
+          COALESCE(SUM(invoice_amount), 0) as total_invoiced,
+          MAX(related_payment_percentage) as latest_payment_percentage
+        FROM deliverable_payment_history 
+        GROUP BY deliverable_id
+      ),
+      scope_summary AS (
+        SELECT 
+          deliverable_id,
+          MAX(related_scope_percentage) as latest_scope_percentage
+        FROM deliverable_progress_history 
+        GROUP BY deliverable_id
+      )
       SELECT
         d.id,
         d.name,
-        d.description,
         TO_CHAR(d.start_date, 'YYYY-MM-DD') as start_date,
         TO_CHAR(d.end_date, 'YYYY-MM-DD') as end_date,
         d.amount,
+        d.duration,
+        d.status as deliverable_status,
         i.project_id, 
         dp.id as progress_id,
         COALESCE(dp.progress_percentage, 0) as progress_percentage,
-        COALESCE(dp.status, 'NOT_STARTED') as progress_status,
-        COALESCE(dp.scope_percentage, 0) as scope_percentage,
+        COALESCE(dp.status, 'NOT_STARTED') as progress_status,        COALESCE(dp.scope_percentage, ss.latest_scope_percentage, 0) as scope_percentage,
         dp.notes as progress_notes,
-        dp.last_updated as progress_last_updated,
+        dp.updated_at as progress_last_updated,
+        COALESCE(ps.total_invoiced, 0) as total_invoiced,
+        COALESCE(d.amount, 0) - COALESCE(ps.total_invoiced, 0) as remaining_budget,
+        COALESCE(
+          ps.latest_payment_percentage,
+          CASE 
+            WHEN d.amount > 0 THEN ROUND((COALESCE(ps.total_invoiced, 0) / d.amount) * 100)
+            ELSE 0
+          END
+        ) as payment_percentage,
         d.item_id,
         d.created_at,
         d.updated_at
       FROM deliverable d
       JOIN item i ON d.item_id = i.id
       LEFT JOIN deliverable_progress dp ON d.id = dp.deliverable_id
+      LEFT JOIN payment_summary ps ON d.id = ps.deliverable_id
+      LEFT JOIN scope_summary ss ON d.id = ss.deliverable_id
       WHERE i.project_id = ${projectId}
       ORDER BY d.start_date ASC, d.created_at ASC
     `;
@@ -613,32 +660,65 @@ const getDeliverableById = async (req, res) => {
   }
   try {
     const result = await sql`
+      WITH payment_summary AS (
+        SELECT 
+          deliverable_id,
+          COALESCE(SUM(invoice_amount), 0) as total_invoiced,
+          MAX(related_payment_percentage) as latest_payment_percentage
+        FROM deliverable_payment_history 
+        WHERE deliverable_id = ${id}
+        GROUP BY deliverable_id
+      ),
+      scope_summary AS (
+        SELECT 
+          deliverable_id,
+          MAX(related_scope_percentage) as latest_scope_percentage
+        FROM deliverable_progress_history 
+        WHERE deliverable_id = ${id}
+        GROUP BY deliverable_id
+      )
       SELECT
         d.id,
         d.name,
-        d.description,
         TO_CHAR(d.start_date, 'YYYY-MM-DD') as start_date,
         TO_CHAR(d.end_date, 'YYYY-MM-DD') as end_date,
         d.amount,
+        d.duration,
+        d.status as deliverable_status,
         i.project_id, 
         dp.id as progress_id,
         COALESCE(dp.progress_percentage, 0) as progress_percentage,
-        COALESCE(dp.status, 'NOT_STARTED') as progress_status,
-        COALESCE(dp.scope_percentage, 0) as scope_percentage,
+        COALESCE(dp.status, 'NOT_STARTED') as progress_status,        COALESCE(dp.scope_percentage, ss.latest_scope_percentage, 0) as scope_percentage,
         dp.notes as progress_notes,
-        dp.last_updated as progress_last_updated,
+        dp.updated_at as progress_last_updated,
+        COALESCE(ps.total_invoiced, 0) as total_invoiced,
+        COALESCE(d.amount, 0) - COALESCE(ps.total_invoiced, 0) as remaining_budget,
+        COALESCE(
+          ps.latest_payment_percentage,
+          CASE 
+            WHEN d.amount > 0 THEN ROUND((COALESCE(ps.total_invoiced, 0) / d.amount) * 100)
+            ELSE 0
+          END
+        ) as payment_percentage,
         d.item_id,
         d.created_at,
         d.updated_at
       FROM deliverable d
       JOIN item i ON d.item_id = i.id 
       LEFT JOIN deliverable_progress dp ON d.id = dp.deliverable_id
+      LEFT JOIN payment_summary ps ON d.id = ps.deliverable_id
+      LEFT JOIN scope_summary ss ON d.id = ss.deliverable_id
       WHERE d.id = ${id}
     `;
+    
     if (result.length === 0) {
       return res.status(404).json({ message: 'Deliverable not found' });
     }
-    res.json(result[0]);
+    
+    res.json({ 
+      success: true,
+      deliverable: result[0] 
+    });
   } catch (error) {
     console.error('Error fetching deliverable by ID:', error);
     res.status(500).json({ message: 'Error fetching deliverable by ID', error: error.message });
@@ -695,13 +775,12 @@ const updateDeliverableProgressManual = async (req, res) => {
     if (notes !== undefined) { // Allow empty string for notes
       updateFields.notes = notes;
       setClauses.push(sql`notes = ${notes}`);
-    }
-    
-    updateFields.last_updated = sql`NOW()`; // Always update timestamp
-    setClauses.push(sql`last_updated = NOW()`);
+    }    
+    updateFields.updated_at = sql`NOW()`; // Always update timestamp
+    setClauses.push(sql`updated_at = NOW()`);
 
 
-    if (setClauses.length === 1 && updateFields.last_updated) { // Only last_updated means no effective change
+    if (setClauses.length === 1 && updateFields.updated_at) { // Only updated_at means no effective change
         return res.status(400).json({ message: "No effective update data provided beyond timestamp." });
     }
     
@@ -723,9 +802,8 @@ const updateDeliverableProgressManual = async (req, res) => {
     }
     if (updateFields.notes !== undefined) {
         insertColumns.push('notes');
-        insertValuesPlaceholders.push(updateFields.notes);
-    }
-    // last_updated will be handled by default or NOW() on insert/update
+        insertValuesPlaceholders.push(updateFields.notes);    }
+    // updated_at will be handled by default or NOW() on insert/update
 
     const [updatedProgress] = await sql`
       INSERT INTO deliverable_progress (${sql(insertColumns)})
@@ -760,67 +838,94 @@ const getDeliverablePaymentHistory = async (req, res) => {
 
   try {
     const paymentHistory = await sql`
-      SELECT 
-        id,
-        deliverable_id,
-        document_type,
-        file_name,
-        storage_path,
-        mime_type,
-        file_size_bytes,
-        uploaded_at,
-        description,
-        invoice_amount,
-        invoice_date,
-        related_scope_percentage,
-        related_payment_percentage,
-        status
-      FROM deliverable_payment_history
-      WHERE deliverable_id = ${deliverableId}
+      SELECT * FROM deliverable_payment_history 
+      WHERE deliverable_id = ${deliverableId} 
       ORDER BY uploaded_at DESC
     `;
-    
-    return res.status(200).json(paymentHistory);
+
+    // Get download URLs for documents
+    const paymentHistoryWithUrls = await Promise.all(
+      paymentHistory.map(async (payment) => {
+        if (payment.storage_path) {
+          const downloadUrl = await getDocumentDownloadUrl(payment.storage_path);
+          return { ...payment, download_url: downloadUrl };
+        }
+        return payment;
+      })
+    );
+
+    res.json({
+      success: true,
+      paymentHistory: paymentHistoryWithUrls,
+    });
   } catch (error) {
-    console.error("Error fetching payment history:", error);
-    res.status(500).json({ message: "Error fetching payment history", error: error.message });
+    console.error("Error fetching deliverable payment history:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Server error while fetching payment history",
+      error: error.message 
+    });
   }
 };
 
-// Get progress history for a specific deliverable
-const getDeliverableProgressHistory = async (req, res) => {
-  const { deliverableId } = req.params;
+// Update payment history record status
+const updatePaymentHistoryStatus = async (req, res) => {
+  const { paymentId } = req.params;
+  const { status } = req.body;
 
-  if (!deliverableId) {
-    return res.status(400).json({ message: "Deliverable ID is required" });
+  if (!paymentId) {
+    return res.status(400).json({ message: "Payment ID is required" });
   }
 
   try {
-    const progressHistory = await sql`
-      SELECT 
-        id,
-        deliverable_id,
-        document_type,
-        file_name,
-        storage_path,
-        mime_type,
-        file_size_bytes,
-        uploaded_at,
-        description,
-        invoice_amount,
-        invoice_date,
-        related_scope_percentage,
-        related_payment_percentage,
-        status
-      FROM deliverable_progress_history
-      WHERE deliverable_id = ${deliverableId}
-      ORDER BY uploaded_at DESC
+    const [updatedPayment] = await sql`
+      UPDATE deliverable_payment_history
+      SET status = ${status}
+      WHERE id = ${paymentId}
+      RETURNING *
     `;
-    
-    return res.status(200).json(progressHistory);
+
+    res.json({
+      success: true,
+      message: "Payment history updated successfully",
+      payment: updatedPayment,
+    });
   } catch (error) {
-    console.error("Error fetching progress history:", error);
-    res.status(500).json({ message: "Error fetching progress history", error: error.message });
+    console.error("Error updating payment history:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Server error while updating payment history",
+      error: error.message 
+    });
+  }
+};
+
+// Get document download URL
+const getDocumentDownloadUrlEndpoint = async (req, res) => {
+  const { path } = req.query;
+
+  if (!path) {
+    return res.status(400).json({ message: "Storage path is required" });
+  }
+
+  try {
+    const downloadUrl = await getDocumentDownloadUrl(path);
+    
+    if (!downloadUrl) {
+      return res.status(404).json({ message: "Document not found or unable to generate URL" });
+    }
+
+    res.json({
+      success: true,
+      downloadUrl,
+    });
+  } catch (error) {
+    console.error("Error getting document download URL:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Server error while getting download URL",
+      error: error.message 
+    });
   }
 };
 
@@ -907,6 +1012,46 @@ const getDeliverableDocuments = async (req, res) => {
   }
 };
 
+// Get progress history for a specific deliverable
+const getDeliverableProgressHistory = async (req, res) => {
+  const { deliverableId } = req.params;
+
+  if (!deliverableId) {
+    return res.status(400).json({ message: "Deliverable ID is required" });
+  }
+
+  try {
+    const progressHistory = await sql`
+      SELECT * FROM deliverable_progress_history 
+      WHERE deliverable_id = ${deliverableId} 
+      ORDER BY uploaded_at DESC
+    `;
+
+    // Get download URLs for documents
+    const progressHistoryWithUrls = await Promise.all(
+      progressHistory.map(async (progress) => {
+        if (progress.storage_path) {
+          const downloadUrl = await getDocumentDownloadUrl(progress.storage_path);
+          return { ...progress, download_url: downloadUrl };
+        }
+        return progress;
+      })
+    );
+
+    res.json({
+      success: true,
+      progressHistory: progressHistoryWithUrls,
+    });
+  } catch (error) {
+    console.error("Error fetching deliverable progress history:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Server error while fetching progress history",
+      error: error.message 
+    });
+  }
+};
+
 module.exports = {
   getItemsWithDeliverables,
   saveDeliverablesItems,
@@ -922,5 +1067,7 @@ module.exports = {
   getDeliverablePaymentHistory,
   getDeliverableProgressHistory,
   getDeliverableDocuments,
+  updatePaymentHistoryStatus,
+  getDocumentDownloadUrlEndpoint,
   // ...other exports
 };

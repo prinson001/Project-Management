@@ -61,6 +61,8 @@ const {
   addProjectObjectives,
   getProjectObjectives,
   updateProjectObjectives,
+  getDeliverableCompletionStatus,
+  updateDeliverableCompletionApproval,
 } = require("../controllers/projectController");
 const {
   getSchedulePlan,
@@ -214,4 +216,9 @@ router.post("/getProgramDetails", getProgramDetails);
 router.post("/updateBOQApprovalbyPMO", updateBOQApprovalbyPMO);
 router.post("/getProjectBoqApprovalStatus", getProjectBoqApprovalStatus);
 router.post("/updateTaskStatusToDone", updateTaskStatusToDone);
+
+// Deliverable completion status routes
+router.post("/getDeliverableCompletionStatus", getDeliverableCompletionStatus);
+router.post("/updateDeliverableCompletionApproval", updateDeliverableCompletionApproval);
+
 module.exports = router;

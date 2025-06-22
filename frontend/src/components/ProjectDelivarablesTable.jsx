@@ -27,18 +27,28 @@ const DeliveryCompletionModal = ({ onClose, deliverable, projectId, onSuccessful
     setUploading(true);
     setUploadError('');
     const formData = new FormData();
-    formData.append('evidenceFile', selectedFile); // must match backend
-    formData.append('document_type', 'DELIVERY_NOTE');
+    formData.append('evidenceFile', selectedFile); // must match backend    formData.append('document_type', 'DELIVERY_NOTE');
     // All other metadata can be added here if needed
     try {
       const response = await axiosInstance.post(`/deliverables/${deliverable.id}/documents`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      setUploading(false);
+      
       if (response.data.document) {
+        // After successful delivery note upload, create completion approval task for PMO
+        try {
+          await axiosInstance.post(`/deliverables/${deliverable.id}/create-completion-approval-task`);
+          console.log('Completion approval task created successfully for PMO');
+        } catch (taskError) {
+          console.error('Error creating completion approval task:', taskError);
+          // Don't fail the entire process if task creation fails
+        }
+        
+        setUploading(false);
         if (onSuccessfulSubmit) onSuccessfulSubmit(response.data.document);
         onClose();
       } else {
+        setUploading(false);
         setUploadError(response.data.message || 'Upload failed. Please try again.');
       }
     } catch (error) {
@@ -112,18 +122,28 @@ const DeliveryInvoiceModal = ({ onClose, deliverable, onSuccessfulSubmit, projec
     const formData = new FormData();
     formData.append('evidenceFile', selectedFile); // must match backend
     formData.append('document_type', 'INVOICE');
-    formData.append('invoice_amount', finalInvoiceAmount);
-    formData.append('related_payment_percentage', paymentPercentage);
+    formData.append('invoice_amount', finalInvoiceAmount);    formData.append('related_payment_percentage', paymentPercentage);
     // All other metadata can be added here if needed
     try {
       const response = await axiosInstance.post(`/deliverables/${deliverable.id}/documents`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      setUploading(false);
+      
       if (response.data.document) {
+        // After successful invoice upload, create approval task for PMO
+        try {
+          await axiosInstance.post(`/deliverables/${deliverable.id}/create-invoice-approval-task`);
+          console.log('Invoice approval task created successfully for PMO');
+        } catch (taskError) {
+          console.error('Error creating invoice approval task:', taskError);
+          // Don't fail the entire process if task creation fails
+        }
+        
+        setUploading(false);
         if (onSuccessfulSubmit) onSuccessfulSubmit(response.data.document);
         onClose();
       } else {
+        setUploading(false);
         setUploadError(response.data.message || 'Upload failed. Please try again.');
       }
     } catch (error) {
