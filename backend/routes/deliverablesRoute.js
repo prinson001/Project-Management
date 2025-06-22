@@ -31,6 +31,9 @@ router.put('/payment-history/:paymentId', deliverableController.updatePaymentHis
 // GET /deliverables/documents/download-url - Get document download URL
 router.get('/documents/download-url', deliverableController.getDocumentDownloadUrlEndpoint);
 
+// GET /deliverables/project/:projectId - Get deliverables by project ID
+router.get('/project/:projectId', deliverableController.getDeliverablesByProject);
+
 // GET /deliverables/:deliverableId - Get deliverable by ID
 router.get('/:id',  deliverableController.getDeliverableById);
 
