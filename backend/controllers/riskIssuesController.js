@@ -6,17 +6,16 @@ const getRisks = async (req, res) => {
   const { sortType, sortOrder, projectid, page = 1, limit = 10 } = req.query;
   const offset = (page - 1) * limit;
   console.log("the projectId " + projectid);
+  console.log(sortType+"-"+sortOrder);
 
+  // Safe allowed values
+  const allowedSortColumns = ["due_date", "created_date", "name", "status", "type","comments"];
+  const allowedSortOrder = ["ASC", "DESC"];
+  const sortBy = allowedSortColumns.includes(sortType) ? sortType : "due_date";
+  const sortDir = allowedSortOrder.includes(sortOrder.toUpperCase()) ? sortOrder.toUpperCase() : "DESC";
+  console.log(sortBy+"-"+sortOrder);
   try {
-    const allowedSortColumns = ['name', 'created_date', 'priority']; // example
-    const allowedSortOrders = ['ASC', 'DESC'];
-
-    let orderByClause = sql`ORDER BY created_date DESC`;
-    if (sortType && allowedSortColumns.includes(sortType) && allowedSortOrders.includes(sortOrder?.toUpperCase())) {
-      orderByClause = sql`ORDER BY ${sql(sortType)} ${sql.raw(sortOrder.toUpperCase())}`;
-    } else if (sortType) {
-      return res.status(400).json({ status: "Failure", message: "Invalid sortType or sortOrder" });
-    }
+    
 
     const result = await sql`
       SELECT
@@ -36,7 +35,8 @@ const getRisks = async (req, res) => {
           WHERE project_id = ${projectid}
         )
       )
-      ${orderByClause}
+      ORDER BY
+      ${sql([sortBy])} ${sql.unsafe(sortDir)}
       LIMIT ${limit}
       OFFSET ${offset}
     `;
@@ -54,7 +54,7 @@ const getRisks = async (req, res) => {
         )
       )
     `;
-
+    console.log(result);
     const totalCount = parseInt(countResult[0].count);
     res.status(200).json({
       status: "success",

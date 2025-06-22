@@ -244,8 +244,11 @@ const RisksAndIssuesTable = ({ risks, onEdit, onAdd, isLoading, projectName, del
   const [tableData, setTableData] = useState(sampleRisks); // Should probably use the `risks` prop or fetch
   const [projectPhases, setProjectPhases] = useState([]); // If phases need to be managed internally
   const [pagination , setPagination] = useState([]);
-  let page = 1 ,
-  limit = 5;
+  let page = 1 ;
+  let limit = 5;
+  let sortType = "due_date";
+  let sortOrder = "ASC";
+  
   // Note: The `projectId` used in the useEffect below is not defined in this component's scope.
   // It should likely be passed as a prop if it's different from `projectName`.
   // Also, `setProjectPhases` is called, but `projectPhases` is a prop. This might be an issue.
@@ -259,7 +262,7 @@ const RisksAndIssuesTable = ({ risks, onEdit, onAdd, isLoading, projectName, del
 
   const fetchRiskAndIssues = async (id) => {
     if (!id) return; // Add a guard clause to prevent calling with undefined id
-    const response =await  axiosInstance.get(`/project-card/risk?projectid=${id}&page=${page}&limit=${limit}`);
+    const response =await  axiosInstance.get(`/project-card/risk?projectid=${id}&page=${page}&limit=${limit}&sortType=${sortType}&sortOrder=${sortOrder}`);
     console.log("risks and issues");
     console.log(response);
     setTableData(response.data.result);
@@ -328,12 +331,10 @@ const RisksAndIssuesTable = ({ risks, onEdit, onAdd, isLoading, projectName, del
   };
 
   const sortTableData = (column, order) => {
-    const sorted = [...tableData].sort((a, b) =>
-      order === "ASC"
-        ? a[column]?.localeCompare(b[column])
-        : b[column]?.localeCompare(a[column])
-    );
-    setTableData(sorted);
+    sortType = column;
+    sortOrder = order;
+    console.log(sortType+"--"+sortOrder);
+    fetchRiskAndIssues(projectId);
   };
 
   const getData = async () => {
@@ -372,7 +373,7 @@ const RisksAndIssuesTable = ({ risks, onEdit, onAdd, isLoading, projectName, del
         tableName="risks"
         setTableData={setTableData}
         showDate={false}
-        sortTableData={null}
+        sortTableData={sortTableData}
         columnSetting={columnSetting}
         onEdit={handleEdit}
       />
