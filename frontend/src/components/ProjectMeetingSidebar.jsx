@@ -46,7 +46,7 @@ export default function ProjectMeetingSidebar({
     >
       <div className="p-4">
         <div className="text-sm font-medium text-gray-500 px-2 py-2 mb-4">
-          Weekly Meeting No 45
+          Weekly Meeting
         </div>
         <nav className="space-y-1">
           {categories.map((category) => {
