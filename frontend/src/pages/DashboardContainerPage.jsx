@@ -154,7 +154,7 @@ const DashboardContainerPage = () => {
               )}
               {selectedProject && activeTab === "projectCards" && (
                 <>
-                  <ProjectTiles project={selectedProject} />
+                  <ProjectTiles project={selectedProject} projectId={selectedProject.id} />
                   <ProjectCards projectId={selectedProject.id} projectName={selectedProject.name} phaseName={selectedProject.phase_name} />
                 </>
               )}
