@@ -37,19 +37,19 @@ const ProjectTiles = ({ project , projectId }) => {
     program: "",
     mainBusinessOwner: "",
     creationDate: "",
-    plannedBudget: "1,500,000 SAR",
-    plannedInvoices: "900,000 SAR",
-    plannedInvoicesPercentage: "60%",
-    deliverables: "8",
-    partiallyDelayed: "1",
-    delayed: "1",
-    onPlan: "3",
-    notStarted: "1",
-    completed: "2",
-    invoiced: "500,000 SAR",
-    delayedInvoices: "100,000 SAR",
-    delayedInvoicesPercentage: "6%",
-    schedulePerformanceIndex: ".78",
+    plannedBudget: "0 SAR",
+    plannedInvoices: "0 SAR",
+    plannedInvoicesPercentage: "0%",
+    deliverables: "0",
+    partiallyDelayed: "0",
+    delayed: "0",
+    onPlan: "0",
+    notStarted: "0",
+    completed: "0",
+    invoiced: "0 SAR",
+    delayedInvoices: "0 SAR",
+    delayedInvoicesPercentage: "0%",
+    schedulePerformanceIndex: "0",
     scheduleVariance: "",
     actualCompletion: "",
     actualCompletionPercentage: "",
@@ -85,7 +85,7 @@ const ProjectTiles = ({ project , projectId }) => {
     program: data.program_name,
     mainBusinessOwner: "",
     creationDate: data?.created_date ? data.created_date.split('T')[0] : "",
-    plannedBudget: `${data.project_budget || 0} SAR`,
+    plannedBudget: `${data.project_budget || data.approved_project_budget || 0} SAR`,
     plannedInvoices: `${data.plannedInvoices || 0} SAR`,
     plannedInvoicesPercentage: `${data.plannedInvoicesPercentage || 0}%`,
     deliverables: data.total || 0,
@@ -94,7 +94,7 @@ const ProjectTiles = ({ project , projectId }) => {
     onPlan: data.onPlan || 0,
     notStarted: data.notStarted || 0,
     completed: data.completed || 0,
-    invoiced: `${data.totalInvoiced || 0} SAR`,
+    invoiced: `${data.totalInvoiced || data.total_invoiced || 0} SAR`,
     delayedInvoices: `${data.delayedInvoices || 0} SAR`,    delayedInvoicesPercentage: `${data.delayedInvoicesPercentage || 0}%`,
     schedulePerformanceIndex: data.schedulePerformanceIndex || "0.00",
     scheduleVariance: `${data.scheduleVariance || 0}%`,
@@ -109,9 +109,9 @@ const ProjectTiles = ({ project , projectId }) => {
   setProjectData(dataObject);
 
   }
-  useState(()=>{
+  useEffect(() => {
     fetchProjectAndRelatedDetails();
-  },[projectId])
+  }, [projectId, project])
   // Sample data matching the reference
   // const projectData = {
   //   id: `${selectedProject.id}`,

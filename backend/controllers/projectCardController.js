@@ -39,7 +39,7 @@ const getProjectDetails = async (req, res) => {
         dd.*
       FROM deliverables_dashboard dd
       WHERE dd.project_id = ${projectid};
-    `;      // Get aggregated invoice data for project totals
+    `;    // Get aggregated invoice data for project totals
     const paymentSummary = await sql`
       SELECT 
         SUM(COALESCE(dph.invoice_amount, 0)) AS total_invoiced,
@@ -48,7 +48,7 @@ const getProjectDetails = async (req, res) => {
       JOIN item i ON i.project_id = p.id
       JOIN deliverable d ON d.item_id = i.id
       LEFT JOIN deliverable_payment_history dph ON dph.deliverable_id = d.id
-      WHERE p.id = ${projectid} AND (dph.status = 'APPROVED' OR dph.status = 'DELAYED');
+      WHERE p.id = ${projectid} AND dph.invoice_amount IS NOT NULL;
     `;
 
     let total = 0, completed = 0, delayed = 0, partialDelayed = 0 , notStarted = 0 , onPlan = 0;
