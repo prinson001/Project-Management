@@ -17,7 +17,7 @@ const DashboardContainerPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  const { userId } = useAuthStore();
+  const { userId,role } = useAuthStore();
   console.log("User ID from auth store dashboard:", userId);
   const toggleSidebar = () => setIsSidebarOpen((open) => !open);
 
@@ -31,7 +31,8 @@ const DashboardContainerPage = () => {
       
       try {
         setLoading(true);
-        const response = await axiosInstance.get(`/project-card/projects/${userId}`);
+        const response = await axiosInstance.get(`/project-card/projects/${userId}?role=${role}
+ `);
         
         if (response.data && response.data.status === "success") {
           setProjects(response.data.result || []);
