@@ -183,6 +183,33 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
     return (totalDays / 30).toFixed(1); // Convert to months (approx)
   };
 
+  // Better function to format project duration
+  const formatProjectDuration = (duration) => {
+    if (!duration) return "0";
+
+    const durationStr = duration.toLowerCase(); // Normalize input
+    let totalDays = 0;
+
+    if (durationStr.includes("day")) {
+      totalDays = parseInt(durationStr); // Extract number of days
+    } else if (durationStr.includes("week")) {
+      totalDays = parseInt(durationStr) * 7; // Convert weeks to days
+    }
+
+    // If less than 30 days, show in days
+    if (totalDays < 30) {
+      return `${totalDays} days`;
+    }
+    
+    // If more than 30 days, show in months with appropriate format
+    const months = totalDays / 30;
+    if (months % 1 === 0) {
+      return `${Math.round(months)} months`;
+    } else {
+      return `${months.toFixed(1)} months`;
+    }
+  };
+
   const handleDeliverableChange = (
     itemIndex,
     deliverableIndex,
@@ -813,7 +840,7 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
           ) : (
             <span className="text-red-600">
               (Doesn't match project execution duration:{" "}
-              {convertToMonths(projectDetails.execution_duration)} months)
+              {formatProjectDuration(projectDetails.execution_duration)})
             </span>
           )}
         </span>
