@@ -83,8 +83,7 @@ export default function ProjectTasks({ projectId }) {
   };
 
   const handlePreviousTaskWeekChange = (i) => {
-    setSelectedTaskWeekIndex(i);
-    console.log("selected week name "+weekName);
+    setSelectedTaskWeekIndex(i);  
     const weeklytasks = previousWeekTasks[i];
     console.log("selected tasks"+weeklytasks);
     setSelectedTaskWeekLists(weeklytasks.project_tasks);
