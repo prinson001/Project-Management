@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axiosInstance from "../axiosInstance";
 import { MoreHorizontal, ChevronDown } from "lucide-react";
 import { formatCurrency } from "../utils/currencyUtils";
+import useAuthStore from "../store/authStore";
 
 // Utility functions for currency formatting
 const formatAmountForInput = (amount) => {
@@ -509,7 +510,8 @@ export default function ProjectDeliverables({ projectId }) {
   const [selectedModal, setSelectedModal] = useState(null);
   const [selectedDeliverable, setSelectedDeliverable] = useState(null);
   const [progressUpdates, setProgressUpdates] = useState({});
-  const [savingProgress, setSavingProgress] = useState({});// Dummy data commented out since we're using real API data
+  const [savingProgress, setSavingProgress] = useState({});
+  const { isMeetingPage } = useAuthStore();// Dummy data commented out since we're using real API data
   /*
   const dummyDeliverables = [
     {
@@ -791,14 +793,16 @@ export default function ProjectDeliverables({ projectId }) {
               {/* Deliverable Name and Actions */}
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-base text-gray-900">{deliverable.name}</h3>
-                <button
-                  onClick={() => toggleDropdown(deliverable.id)}
-                  className="h-8 w-8 p-0 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded-full relative"
-                >
-                  <MoreHorizontal className="h-5 w-5" />
-                </button>
+                {!isMeetingPage && (
+                  <button
+                    onClick={() => toggleDropdown(deliverable.id)}
+                    className="h-8 w-8 p-0 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded-full relative"
+                  >
+                    <MoreHorizontal className="h-5 w-5" />
+                  </button>
+                )}
 
-                {openDropdownId === deliverable.id && (
+                {!isMeetingPage && openDropdownId === deliverable.id && (
                   <div className="absolute right-4 top-12 w-56 bg-white border rounded-lg shadow-lg z-10">
                     <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 rounded-t-lg" onClick={() => handleModalOpen('completion', deliverable)}>Delivery Completion</button>
                     <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => handleModalOpen('invoice', deliverable)}>Delivery Invoice</button>
@@ -912,16 +916,19 @@ export default function ProjectDeliverables({ projectId }) {
                       value={progressUpdates[deliverable.id] ?? (deliverable.scope_percentage || 0)}
                       onChange={(e) => handleScopeChange(deliverable.id, e.target.value)}
                       className="w-20 border border-gray-300 rounded-md px-2 py-1 text-sm"
+                      disabled={isMeetingPage}
                     />
                     <span className="text-sm">%</span>
-                    <button
-                      onClick={() => handleSaveProgress(deliverable.id)}
-                      disabled={savingProgress[deliverable.id] || progressUpdates[deliverable.id] === undefined}
-                      className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                      title="Save progress"
-                    >
-                      {savingProgress[deliverable.id] ? 'Saving...' : 'Save'}
-                    </button>
+                    {!isMeetingPage && (
+                      <button
+                        onClick={() => handleSaveProgress(deliverable.id)}
+                        disabled={savingProgress[deliverable.id] || progressUpdates[deliverable.id] === undefined}
+                        className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        title="Save progress"
+                      >
+                        {savingProgress[deliverable.id] ? 'Saving...' : 'Save'}
+                      </button>
+                    )}
                     {deliverable.scope_percentage === 100 && (
                       <span className="text-green-600 text-sm font-medium">✓ Complete</span>
                     )}
@@ -931,12 +938,14 @@ export default function ProjectDeliverables({ projectId }) {
                 {/* Invoice Change */}
                 <div className="flex flex-col">
                   <span className="text-gray-600 font-medium mb-2 text-sm">Invoice Change</span>
-                  <button
-                    onClick={() => handleModalOpen('invoice', deliverable)}
-                    className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm font-medium w-fit"
-                  >
-                    Update Invoice
-                  </button>
+                  {!isMeetingPage && (
+                    <button
+                      onClick={() => handleModalOpen('invoice', deliverable)}
+                      className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm font-medium w-fit"
+                    >
+                      Update Invoice
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

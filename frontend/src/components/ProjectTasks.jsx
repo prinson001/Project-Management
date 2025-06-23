@@ -33,7 +33,7 @@ export default function ProjectTasks({ projectId }) {
   const [selectedTaskWeekIndex, setSelectedTaskWeekIndex] = useState(0)
   const [selectedTaskWeekLists, setSelectedTaskWeekLists] = useState([]);
   const [nextWeekTasks, setNextWeekTasks] = useState([]);
-  const { userId, role } = useAuthStore();
+  const { userId, role, isMeetingPage } = useAuthStore();
   console.log("user id in project tasks", userId);
   console.log("role in project tasks", role);
 
@@ -135,7 +135,7 @@ export default function ProjectTasks({ projectId }) {
             <div key={task.id} className="flex items-start gap-2 text-sm text-gray-700">
               <ChevronRight className="h-4 w-4 mt-0.5 text-gray-400 flex-shrink-0" />
               <span>{task.name}</span>
-              {title === "Planned tasks for next week" && (
+              {title === "Planned tasks for next week" && !isMeetingPage && (
                 <button
                   onClick={() => deleteNextWeekTask(task.id)}
                   className="ml-auto text-red-600 hover:text-red-800"
@@ -153,16 +153,18 @@ export default function ProjectTasks({ projectId }) {
     <div className="bg-white p-6 rounded-lg shadow-sm border h-[600px] flex flex-col">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-semibold text-gray-900">Tasks</h2>
-        <button
-          onClick={() => setShowAddTask(!showAddTask)}
-          className="flex items-center gap-2 text-sm px-3 py-1.5 bg-gray-900 text-white rounded hover:bg-gray-800"
-        >
-          <Plus className="h-4 w-4" />
-          Add Task
-        </button>
+        {!isMeetingPage && (
+          <button
+            onClick={() => setShowAddTask(!showAddTask)}
+            className="flex items-center gap-2 text-sm px-3 py-1.5 bg-gray-900 text-white rounded hover:bg-gray-800"
+          >
+            <Plus className="h-4 w-4" />
+            Add Task
+          </button>
+        )}
       </div>
 
-      {showAddTask && (
+      {!isMeetingPage && showAddTask && (
         <div className="mb-6 p-4 bg-gray-50 rounded-lg">
           <div className="flex gap-2">
             <input
