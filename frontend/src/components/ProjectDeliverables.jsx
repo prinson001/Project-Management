@@ -4,6 +4,18 @@ import { MoreHorizontal, ChevronDown } from "lucide-react";
 import { formatCurrency } from "../utils/currencyUtils";
 import useAuthStore from "../store/authStore";
 
+// Helper function to convert deliverable amount from database format to full amount
+const convertDeliverableAmountToFullAmount = (amount) => {
+  const numericAmount = parseFloat(amount);
+  if (isNaN(numericAmount)) return 0;
+  
+  // If the amount is small (typically <= 100), assume it's in millions format
+  if (numericAmount > 0 && numericAmount <= 100) {
+    return numericAmount * 1000000;
+  }
+  return numericAmount;
+};
+
 // Utility functions for currency formatting
 const formatAmountForInput = (amount) => {
   if (!amount) return '';
@@ -42,10 +54,10 @@ const DeliveryCompletionModal = ({ onClose, deliverable, projectId, onSuccessful
     const formData = new FormData();
     formData.append('document_type', 'DELIVERY_NOTE');
     formData.append('description', 'Delivery completion evidence');
-    formData.append('file', selectedFile);
+    formData.append('evidenceFile', selectedFile);
 
     try {
-      const response = await axiosInstance.post(`/deliverables/submit-document/${deliverable.id}`, formData, {
+      const response = await axiosInstance.post(`/deliverables/${deliverable.id}/documents`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       console.log('Delivery completion submitted successfully:', response.data);
@@ -126,10 +138,10 @@ const DeliveryInvoiceModal = ({ onClose, deliverable, onSuccessfulSubmit, projec
     formData.append('invoice_amount', finalInvoiceAmount);
     formData.append('related_payment_percentage', paymentPercentage);
     formData.append('description', `Invoice submission for ${deliverable.name}`);
-    formData.append('file', selectedFile);
+    formData.append('evidenceFile', selectedFile);
 
     try {
-      const response = await axiosInstance.post(`/deliverables/submit-document/${deliverable.id}`, formData, {
+      const response = await axiosInstance.post(`/deliverables/${deliverable.id}/documents`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       console.log('Invoice submitted successfully:', response.data);
@@ -143,7 +155,7 @@ const DeliveryInvoiceModal = ({ onClose, deliverable, onSuccessfulSubmit, projec
     }
   };
 
-  // Calculate remaining value for display
+  // Calculate remaining value for display (amounts are already converted to full format)
   const remainingValue = (deliverable.amount || 0) - (deliverable.invoiced || 0);
 
   // Auto-calculate payment percentage based on invoice amount
@@ -372,10 +384,10 @@ const DeliverableDetailsModal = ({ onClose, deliverable, projectId }) => {
     const formData = new FormData();
     formData.append('document_type', 'SCOPE_EVIDENCE');
     formData.append('description', 'Scope evidence upload');
-    formData.append('file', scopeEvidenceFile);
+    formData.append('evidenceFile', scopeEvidenceFile);
 
     try {
-      const response = await axiosInstance.post(`/deliverables/submit-document/${deliverable.id}`, formData, {
+      const response = await axiosInstance.post(`/deliverables/${deliverable.id}/documents`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       console.log('Scope evidence uploaded successfully:', response.data);
@@ -675,6 +687,10 @@ export default function ProjectDeliverables({ projectId }) {
 
         return {
           ...deliverable,
+          // Convert amounts from database format to full amount for display
+          amount: convertDeliverableAmountToFullAmount(deliverable.amount || 0),
+          invoiced: convertDeliverableAmountToFullAmount(deliverable.invoiced || 0),
+          remaining_budget: convertDeliverableAmountToFullAmount(deliverable.remaining_budget || 0),
           // Map backend fields to frontend expected fields
           startDate: deliverable.start_date,
           endDate: deliverable.end_date,
