@@ -165,15 +165,31 @@ const getProjectDetails = async (req, res) => {
 
 const getProjectsBasedOnUserId = async(req,res)=>{
   const {userId} = req.params;
+  const {role } = req.query;
   try{
-    const result = await sql `
-      SELECT
-        *
-      FROM
-        project
-      WHERE 
-        project_manager_id = ${userId}
-    `
+    let result = [];
+    if(role == 'DEPUTY' || role== 'PMO')
+    {
+      result = await sql `
+        SELECT
+          *
+        FROM
+          project
+      `
+    }
+    else
+    {
+      result = await sql `
+        SELECT
+          *
+        FROM
+          project
+        WHERE 
+          project_manager_id = ${userId} 
+        OR 
+          alternative_project_manager_id = ${userId}
+      `
+    }
     res.status(200).json({
       status:"success",
       message:"Successfully retrieved projects for user",
