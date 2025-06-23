@@ -677,14 +677,7 @@ export default function ProjectDeliverables({ projectId }) {
       ...prev,
       [id]: numericValue,
     }));
-    // Also update the deliverables to reflect the change immediately
-    setDeliverables(deliverables.map(item =>
-      item.id === id ? { 
-        ...item, 
-        scope_percentage: numericValue,
-        displayProgress: numericValue
-      } : item
-    ));
+    // Don't update the progress bar immediately - wait for successful save
   };
 
   const handleSaveProgress = async (id) => {
@@ -717,7 +710,7 @@ export default function ProjectDeliverables({ projectId }) {
 
       console.log(`Progress saved for deliverable ${id}: ${progressValue}%`);
       
-      // Update UI optimistically
+      // Only update UI after successful database save
       setDeliverables(deliverables.map(item =>
         item.id === id ? { 
           ...item, 
@@ -737,7 +730,8 @@ export default function ProjectDeliverables({ projectId }) {
 
     } catch (error) {
       console.error('Error saving progress:', error);
-      // You might want to show a user-friendly error message here
+      // Show user-friendly error message and don't update the progress bar
+      alert('Failed to save progress. Please try again.');
     } finally {
       setSavingProgress((prev) => ({ ...prev, [id]: false }));
     }
