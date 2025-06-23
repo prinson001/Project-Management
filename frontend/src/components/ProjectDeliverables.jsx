@@ -692,6 +692,22 @@ export default function ProjectDeliverables({ projectId }) {
     try {
       const progressValue = progressUpdates[id];
       
+      // Check if scope is 100% and deliverable completion document exists
+      if (progressValue === 100) {
+        const deliverable = deliverables.find(item => item.id === id);
+        // Check if delivery completion document already exists
+        const hasCompletionDoc = await checkDeliveryCompletionDocument(id);
+        
+        if (!hasCompletionDoc) {
+          // Block save and require completion document upload
+          alert('Cannot set scope to 100%. Please upload a deliverable completion document first.');
+          setSelectedDeliverable(deliverable);
+          setSelectedModal('completion');
+          setSavingProgress((prev) => ({ ...prev, [id]: false }));
+          return;
+        }
+      }
+      
       // Make API call to save progress
       const response = await axiosInstance.put(`/deliverables/${id}/progress`, {
         scope_percentage: progressValue,
@@ -719,18 +735,23 @@ export default function ProjectDeliverables({ projectId }) {
         return updated;
       });
 
-      // If scope is set to 100, open delivery completion modal for this deliverable
-      if (progressValue === 100) {
-        const deliverable = deliverables.find(item => item.id === id);
-        setSelectedDeliverable(deliverable);
-        setSelectedModal('completion');
-      }
-
     } catch (error) {
       console.error('Error saving progress:', error);
       // You might want to show a user-friendly error message here
     } finally {
       setSavingProgress((prev) => ({ ...prev, [id]: false }));
+    }
+  };
+
+  // Helper function to check if delivery completion document exists
+  const checkDeliveryCompletionDocument = async (deliverableId) => {
+    try {
+      const response = await axiosInstance.get(`/deliverables/${deliverableId}/documents`);
+      const documents = response.data;
+      return documents.some(doc => doc.document_type === 'DELIVERY_NOTE' || doc.document_type === 'COMPLETION_EVIDENCE');
+    } catch (error) {
+      console.error('Error checking completion document:', error);
+      return false;
     }
   };
 
@@ -757,91 +778,138 @@ export default function ProjectDeliverables({ projectId }) {
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm border">
+    <div className="bg-white p-6 rounded-lg shadow-sm border h-[600px] flex flex-col">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-red-600">Deliverables</h2>
+        <h2 className="text-lg font-semibold">Deliverables</h2>
         <ChevronDown className="h-4 w-4 text-gray-400" />
       </div>
       {loading ? (
         <div>Loading...</div>
       ) : error ? (
         <div className="text-red-500">{error}</div>
-      ) : (        <div className="space-y-3">
+      ) : (
+        <div className="space-y-4 overflow-y-auto flex-1 pr-2 
+                     scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-300 
+                     hover:scrollbar-thumb-gray-400"
+             style={{ scrollbarWidth: 'thin', scrollbarColor: '#cbd5e1 #f1f5f9' }}>
           {deliverables.map((deliverable) => (
-            <div key={deliverable.id} className="border-b border-gray-200 pb-3 relative">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-medium text-sm text-gray-900">{deliverable.name}</h3>
+            <div key={deliverable.id} className="border border-gray-200 rounded-lg p-4 relative hover:shadow-sm">
+              {/* Deliverable Name and Actions */}
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-base text-gray-900">{deliverable.name}</h3>
                 <button
                   onClick={() => toggleDropdown(deliverable.id)}
-                  className="h-6 w-6 p-0 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded relative"
+                  className="h-8 w-8 p-0 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded-full relative"
                 >
-                  <MoreHorizontal className="h-4 w-4" />
-                </button>                {openDropdownId === deliverable.id && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white border rounded shadow z-10">
-                    <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => handleModalOpen('completion', deliverable)}>Delivery Completion</button>
+                  <MoreHorizontal className="h-5 w-5" />
+                </button>
+
+                {openDropdownId === deliverable.id && (
+                  <div className="absolute right-4 top-12 w-56 bg-white border rounded-lg shadow-lg z-10">
+                    <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 rounded-t-lg" onClick={() => handleModalOpen('completion', deliverable)}>Delivery Completion</button>
                     <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => handleModalOpen('invoice', deliverable)}>Delivery Invoice</button>
                     <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => handleModalOpen('dates', deliverable)}>Change Deliverable Dates</button>
                     <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => handleModalOpen('scopeEvidence', deliverable)}>Upload Scope Evidence</button>
                     <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => handleModalOpen('details', deliverable)}>View Deliverable Details</button>
-                    <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => handleModalOpen('changeRequest', deliverable)}>Apply for Change Request</button>
+                    <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 rounded-b-lg" onClick={() => handleModalOpen('changeRequest', deliverable)}>Apply for Change Request</button>
                   </div>
                 )}
-              </div>{/* Four Column Layout: Status/Progress/Payment, Scope, Start Date, End Date */}
-              <div className="grid grid-cols-4 gap-4 text-xs mt-2">                {/* Status, Progress, Payment Column */}
-                <div className="flex flex-col space-y-2">
-                  {/* Status */}
-                  <div className="flex flex-col">
-                    <span className="text-gray-600 font-medium mb-1">Status</span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium text-center ${
-                      deliverable.status?.toLowerCase() === 'completed' ? 'bg-green-100 text-green-800' :
-                      deliverable.status?.toLowerCase() === 'in_progress' || deliverable.status?.toLowerCase() === 'in progress' ? 'bg-blue-100 text-blue-800' :
-                      deliverable.status?.toLowerCase() === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                      deliverable.status?.toLowerCase() === 'not_started' || deliverable.status?.toLowerCase() === 'not started' ? 'bg-gray-100 text-gray-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {deliverable.status?.replace('_', ' ').toUpperCase() || 'NOT STARTED'}
-                    </span>
-                  </div>
+              </div>
 
-                  {/* Progress */}
-                  <div className="flex flex-col">
-                    <span className="text-gray-600 font-medium mb-1">Progress</span>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-green-500 transition-all duration-300"
-                          style={{ width: `${deliverable.displayProgress}%` }}
-                        />
-                      </div>
-                      <span className="font-medium text-xs">{deliverable.displayProgress}%</span>
+              {/* First Row: Status, Progress(bar), Payment(bar), Budget */}
+              <div className="grid grid-cols-4 gap-6 mb-4">
+                {/* Status */}
+                <div className="flex flex-col">
+                  <span className="text-gray-600 font-medium mb-2 text-sm">Status</span>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium text-center ${
+                    deliverable.status?.toLowerCase() === 'completed' ? 'bg-green-100 text-green-800' :
+                    deliverable.status?.toLowerCase() === 'in_progress' || deliverable.status?.toLowerCase() === 'in progress' ? 'bg-blue-100 text-blue-800' :
+                    deliverable.status?.toLowerCase() === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                    deliverable.status?.toLowerCase() === 'not_started' || deliverable.status?.toLowerCase() === 'not started' ? 'bg-gray-100 text-gray-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {deliverable.status?.replace('_', ' ').toUpperCase() || 'NOT STARTED'}
+                  </span>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="flex flex-col">
+                  <span className="text-gray-600 font-medium mb-2 text-sm">Progress</span>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-3 bg-gray-200 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-blue-500 transition-all duration-300"
+                        style={{ width: `${deliverable.displayProgress}%` }}
+                      />
                     </div>
-                  </div>
-
-                  {/* Payment */}
-                  <div className="flex flex-col">
-                    <span className="text-gray-600 font-medium mb-1">Payment</span>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-green-500 transition-all duration-300"
-                          style={{ width: `${deliverable.paymentProgress}%` }}
-                        />
-                      </div>
-                      <span className="font-medium text-xs">{deliverable.paymentProgress}%</span>
-                    </div>
-                  </div>
-
-                  {/* Duration Info */}
-                  <div className="flex flex-col mt-1">
-                    <span className="text-gray-600 font-medium text-xs">Duration</span>
-                    <span className="text-gray-800 text-xs">{deliverable.duration || 'N/A'} days</span>
+                    <span className="font-semibold text-sm min-w-[40px]">{deliverable.displayProgress}%</span>
                   </div>
                 </div>
 
-                {/* Scope Input Column */}
+                {/* Payment Bar */}
                 <div className="flex flex-col">
-                  <span className="text-gray-600 font-medium mb-1">Scope</span>
-                  <div className="flex items-center gap-2 mb-2">
+                  <span className="text-gray-600 font-medium mb-2 text-sm">Payment</span>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-3 bg-gray-200 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-green-500 transition-all duration-300"
+                        style={{ width: `${deliverable.paymentProgress}%` }}
+                      />
+                    </div>
+                    <span className="font-semibold text-sm min-w-[40px]">{deliverable.paymentProgress}%</span>
+                  </div>
+                </div>
+
+                {/* Budget */}
+                <div className="flex flex-col">
+                  <span className="text-gray-600 font-medium mb-2 text-sm">Budget</span>
+                  <span className="text-gray-800 font-semibold text-sm">
+                    {formatCurrency(deliverable.amount, 'SAR')}
+                  </span>
+                </div>
+              </div>
+
+              {/* Second Row: Start Date, End Date, Duration, Invoiced */}
+              <div className="grid grid-cols-4 gap-6 mb-4">
+                {/* Start Date */}
+                <div className="flex flex-col">
+                  <span className="text-gray-600 font-medium mb-2 text-sm">Start Date</span>
+                  <span className="text-gray-800 bg-gray-50 px-3 py-2 rounded text-sm">
+                    {formatDate(deliverable.start_date) || 'Not set'}
+                  </span>
+                </div>
+
+                {/* End Date */}
+                <div className="flex flex-col">
+                  <span className="text-gray-600 font-medium mb-2 text-sm">End Date</span>
+                  <span className="text-gray-800 bg-gray-50 px-3 py-2 rounded text-sm">
+                    {formatDate(deliverable.end_date) || 'Not set'}
+                  </span>
+                </div>
+
+                {/* Duration */}
+                <div className="flex flex-col">
+                  <span className="text-gray-600 font-medium mb-2 text-sm">Duration</span>
+                  <span className="text-gray-800 bg-gray-50 px-3 py-2 rounded text-sm">
+                    {deliverable.duration || 'N/A'} days
+                  </span>
+                </div>
+
+                {/* Invoiced */}
+                <div className="flex flex-col">
+                  <span className="text-gray-600 font-medium mb-2 text-sm">Invoiced</span>
+                  <span className="text-gray-800 font-semibold text-sm">
+                    {formatCurrency(deliverable.invoiced, 'SAR')}
+                  </span>
+                </div>
+              </div>
+
+              {/* Third Row: Scope Change, Invoice Change (Action Buttons) */}
+              <div className="grid grid-cols-2 gap-6">
+                {/* Scope Change */}
+                <div className="flex flex-col">
+                  <span className="text-gray-600 font-medium mb-2 text-sm">Scope Change</span>
+                  <div className="flex items-center gap-3">
                     <input
                       type="number"
                       min="0"
@@ -849,40 +917,41 @@ export default function ProjectDeliverables({ projectId }) {
                       step="10"
                       value={progressUpdates[deliverable.id] ?? (deliverable.scope_percentage || 0)}
                       onChange={(e) => handleScopeChange(deliverable.id, e.target.value)}
-                      className="w-16 border border-gray-300 rounded-md p-1 text-xs"
+                      className="w-20 border border-gray-300 rounded-md px-2 py-1 text-sm"
                     />
-                    <span className="text-xs">%</span>
+                    <span className="text-sm">%</span>
+                    <button
+                      onClick={() => handleSaveProgress(deliverable.id)}
+                      disabled={savingProgress[deliverable.id] || progressUpdates[deliverable.id] === undefined}
+                      className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                      title="Save progress"
+                    >
+                      {savingProgress[deliverable.id] ? 'Saving...' : 'Save'}
+                    </button>
+                    {deliverable.scope_percentage === 100 && (
+                      <span className="text-green-600 text-sm font-medium">✓ Complete</span>
+                    )}
                   </div>
-                  <button
-                    onClick={() => handleSaveProgress(deliverable.id)}
-                    disabled={savingProgress[deliverable.id] || progressUpdates[deliverable.id] === undefined}
-                    className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed w-full mb-1"
-                    title="Save progress"
-                  >
-                    {savingProgress[deliverable.id] ? 'Saving...' : 'Save'}
-                  </button>
-                  {deliverable.scope_percentage === 100 && (
-                    <span className="text-green-600 text-xs text-center">✓ Complete</span>
-                  )}
-                </div>                {/* Start Date Column */}
-                <div className="flex flex-col">
-                  <span className="text-gray-600 font-medium mb-1">Start Date</span>
-                  <span className="text-gray-800 bg-gray-50 p-2 rounded text-xs">
-                    {formatDate(deliverable.startDate) || 'Not set'}
-                  </span>
                 </div>
 
-                {/* End Date Column */}
+                {/* Invoice Change */}
                 <div className="flex flex-col">
-                  <span className="text-gray-600 font-medium mb-1">End Date</span>
-                  <span className="text-gray-800 bg-gray-50 p-2 rounded text-xs">
-                    {formatDate(deliverable.endDate) || 'Not set'}
-                  </span>
-                </div>              </div>
+                  <span className="text-gray-600 font-medium mb-2 text-sm">Invoice Change</span>
+                  <button
+                    onClick={() => handleModalOpen('invoice', deliverable)}
+                    className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm font-medium w-fit"
+                  >
+                    Update Invoice
+                  </button>
+                </div>
+              </div>
             </div>
           ))}
         </div>
-      )}      {selectedModal === 'completion' && (
+      )}
+
+      {/* Modals Section - Outside of scrollable area */}
+      {selectedModal === 'completion' && (
         <DeliveryCompletionModal 
           onClose={handleModalClose} 
           deliverable={selectedDeliverable} 

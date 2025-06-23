@@ -150,7 +150,7 @@ export default function ProjectTasks({ projectId }) {
   );
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm border">
+    <div className="bg-white p-6 rounded-lg shadow-sm border h-[600px] flex flex-col">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-semibold text-gray-900">Tasks</h2>
         <button
@@ -192,26 +192,31 @@ export default function ProjectTasks({ projectId }) {
         </div>
       )}
 
-      <TaskList
-        title="Previous Meeting Notes"
-        showFilter={true}
-        onChangeHandler={handlePreviousMeetingChange}
-        selectedFilterOption={selectedMeetingIndex}
-        filterOptions={previousMeetings}
-        records={selectedMeetingNotes}
-      />
-      <TaskList
-        title="Previous tasks"
-        showFilter={true}
-        onChangeHandler={handlePreviousTaskWeekChange}
-        selectedFilterOption={selectedTaskWeekIndex}
-        filterOptions={previousWeekTasks}
-        records={selectedTaskWeekLists}
-      />
-      <TaskList
-        records={nextWeekTasks}
-        title="Planned tasks for next week"
-      />
+      <div className="space-y-6 overflow-y-auto flex-1 pr-2 
+                   scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-300 
+                   hover:scrollbar-thumb-gray-400"
+           style={{ scrollbarWidth: 'thin', scrollbarColor: '#cbd5e1 #f1f5f9' }}>
+        <TaskList
+          title="Previous Meeting Notes"
+          showFilter={true}
+          onChangeHandler={handlePreviousMeetingChange}
+          selectedFilterOption={selectedMeetingIndex}
+          filterOptions={previousMeetings}
+          records={selectedMeetingNotes}
+        />
+        <TaskList
+          title="Previous tasks"
+          showFilter={true}
+          onChangeHandler={handlePreviousTaskWeekChange}
+          selectedFilterOption={selectedTaskWeekIndex}
+          filterOptions={previousWeekTasks}
+          records={selectedTaskWeekLists}
+        />
+        <TaskList
+          records={nextWeekTasks}
+          title="Planned tasks for next week"
+        />
+      </div>
     </div>
   );
 }
