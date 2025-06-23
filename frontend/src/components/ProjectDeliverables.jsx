@@ -146,12 +146,43 @@ const DeliveryInvoiceModal = ({ onClose, deliverable, onSuccessfulSubmit, projec
   // Calculate remaining value for display
   const remainingValue = (deliverable.amount || 0) - (deliverable.invoiced || 0);
 
+  // Auto-calculate payment percentage based on invoice amount
+  const calculatePaymentPercentage = (newInvoiceAmount) => {
+    if (!newInvoiceAmount || !deliverable.amount) return deliverable.payment_percentage || 0;
+    const numericAmount = parseFloat(newInvoiceAmount);
+    if (isNaN(numericAmount) || numericAmount <= 0) return deliverable.payment_percentage || 0;
+    
+    // Calculate total invoiced amount (current invoiced + new invoice amount)
+    const currentInvoiced = deliverable.invoiced || 0;
+    const totalInvoiced = currentInvoiced + numericAmount;
+    
+    // Calculate percentage of total deliverable amount that will be invoiced
+    const percentage = (totalInvoiced / deliverable.amount) * 100;
+    return Math.min(Math.max(Math.round(percentage), 0), 100);
+  };
+
+  // Handle invoice amount change with auto-calculation of percentage
+  const handleInvoiceAmountChange = (e) => {
+    const newAmount = parseInputAmount(e.target.value);
+    setInvoiceAmount(newAmount);
+    
+    // Auto-calculate and update payment percentage
+    if (newAmount && !isFullAmount) {
+      const calculatedPercentage = calculatePaymentPercentage(newAmount);
+      setPaymentPercentage(calculatedPercentage);
+    }
+  };
+
   const handleFullAmountChange = (e) => {
     setIsFullAmount(e.target.checked);
     if (e.target.checked) {
       setInvoiceAmount(remainingValue.toString());
+      // Calculate percentage for full remaining amount
+      const calculatedPercentage = calculatePaymentPercentage(remainingValue);
+      setPaymentPercentage(calculatedPercentage);
     } else {
       setInvoiceAmount('');
+      setPaymentPercentage(0);
     }
   };
 
@@ -181,7 +212,7 @@ const DeliveryInvoiceModal = ({ onClose, deliverable, onSuccessfulSubmit, projec
               id="invoiceAmount"
               type="text" 
               value={formatAmountForInput(invoiceAmount)} 
-              onChange={(e) => setInvoiceAmount(parseInputAmount(e.target.value))}
+              onChange={handleInvoiceAmountChange}
               disabled={isFullAmount}
               className="mt-1 block w-full border border-gray-300 rounded-md p-2" 
               placeholder="Enter invoice amount (e.g., 100,000)"
@@ -198,7 +229,10 @@ const DeliveryInvoiceModal = ({ onClose, deliverable, onSuccessfulSubmit, projec
             <label htmlFor="fullAmount" className="text-sm font-medium text-gray-700">Invoice Full Remaining Amount</label>
           </div>
           <div>
-            <label htmlFor="paymentPercentage" className="block text-sm font-medium text-gray-700">Payment Percentage (%)</label>
+            <label htmlFor="paymentPercentage" className="block text-sm font-medium text-gray-700">
+              Total Payment Percentage (%)
+              <span className="text-xs text-gray-500 ml-1">(Cumulative invoiced amount)</span>
+            </label>
             <input
               id="paymentPercentage"
               type="number"
@@ -937,7 +971,7 @@ export default function ProjectDeliverables({ projectId }) {
 
                 {/* Invoice Change */}
                 <div className="flex flex-col">
-                  <span className="text-gray-600 font-medium mb-2 text-sm">Invoice Change</span>
+                  <span className="text-gray-600 font-medium mb-2 text-sm">Upload Payment Invoice</span>
                   {!isMeetingPage && (
                     <button
                       onClick={() => handleModalOpen('invoice', deliverable)}
