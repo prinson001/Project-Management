@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { X, Upload, Download, Eye } from "lucide-react";
+import { X, Upload, Download, Eye, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import axiosInstance from "../axiosInstance";
 import useAuthStore from "../store/authStore";
+import { getViewableDocumentUrl, getDownloadableDocumentUrl } from "../utils/supabaseUtils";
 
 const ProjectDocumentsModal = ({ 
   isOpen, 
@@ -15,17 +16,25 @@ const ProjectDocumentsModal = ({
   const [localFiles, setLocalFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [uploadingIndex, setUploadingIndex] = useState(null);
+  const [deletingIndex, setDeletingIndex] = useState(null);
 
   const { projectPhases } = useAuthStore();
 
+  // Add console logs to debug fetching existing documents
   useEffect(() => {
     if (isOpen && projectId && currentPhase) {
-      fetchDocumentTemplates();
+      console.log('ProjectDocumentsModal opened with:', { projectId, currentPhase });
+      const load = async () => {
+        await fetchDocumentTemplates();
+        await fetchProjectDocuments();
+      };
+      load();
     }
   }, [isOpen, projectId, currentPhase]);
 
   const fetchDocumentTemplates = async () => {
     setLoading(true);
+    console.log('Fetching document templates for projectId and phase:', { projectId, currentPhase });
     try {
       // Get current phase name
       const phase = projectPhases.find(p => p.id === currentPhase);
@@ -38,6 +47,7 @@ const ProjectDocumentsModal = ({
         "/data-management/getCurrentPhaseDocumentTemplates",
         { phase: phase.name }
       );
+      console.log('Received templates response:', response.data);
 
       if (response.data.status === "success") {
         setDocuments(response.data.data.map(doc => ({
@@ -48,7 +58,9 @@ const ProjectDocumentsModal = ({
           file: null,
           filename: null,
           date: null,
-          uploaded: false
+          uploaded: false,
+          fileUrl: null,
+          documentId: null
         })));
       }
     } catch (error) {
@@ -56,6 +68,38 @@ const ProjectDocumentsModal = ({
       toast.error("Failed to load document templates");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch already uploaded project documents
+  const fetchProjectDocuments = async () => {
+    console.log('Fetching existing project documents for projectId:', projectId);
+    try {
+      const response = await axiosInstance.post(
+        '/data-management/getProjectDocuments',
+        { project_id: projectId }
+      );
+      console.log('Received existing documents response:', response.data);
+      if (response.data.status === 'success' && Array.isArray(response.data.result)) {
+        const existing = response.data.result;
+        setDocuments(prevDocs => prevDocs.map(doc => {
+          const match = existing.find(d => d.template_id === doc.id);
+          if (match) {
+            return {
+              ...doc,
+              filename: match.document_name,
+              date: new Date(match.uploaded_at).toLocaleDateString(),
+              uploaded: true,
+              fileUrl: match.file_url,
+              documentId: match.id
+            };
+          }
+          return doc;
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching existing project documents:', error);
+      toast.error('Failed to load existing project documents');
     }
   };
 
@@ -68,6 +112,11 @@ const ProjectDocumentsModal = ({
     setUploadingIndex(index);
     
     try {
+      // If there's an existing document, delete it first
+      if (documents[index].uploaded && documents[index].documentId) {
+        await handleDeleteDocument(index, true);
+      }
+      
       const formData = new FormData();
       formData.append("file", file);
       formData.append("project_id", projectId);
@@ -90,6 +139,8 @@ const ProjectDocumentsModal = ({
         newDocs[index].filename = file.name;
         newDocs[index].date = new Date().toLocaleDateString();
         newDocs[index].uploaded = true;
+        newDocs[index].fileUrl = response.data.result.file_url;
+        newDocs[index].documentId = response.data.result.id;
         setDocuments(newDocs);
         
         toast.success("Document uploaded successfully!");
@@ -104,15 +155,70 @@ const ProjectDocumentsModal = ({
     }
   };
 
-  const handleRemove = (index) => {
-    const newDocs = [...documents];
-    newDocs[index].file = null;
-    newDocs[index].filename = null;
-    newDocs[index].date = null;
-    newDocs[index].uploaded = false;
-    setDocuments(newDocs);
+  const handleDeleteDocument = async (index, isReplacement = false) => {
+    if (!documents[index].documentId) {
+      toast.error("No document ID found.");
+      return;
+    }
+
+    if (!isReplacement) {
+      setDeletingIndex(index);
+    }
     
-    setLocalFiles(prev => prev.filter(file => file.index !== index));
+    try {
+      const response = await axiosInstance.post(
+        "/data-management/deleteProjectDocument",
+        {
+          project_id: projectId,
+          document_id: documents[index].documentId
+        }
+      );
+
+      if (response.data.status === "success") {
+        if (!isReplacement) {
+          const newDocs = [...documents];
+          newDocs[index].file = null;
+          newDocs[index].filename = null;
+          newDocs[index].date = null;
+          newDocs[index].uploaded = false;
+          newDocs[index].fileUrl = null;
+          newDocs[index].documentId = null;
+          setDocuments(newDocs);
+          toast.success("Document deleted successfully!");
+        }
+      } else {
+        throw new Error(response.data.message || "Delete failed");
+      }
+    } catch (error) {
+      console.error("Error deleting document:", error);
+      if (!isReplacement) {
+        toast.error("Failed to delete document: " + error.message);
+      }
+    } finally {
+      if (!isReplacement) {
+        setDeletingIndex(null);
+      }
+    }
+  };
+
+  const handleViewDocument = (fileUrl) => {
+    if (!fileUrl) {
+      toast.error("No document URL available.");
+      return;
+    }
+
+    try {
+      // Use the specialized utility function for viewable URLs
+      const viewUrl = getViewableDocumentUrl(fileUrl);
+      
+      console.log('Opening document URL:', viewUrl);
+      
+      // Open the document in a new tab
+      window.open(viewUrl, '_blank');
+    } catch (error) {
+      console.error('Error opening document:', error);
+      toast.error('Failed to open document. Please try again.');
+    }
   };
 
   if (!isOpen) return null;
@@ -173,7 +279,7 @@ const ProjectDocumentsModal = ({
                             type="file"
                             className="hidden"
                             onChange={(e) => handleUpload(index, e.target.files[0])}
-                            disabled={uploadingIndex === index}
+                            disabled={uploadingIndex === index || deletingIndex === index}
                           />
                           {uploadingIndex === index ? (
                             <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
@@ -181,20 +287,46 @@ const ProjectDocumentsModal = ({
                             <Upload 
                               className="text-blue-500 hover:text-blue-700 transition-colors" 
                               size={20} 
+                              title="Upload new document"
                             />
                           )}
                         </label>
                         {doc.uploaded && (
                           <>
-                            <button
-                              onClick={() => handleRemove(index)}
-                              className="text-red-500 hover:text-red-700 transition-colors"
+                            {deletingIndex === index ? (
+                              <div className="animate-spin h-5 w-5 border-2 border-red-600 border-t-transparent rounded-full"></div>
+                            ) : (
+                              <button
+                                onClick={() => handleDeleteDocument(index)}
+                                className="text-red-500 hover:text-red-700 transition-colors"
+                                title="Delete document"
+                              >
+                                <Trash2 size={20} />
+                              </button>
+                            )}
+                            <button 
+                              onClick={() => handleViewDocument(doc.fileUrl)}
+                              className="text-green-500 hover:text-green-700 transition-colors"
+                              title="View document"
                             >
-                              <X size={20} />
-                            </button>
-                            <button className="text-green-500 hover:text-green-700 transition-colors">
                               <Eye size={20} />
                             </button>
+                            <a 
+                              href={doc.fileUrl ? getDownloadableDocumentUrl(doc.fileUrl) : '#'}
+                              download={doc.filename}
+                              className="text-blue-500 hover:text-blue-700 transition-colors"
+                              title="Download document"
+                              onClick={(e) => {
+                                if (!doc.fileUrl) {
+                                  e.preventDefault();
+                                  toast.error("No document URL available.");
+                                }
+                                // Add console log to debug download URL
+                                console.log('Download URL:', getDownloadableDocumentUrl(doc.fileUrl));
+                              }}
+                            >
+                              <Download size={20} />
+                            </a>
                           </>
                         )}
                       </div>
