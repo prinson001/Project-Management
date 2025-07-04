@@ -10,7 +10,8 @@ const ProjectDocumentsModal = ({
   onClose, 
   projectId, 
   projectName,
-  currentPhase 
+  currentPhase,
+  isNewProject = false // Add isNewProject prop with default value of false
 }) => {
   const [documents, setDocuments] = useState([]);
   const [localFiles, setLocalFiles] = useState([]);
@@ -23,14 +24,18 @@ const ProjectDocumentsModal = ({
   // Add console logs to debug fetching existing documents
   useEffect(() => {
     if (isOpen && projectId && currentPhase) {
-      console.log('ProjectDocumentsModal opened with:', { projectId, currentPhase });
+      console.log('ProjectDocumentsModal opened with:', { projectId, currentPhase, isNewProject });
       const load = async () => {
         await fetchDocumentTemplates();
-        await fetchProjectDocuments();
+        
+        // Only fetch existing documents if this is not a new project
+        if (!isNewProject) {
+          await fetchProjectDocuments();
+        }
       };
       load();
     }
-  }, [isOpen, projectId, currentPhase]);
+  }, [isOpen, projectId, currentPhase, isNewProject]);
 
   const fetchDocumentTemplates = async () => {
     setLoading(true);
@@ -73,6 +78,12 @@ const ProjectDocumentsModal = ({
 
   // Fetch already uploaded project documents
   const fetchProjectDocuments = async () => {
+    // Skip fetching documents if this is a new project
+    if (isNewProject) {
+      console.log('New project - skipping document fetch');
+      return;
+    }
+    
     console.log('Fetching existing project documents for projectId:', projectId);
     try {
       const response = await axiosInstance.post(
@@ -80,6 +91,8 @@ const ProjectDocumentsModal = ({
         { project_id: projectId }
       );
       console.log('Received existing documents response:', response.data);
+      
+      // For existing projects, check if documents were found
       if (response.data.status === 'success' && Array.isArray(response.data.result)) {
         const existing = response.data.result;
         setDocuments(prevDocs => prevDocs.map(doc => {
@@ -99,7 +112,11 @@ const ProjectDocumentsModal = ({
       }
     } catch (error) {
       console.error('Error fetching existing project documents:', error);
-      toast.error('Failed to load existing project documents');
+      
+      // Only show error toast if this is not a new project and it's not a 404 (no documents found)
+      if (!error.response || error.response.status !== 404) {
+        toast.error('Failed to load existing project documents');
+      }
     }
   };
 
@@ -230,6 +247,11 @@ const ProjectDocumentsModal = ({
           <div>
             <h2 className="text-xl font-semibold">Project Documents</h2>
             <p className="text-gray-600">Upload documents for: {projectName}</p>
+            {isNewProject && (
+              <p className="text-blue-600 text-sm mt-1">
+                Initial document setup for new project
+              </p>
+            )}
           </div>
           <button
             onClick={onClose}

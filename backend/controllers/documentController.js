@@ -173,12 +173,13 @@ const getProjectDocuments = async (req, res) => {
 
     const result = await sql.unsafe(queryText, [project_id]);
 
-    // Check if any documents were found
+    // Even if no documents are found, return an empty array instead of an error
+    // This way the frontend can handle new projects where no documents exist yet
     if (!result || result.length === 0) {
-      return res.status(404).json({
-        status: "failure",
+      return res.status(200).json({
+        status: "success",
         message: `No documents found for project with id ${project_id}`,
-        result: null,
+        result: [], // Return empty array instead of null
       });
     }
 

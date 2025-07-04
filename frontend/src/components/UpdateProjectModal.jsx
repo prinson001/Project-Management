@@ -965,6 +965,7 @@ const UpdateProjectModal = ({
           projectId={projectData.id}
           projectName={projectData.name}
           currentPhase={projectData.current_phase_id}
+          isNewProject={false} // This is an existing project being updated
         />
       )}
       {/* Project Schedule Plan Modal */}

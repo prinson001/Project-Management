@@ -8,7 +8,8 @@ import {
   ExternalLink,
   Eye,
   FileText,
-  Calendar
+  Calendar,
+  Download
 } from "lucide-react";
 import UserAccordion from "./UserAccordion";
 import BoqTaskAccordion from "../components/BoqTaskAccordion";
@@ -35,6 +36,7 @@ import ProjectDocumentsModal from "./ProjectDocumentsModal";
 import ProjectSchedulePlanModal from "./ProjectSchedulePlanModal";
 import useAuthStore from "../store/authStore";
 import EditDocumentFormModal from "./EditDocumentFormModal"; // Import the new modal
+import { getViewableDocumentUrl, getDownloadableDocumentUrl } from "../utils/supabaseUtils";
 
 const TableData = ({
   getData,
@@ -545,14 +547,47 @@ const TableData = ({
                           </a>
                         )}
                         {tableName === "ProjectDocuments" && (
-                          <a
-                            href={`https://jswiqxlveqcgrdnohbcn.supabase.co/storage/v1/object/public/${encodeURIComponent(item.file_url)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline cursor-pointer"
-                          >
-                            <Eye className="w-6 h-5" />
-                          </a>
+                          <div className="flex items-center gap-2">
+                            {item.effective_file_url ? (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    const fileUrl = item.effective_file_url;
+                                    if (!fileUrl) {
+                                      toast.error("No document URL available.");
+                                      return;
+                                    }
+                                    
+                                    const viewUrl = getViewableDocumentUrl(fileUrl);
+                                    console.log('Opening document URL:', viewUrl);
+                                    window.open(viewUrl, '_blank');
+                                  }}
+                                  className="text-green-500 hover:text-green-700 transition-colors"
+                                  title="View document"
+                                >
+                                  <Eye className="w-5 h-5" />
+                                </button>
+                                <a 
+                                  href={getDownloadableDocumentUrl(item.effective_file_url)}
+                                  download={item.document_name}
+                                  className="text-blue-500 hover:text-blue-700 transition-colors"
+                                  title="Download document"
+                                  onClick={(e) => {
+                                    if (!item.effective_file_url) {
+                                      e.preventDefault();
+                                      toast.error("No document URL available.");
+                                      return;
+                                    }
+                                    console.log('Download URL:', getDownloadableDocumentUrl(item.effective_file_url));
+                                  }}
+                                >
+                                  <Download className="w-5 h-5" />
+                                </a>
+                              </>
+                            ) : (
+                              <span className="text-gray-400 text-xs italic">No file uploaded</span>
+                            )}
+                          </div>
                         )}
 
                         {/* {tableName === "document" && (
@@ -564,7 +599,7 @@ const TableData = ({
                           </button>
                         } */}
 
-                        {showActionButtons && tableName !== "tasks" && tableName !== "document" && (
+                        {showActionButtons && tableName !== "tasks" && tableName !== "document" && tableName !== "ProjectDocuments" && (
                           <button
                             onClick={() => toggleForm(index)}
                             className="text-blue-500 hover:text-blue-700"
@@ -595,7 +630,7 @@ const TableData = ({
                           </button>
                         )}
                         
-                        {showActionButtons && tableName !== "tasks" && (
+                        {showActionButtons && tableName !== "tasks" && tableName !== "ProjectDocuments" && (
                           <button
                             onClick={() => handleDeleteClick(item.id)}
                             className="text-red-500 hover:text-red-700"
@@ -847,6 +882,7 @@ const TableData = ({
             projectId={selectedProjectForAction?.id}
             projectName={selectedProjectForAction?.name}
             currentPhase={selectedProjectForAction?.current_phase_id}
+            isNewProject={false} // This is an existing project
           />
         </div>
       )}
