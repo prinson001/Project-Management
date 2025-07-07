@@ -10,8 +10,15 @@ const upsertSchedulePlan = async (req, res) => {
     execution_duration,
     maintenance_duration,
     execution_start_date,
+    execution_end_date,
   } = req.body;
-  console.log("type of execution_duration", typeof execution_duration);
+  
+  console.log("Extracted values:");
+  console.log("- execution_duration:", execution_duration, "(type:", typeof execution_duration, ")");
+  console.log("- maintenance_duration:", maintenance_duration, "(type:", typeof maintenance_duration, ")");
+  console.log("- execution_start_date:", execution_start_date, "(type:", typeof execution_start_date, ")");
+  console.log("- execution_end_date:", execution_end_date, "(type:", typeof execution_end_date, ")");
+  
   if (!projectId || !schedule || !Array.isArray(schedule)) {
     return res.status(400).json({
       status: "failure",
@@ -32,12 +39,13 @@ const upsertSchedulePlan = async (req, res) => {
   }
   if (
     !maintenance_duration ||
-    isNaN(new Date(maintenance_duration).getTime())
+    isNaN(parseInt(maintenance_duration, 10)) ||
+    parseInt(maintenance_duration, 10) < 1
   ) {
     return res.status(400).json({
       status: "failure",
       message:
-        "Invalid data provided: maintenance_duration must be a valid date",
+        "Invalid data provided: maintenance_duration must be a positive integer (days)",
       result: null,
     });
   }
@@ -70,17 +78,19 @@ const upsertSchedulePlan = async (req, res) => {
 
     const result = await sql.begin(async (sql) => {
       try {
-        // Update project table with execution_duration, maintenance_duration, and execution_start_date
+        // Update project table with execution_duration, maintenance_duration, execution_start_date, execution_enddate, and schedule upload status
         await sql`
         UPDATE project
         SET 
-          execution_duration = ${execution_duration + " weeks"}::interval,
-          maintenance_duration = ${
-            new Date(maintenance_duration).toISOString().split("T")[0]
-          }::date,
+          execution_duration = ${execution_duration}::interval,
+          maintenance_duration = ${parseInt(maintenance_duration, 10)},
           execution_start_date = ${
-            new Date(execution_start_date).toISOString().split("T")[0]
-          }::date
+            execution_start_date ? new Date(execution_start_date).toISOString().split("T")[0] : null
+          }::date,
+          execution_enddate = ${
+            execution_end_date ? new Date(execution_end_date).toISOString().split("T")[0] : null
+          }::date,
+          project_schedule_uploaded = true
         WHERE id = ${projectId};
       `;
 
@@ -155,10 +165,10 @@ const getSchedulePhases = async (req, res) => {
   const { budget } = req.body;
   console.log("Budget", budget);
   console.log(typeof budget);
-  if (!budget || isNaN(budget)) {
+  if (budget == null || budget === undefined || isNaN(budget) || budget < 0) {
     return res.status(400).json({
       status: "failure",
-      message: "Budget is required and must be a number",
+      message: "Budget is required and must be a valid positive number",
       result: null,
     });
   }
@@ -257,7 +267,14 @@ const getSchedulePlan = async (req, res) => {
 // @Route site.com/data-management/upsertInternalSchedulePlan
 const upsertInternalSchedulePlan = async (req, res) => {
   console.log("internal schedule plan body:", req.body);
-  const { projectId, schedule, executionDuration, maintenanceDate } = req.body;
+  const { 
+    projectId, 
+    schedule, 
+    executionDuration, 
+    maintenanceDuration, 
+    executionStartDate,
+    executionEndDate
+  } = req.body;
 
   // Validate input
   if (!projectId || !schedule || !Array.isArray(schedule)) {
@@ -269,19 +286,23 @@ const upsertInternalSchedulePlan = async (req, res) => {
     });
   }
 
-  // Validate executionDuration and maintenanceDate
-  if (!executionDuration || !executionDuration.match(/^\d+\s*weeks?$/i)) {
+  // Validate executionDuration and maintenanceDuration
+  if (!executionDuration || !executionDuration.match(/^\d+\s*(weeks?|days?|months?)$/i)) {
     return res.status(400).json({
       status: "failure",
       message:
-        "Invalid data provided: executionDuration must be in the format 'X weeks'",
+        "Invalid data provided: executionDuration must be in the format 'X weeks/days/months'",
       result: null,
     });
   }
-  if (!maintenanceDate || isNaN(new Date(maintenanceDate).getTime())) {
+  if (
+    !maintenanceDuration ||
+    isNaN(parseInt(maintenanceDuration, 10)) ||
+    parseInt(maintenanceDuration, 10) < 1
+  ) {
     return res.status(400).json({
       status: "failure",
-      message: "Invalid data provided: maintenanceDate must be a valid date",
+      message: "Invalid data provided: maintenanceDuration must be a positive integer (days)",
       result: null,
     });
   }
@@ -317,12 +338,19 @@ const upsertInternalSchedulePlan = async (req, res) => {
   try {
     const result = await sql.begin(async (sql) => {
       try {
-        // Update project table with execution_duration and maintenance_date
+        // Update project table with execution_duration, maintenance_duration, execution_start_date, execution_enddate, and schedule upload status
         await sql`
           UPDATE project
           SET 
             execution_duration = ${executionDuration}::interval,
-            maintenance_duration = ${maintenanceDate}::date
+            maintenance_duration = ${parseInt(maintenanceDuration, 10)},
+            execution_start_date = ${
+              executionStartDate ? new Date(executionStartDate).toISOString().split("T")[0] : null
+            }::date,
+            execution_enddate = ${
+              executionEndDate ? new Date(executionEndDate).toISOString().split("T")[0] : null
+            }::date,
+            project_schedule_uploaded = true
           WHERE id = ${projectId};
         `;
 
@@ -461,9 +489,7 @@ const getInternalSchedulePlan = async (req, res) => {
 
     if (projectResult.length > 0) {
       response.execution_duration = projectResult[0].execution_duration; // e.g., "4 weeks"
-      response.maintenance_date = projectResult[0].maintenance_duration
-        ? projectResult[0].maintenance_duration.toISOString().split("T")[0]
-        : null;
+      response.maintenance_duration = projectResult[0].maintenance_duration; // integer (days)
     }
 
     return res.status(200).json(response);

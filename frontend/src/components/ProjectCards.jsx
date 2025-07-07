@@ -223,7 +223,7 @@ const ProjectCards = ({ projectId , projectName , phaseName }) => {
       </div>
       {/* Project High-level Timeline Section */}
       <div className="my-6">
-        <ProjectHighLevelTimeline projectName={projectName} />
+        <ProjectHighLevelTimeline projectName={projectName} projectId={projectId} />
       </div>
     </div>
   );

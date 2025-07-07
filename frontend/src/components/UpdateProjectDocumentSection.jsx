@@ -49,9 +49,10 @@ const UpdateProjectDocumentSection = ({
         // Fetch uploaded project documents
         let projectDocs = [];
         try {
+          console.log('Fetching project documents with ID:', projectId);
           const projectDocsResponse = await axiosInstance.post(
             `/data-management/getProjectDocuments`,
-            { project_id: projectId }
+            { project_id: parseInt(projectId) }
           );
 
           if (projectDocsResponse.data?.status === "success") {

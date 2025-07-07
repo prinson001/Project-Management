@@ -108,6 +108,8 @@ const createDocumentTemplate = async (req, res) => {
 const getCurrentPhaseDocumentTemplates = async (req, res) => {
   try {
     const { phase } = req.body;
+    console.log("Fetching document templates for phase:", phase, "Type:", typeof phase);
+    
     if (!phase) {
       return res.status(400).json({
         status: "failure",
@@ -115,9 +117,19 @@ const getCurrentPhaseDocumentTemplates = async (req, res) => {
       });
     }
 
+    // Ensure phase is a string
+    const phaseValue = String(phase);
+    console.log("Using phase value:", phaseValue);
+
+    // Use string-based search to handle concatenated phase strings
+    // This will match if the phase name appears anywhere in the phase column
     const documents = await sql`
-      SELECT * FROM document_template WHERE phase @> ${[phase]}
+      SELECT * FROM document_template 
+      WHERE LOWER(phase::text) LIKE ${'%' + phaseValue.toLowerCase() + '%'}
     `;
+    
+    console.log(`Found ${documents.length} document templates for phase ${phaseValue}`);
+    
     res.status(200).json({
       status: "success",
       message: "Documents retrieved successfully",

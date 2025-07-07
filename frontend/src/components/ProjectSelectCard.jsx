@@ -1,22 +1,58 @@
 import React from "react";
-import { Clock } from "lucide-react";
+import { Clock, AlertTriangle, CheckCircle, Clock as ClockIcon, Info, TrendingUp, Calendar, GitPullRequest, Zap } from "lucide-react";
+import Tooltip from "./Tooltip";
 
 // Project card for dashboard page selection
 export default function ProjectSelectCard({ project, onSelect }) {
-  // project: real project data from API with fields like id, name, project_budget, etc.
-  
-  // For now, using placeholder values for progress percentages since these might need calculation
-  const percent1 = 10; // Placeholder - could be calculated from deliverables
-  const percent2 = 60; // Placeholder - could be calculated from deliverables
-  
-  // Simple status logic based on project data (you can customize this)
-  const status = 'success'; // Default status - you can add logic to determine this
-  
-  // Color logic for border and progress bar
-  const borderColor = status === 'danger' ? 'border-red-500' : 'border-gray-300';
-  const progressBarColor = status === 'danger' ? 'bg-red-600' : 'bg-green-300';
-  const percent1Color = status === 'danger' ? 'text-red-600' : 'text-green-600';
-  const percent2Color = status === 'danger' ? 'text-gray-600' : 'text-green-600';
+  // Extract progress data from project (provided by backend)
+  const {
+    progress = 0,           // Overall progress based on deliverables
+    timeProgress = 0,       // Time-based progress (0-100)
+    health = 'unknown',     // Project health: 'good', 'warning', 'danger', 'unknown'
+    completedDeliverables = 0,
+    totalDeliverables = 0,
+    lastUpdated
+  } = project;
+
+  // Determine colors based on project health
+  const getStatusColors = () => {
+    switch (health.toLowerCase()) {
+      case 'danger':
+        return {
+          border: 'border-red-500',
+          progressBar: 'bg-red-500',
+          text: 'text-red-600',
+          bg: 'bg-red-50',
+          icon: <AlertTriangle className="w-4 h-4 text-red-500 mr-1" />
+        };
+      case 'warning':
+        return {
+          border: 'border-yellow-400',
+          progressBar: 'bg-yellow-400',
+          text: 'text-yellow-600',
+          bg: 'bg-yellow-50',
+          icon: <ClockIcon className="w-4 h-4 text-yellow-500 mr-1" />
+        };
+      case 'good':
+        return {
+          border: 'border-green-500',
+          progressBar: 'bg-green-500',
+          text: 'text-green-600',
+          bg: 'bg-green-50',
+          icon: <CheckCircle className="w-4 h-4 text-green-500 mr-1" />
+        };
+      default:
+        return {
+          border: 'border-gray-300',
+          progressBar: 'bg-gray-400',
+          text: 'text-gray-600',
+          bg: 'bg-gray-50',
+          icon: <ClockIcon className="w-4 h-4 text-gray-400 mr-1" />
+        };
+    }
+  };
+
+  const statusColors = getStatusColors();
 
   // Format budget if it exists
   const formatBudget = (budget) => {
@@ -24,38 +60,141 @@ export default function ProjectSelectCard({ project, onSelect }) {
     return `${Number(budget).toLocaleString()} SAR`;
   };
 
-  // Calculate last updated (placeholder for now)
+  // Calculate last updated time
   const getLastUpdated = () => {
-    if (project.updated_at) {
-      const updatedDate = new Date(project.updated_at);
+    if (lastUpdated) {
+      const updatedDate = new Date(lastUpdated);
       const now = new Date();
       const diffTime = Math.abs(now - updatedDate);
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      return `${diffDays} days ago`;
+      const diffMinutes = Math.floor(diffTime / (1000 * 60));
+      const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffMinutes < 60) {
+        return `${diffMinutes} ${diffMinutes === 1 ? 'minute' : 'minutes'} ago`;
+      } else if (diffHours < 24) {
+        return `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`;
+      } else {
+        return `${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`;
+      }
     }
     return "Recently";
   };
 
+  // Format progress text
+  const formatProgress = (value) => {
+    return Math.round(value) + "%";
+  };
+
   return (
     <button
-      className={`w-84 h-full text-left bg-white rounded-lg border ${borderColor} p-4 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between`}
+      className={`w-full h-full text-left bg-white rounded-lg border ${statusColors.border} p-4 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between`}
       onClick={() => onSelect(project)}
     >
-      <div className="font-medium text-sm mb-1 line-clamp-2">{project.name || project.title || "Unnamed Project"}</div>
-      <div className="text-xl font-bold mb-2">{formatBudget(project.project_budget || project.budget)}</div>
-      <div className="flex items-center justify-between text-xs mb-1">
-        <span className={percent1Color}>{percent1}%</span>
-        <span className={percent2Color}>{percent2}%</span>
+      <div className="flex justify-between items-start mb-2">
+        <h3 className="font-medium text-sm line-clamp-2 flex-1">
+          {project.name || project.title || "Unnamed Project"}
+        </h3>
+        <div className="flex items-center ml-2">
+          {statusColors.icon}
+        </div>
       </div>
-      <div className="w-full h-3 bg-gray-200 rounded-full mb-2">
-        <div
-          className={`${progressBarColor} h-3 rounded-full`}
-          style={{ width: `${Math.max(percent1, percent2)}%` }}
-        ></div>
+      
+      <div className="text-lg font-bold mb-3">{formatBudget(project.project_budget || project.budget)}</div>
+      
+      {/* Progress Bars */}
+      <div className="mt-4 space-y-3">
+        {/* Progress vs Time */}
+        <div className="flex items-center justify-between text-xs">
+          <div className="flex items-center text-gray-600">
+            <TrendingUp className="w-3 h-3 mr-1" />
+            <span>Progress</span>
+          </div>
+          <div className="flex items-center">
+            <span className={`font-medium ${statusColors.text}`}>
+              {formatProgress(progress)}
+            </span>
+            <span className="mx-1">/</span>
+            <span className="text-gray-500">{formatProgress(timeProgress)}</span>
+            {project.healthScore !== undefined && (
+              <Tooltip content={`Health Score: ${project.healthScore}%`}>
+                <div className={`ml-2 px-1.5 py-0.5 rounded text-xs font-medium ${statusColors.bg} ${statusColors.text}`}>
+                  {project.healthScore}%
+                </div>
+              </Tooltip>
+            )}
+          </div>
+        </div>
+
+        {/* Progress Bar with dual indicators */}
+        <div className="relative w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+          {/* Time Progress (background) */}
+          <div 
+            className="absolute top-0 left-0 h-full bg-blue-100"
+            style={{ width: `${Math.min(100, Math.max(0, timeProgress))}%` }}
+          ></div>
+          
+          {/* Actual Progress (foreground) */}
+          <div 
+            className={`absolute top-0 left-0 h-full ${statusColors.progressBar} rounded-r-full`}
+            style={{ 
+              width: `${Math.min(100, Math.max(0, progress))}%`,
+              opacity: 0.9
+            }}
+          ></div>
+        </div>
+
+        {/* Deliverables Status */}
+        {totalDeliverables > 0 && (
+          <div className="flex items-center justify-between text-xs text-gray-600 mt-3">
+            <div className="flex items-center">
+              <GitPullRequest className="w-3 h-3 mr-1 text-gray-500" />
+              <span>Deliverables</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-green-600">{completedDeliverables} done</span>
+              <span className="text-gray-300">•</span>
+              <span className="text-blue-600">{project.onTimeDeliverables || 0} on time</span>
+              <span className="text-gray-300">•</span>
+              <span className="text-red-600">{project.delayedDeliverables || 0} delayed</span>
+            </div>
+          </div>
+        )}
+
+        {/* Current Phase */}
+        {project.currentPhase && (
+          <div className="mt-2">
+            <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
+              <div className="flex items-center">
+                <Calendar className="w-3 h-3 mr-1 text-gray-500" />
+                <span>Current Phase</span>
+              </div>
+              <div className="flex items-center">
+                <span className="font-medium">{project.currentPhase.name}</span>
+                <span className="ml-2 px-1.5 py-0.5 bg-blue-50 text-blue-600 text-xs rounded">
+                  {project.currentPhase.progress}%
+                </span>
+              </div>
+            </div>
+            <div className="w-full bg-gray-100 rounded-full h-1.5">
+              <div 
+                className="h-full rounded-full bg-blue-400"
+                style={{ width: `${Math.min(100, Math.max(0, project.currentPhase.progress))}%` }}
+              ></div>
+            </div>
+          </div>
+        )}
       </div>
-      <div className="flex items-center justify-between mt-2">
-        <span className="inline-flex items-center text-xs"><Clock className="w-4 h-4 mr-1 text-yellow-500" /> </span>
-        <span className="text-xs text-gray-500 italic">Last updated: {getLastUpdated()}</span>
+      
+      {/* Deliverables and Last Updated */}
+      <div className="flex items-center justify-between mt-2 text-xs">
+        <span className={`px-2 py-1 rounded-full ${statusColors.bg} ${statusColors.text}`}>
+          {completedDeliverables} of {totalDeliverables} tasks
+        </span>
+        <span className="text-gray-500 flex items-center">
+          <Clock className="w-3 h-3 mr-1" />
+          {getLastUpdated()}
+        </span>
       </div>
     </button>
   );

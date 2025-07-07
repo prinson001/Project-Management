@@ -126,6 +126,13 @@ const addProjectDocument = async (req, res) => {
       RETURNING *;
     `;
 
+    // Update the project table to mark that document has been uploaded
+    await sql`
+      UPDATE project
+      SET project_documents_uploaded = true
+      WHERE id = ${documentData.project_id};
+    `;
+
     return res.status(201).json({
       status: "success",
       message: "Document uploaded successfully",
@@ -145,7 +152,10 @@ const addProjectDocument = async (req, res) => {
 // @Route site.com/data-management/getProjectDocuments
 const getProjectDocuments = async (req, res) => {
   // Check if project_id exists in the request body
+  console.log("getProjectDocuments called with request body:", req.body);
+  
   if (!req.body || !req.body.project_id) {
+    console.error("Missing project_id in request body:", req.body);
     return res.status(400).json({
       status: "failure",
       message: "Required field missing: project_id is required",
@@ -154,10 +164,13 @@ const getProjectDocuments = async (req, res) => {
   }
 
   const { project_id } = req.body;
+  console.log("Extracted project_id:", project_id, "Type:", typeof project_id);
 
   try {
     // Validate that project_id is numeric
-    if (isNaN(project_id)) {
+    const projectIdNum = parseInt(project_id);
+    if (isNaN(projectIdNum)) {
+      console.error("Invalid project_id format:", project_id);
       return res.status(400).json({
         status: "failure",
         message: "Invalid project_id format: must be a number",
@@ -171,7 +184,10 @@ const getProjectDocuments = async (req, res) => {
       WHERE project_id = $1
     `;
 
-    const result = await sql.unsafe(queryText, [project_id]);
+    console.log("Executing SQL query with project_id:", projectIdNum);
+    
+    const result = await sql.unsafe(queryText, [projectIdNum]);
+    console.log("SQL query result:", result ? `Found ${result.length} documents` : "No result");
 
     // Even if no documents are found, return an empty array instead of an error
     // This way the frontend can handle new projects where no documents exist yet

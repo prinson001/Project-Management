@@ -165,46 +165,268 @@ const getProjectDetails = async (req, res) => {
 
 const getProjectsBasedOnUserId = async(req,res)=>{
   const {userId} = req.params;
-  const {role } = req.query;
-  try{
-    let result = [];
-    if(role == 'DEPUTY' || role== 'PMO')
-    {
-      result = await sql `
-        SELECT
-          *
-        FROM
-          project
-      `
+  const {role} = req.query;
+  try {
+    let projects = [];
+    
+    // Get all projects based on user role
+    if (role === 'DEPUTY' || role === 'PMO') {
+      projects = await sql`
+        SELECT * FROM project
+      `;
+    } else {
+      projects = await sql`
+        SELECT * FROM project
+        WHERE project_manager_id = ${userId} OR alternative_project_manager_id = ${userId}
+      `;
     }
-    else
-    {
-      result = await sql `
-        SELECT
-          *
-        FROM
-          project
-        WHERE 
-          project_manager_id = ${userId} 
-        OR 
-          alternative_project_manager_id = ${userId}
-      `
-    }
+
+    // Calculate progress for each project
+    const projectsWithProgress = await Promise.all(projects.map(async (project) => {
+      try {
+        // Get project phases if available
+        const phases = await sql`
+          SELECT * FROM project_phase 
+          WHERE project_id = ${project.id}
+          ORDER BY phase_order ASC
+        `;
+
+        // Get all deliverables for the project with their status and scope percentage
+        const deliverables = await sql`
+          SELECT 
+            d.*,
+            i.project_id,
+            COALESCE(d.scope_pct, 0) as scope_pct,
+            d.status as deliverable_status,
+            d.start_date as deliverable_start_date,
+            d.end_date as deliverable_end_date,
+            d.phase_id as phase_id
+          FROM deliverable d
+          JOIN item i ON d.item_id = i.id
+          WHERE i.project_id = ${project.id}
+        `;
+
+        // Calculate progress by phase
+        const phaseProgress = phases.map(phase => {
+          const phaseDeliverables = deliverables.filter(d => d.phase_id === phase.id);
+          let phaseWeight = 0;
+          let phaseProgressSum = 0;
+          
+          phaseDeliverables.forEach(deliverable => {
+            const weight = 1; // Equal weight for all deliverables in phase
+            phaseWeight += weight;
+            
+            let progress = 0;
+            if (deliverable.deliverable_status === 'COMPLETED') {
+              progress = 100;
+            } else if (deliverable.deliverable_status === 'IN_PROGRESS') {
+              progress = Math.min(100, Math.max(0, parseFloat(deliverable.scope_pct) || 0));
+            }
+            
+            phaseProgressSum += (progress * weight);
+          });
+          
+          return {
+            phaseId: phase.id,
+            phaseName: phase.name,
+            progress: phaseWeight > 0 ? Math.round(phaseProgressSum / phaseWeight) : 0,
+            weight: phaseWeight,
+            startDate: phase.start_date,
+            endDate: phase.end_date
+          };
+        });
+
+        const now = new Date();
+        
+        // Calculate overall progress based on phases
+        let totalWeight = 0;
+        let weightedProgress = 0;
+        let completedDeliverables = 0;
+        let totalDeliverables = deliverables.length;
+        let onTimeDeliverables = 0;
+        let delayedDeliverables = 0;
+
+        // Count completed and on-time deliverables
+        deliverables.forEach(deliverable => {
+          const weight = 1;
+          totalWeight += weight;
+          
+          let progress = 0;
+          if (deliverable.deliverable_status === 'COMPLETED') {
+            progress = 100;
+            completedDeliverables++;
+            // Check if completed on time
+            if (deliverable.deliverable_end_date && new Date(deliverable.deliverable_end_date) >= now) {
+              onTimeDeliverables++;
+            } else {
+              delayedDeliverables++;
+            }
+          } else if (deliverable.deliverable_status === 'IN_PROGRESS') {
+            progress = Math.min(100, Math.max(0, parseFloat(deliverable.scope_pct) || 0));
+            // Check if in progress but past due
+            if (deliverable.deliverable_end_date && new Date(deliverable.deliverable_end_date) < now) {
+              delayedDeliverables++;
+            }
+          } else if (deliverable.deliverable_status === 'NOT_STARTED' && 
+                    deliverable.deliverable_start_date && 
+                    new Date(deliverable.deliverable_start_date) < now) {
+            // Not started but should have started
+            delayedDeliverables++;
+          }
+          
+          weightedProgress += (progress * weight);
+        });
+
+        // Calculate overall progress (0-100)
+        const overallProgress = totalWeight > 0 
+          ? Math.round(weightedProgress / totalWeight) 
+          : 0;
+
+        // Calculate time-based progress if project has start and end dates
+        let timeProgress = 0;
+        //const now = new Date();
+        if (project.start_date && project.end_date) {
+          const start = new Date(project.start_date);
+          const end = new Date(project.end_date);
+          const totalDuration = end - start;
+          const elapsedDuration = now - start;
+          
+          if (totalDuration > 0) {
+            timeProgress = Math.min(100, Math.max(0, (elapsedDuration / totalDuration) * 100));
+          }
+        }
+
+        // Calculate phase-based timeline progress
+        let phaseTimeProgress = 0;
+        if (phases.length > 0) {
+          const currentPhase = phases.find(phase => 
+            (!phase.start_date || new Date(phase.start_date) <= now) && 
+            (!phase.end_date || new Date(phase.end_date) >= now)
+          ) || phases[0];
+          
+          if (currentPhase.start_date && currentPhase.end_date) {
+            const phaseStart = new Date(currentPhase.start_date);
+            const phaseEnd = new Date(currentPhase.end_date);
+            const phaseDuration = phaseEnd - phaseStart;
+            const elapsedPhaseTime = now - phaseStart;
+            
+            if (phaseDuration > 0) {
+              phaseTimeProgress = Math.min(100, Math.max(0, (elapsedPhaseTime / phaseDuration) * 100));
+            }
+          }
+        }
+
+        // Calculate health status with multiple factors
+        let healthScore = 0;
+        const maxScore = 10;
+        
+        // 1. Progress vs Time (40% weight)
+        const progressVsTime = overallProgress / Math.max(timeProgress, 1);
+        healthScore += Math.min(4, progressVsTime * 4);
+        
+        // 2. Deliverable on-time rate (30% weight)
+        const onTimeRate = totalDeliverables > 0 
+          ? (onTimeDeliverables / totalDeliverables) * 3 
+          : 3; // Default to full score if no deliverables
+        healthScore += onTimeDeliverables === 0 ? 3 : onTimeRate;
+        
+        // 3. Phase progress vs phase time (30% weight)
+        const avgPhaseProgress = phaseProgress.length > 0
+          ? phaseProgress.reduce((sum, phase) => sum + phase.progress, 0) / phaseProgress.length
+          : 0;
+        const phaseTimeRatio = phaseTimeProgress > 0 
+          ? Math.min(1, avgPhaseProgress / phaseTimeProgress) 
+          : 1;
+        healthScore += phaseTimeRatio * 3;
+        
+        // Determine health status based on score (0-10)
+        let health;
+        if (healthScore >= 8) {
+          health = 'good';
+        } else if (healthScore >= 5) {
+          health = 'warning';
+        } else {
+          health = 'danger';
+        }
+
+        // Calculate phase-based metrics
+        const currentPhase = phases.find(phase => 
+          (!phase.start_date || new Date(phase.start_date) <= now) && 
+          (!phase.end_date || new Date(phase.end_date) >= now)
+        ) || (phases.length > 0 ? phases[0] : null);
+
+        return {
+          ...project,
+          // Progress metrics
+          progress: overallProgress,
+          timeProgress: Math.round(timeProgress),
+          phaseTimeProgress: Math.round(phaseTimeProgress),
+          health,
+          healthScore: Math.round((healthScore / maxScore) * 100), // Convert to percentage
+          
+          // Deliverable metrics
+          completedDeliverables,
+          totalDeliverables,
+          onTimeDeliverables,
+          delayedDeliverables,
+          deliverableOnTimeRate: totalDeliverables > 0 
+            ? Math.round((onTimeDeliverables / totalDeliverables) * 100) 
+            : 100,
+            
+          // Phase information
+          currentPhase: currentPhase ? {
+            id: currentPhase.id,
+            name: currentPhase.name,
+            progress: phaseProgress.find(p => p.phaseId === currentPhase.id)?.progress || 0,
+            startDate: currentPhase.start_date,
+            endDate: currentPhase.end_date
+          } : null,
+          
+          // Timestamps
+          lastUpdated: new Date().toISOString(),
+          calculatedAt: new Date().toISOString(),
+          
+          // Additional metrics
+          isOnTrack: health === 'good',
+          needsAttention: health === 'danger',
+          
+          // Raw metrics for debugging
+          _metrics: {
+            progressVsTime,
+            phaseTimeRatio,
+            avgPhaseProgress: Math.round(avgPhaseProgress),
+            phaseCount: phases.length,
+            deliverableCount: deliverables.length
+          }
+        };
+      } catch (error) {
+        console.error(`Error calculating progress for project ${project.id}:`, error);
+        return {
+          ...project,
+          progress: 0,
+          timeProgress: 0,
+          health: 'unknown',
+          completedDeliverables: 0,
+          totalDeliverables: 0,
+          lastUpdated: new Date().toISOString()
+        };
+      }
+    }));
+
     res.status(200).json({
-      status:"success",
-      message:"Successfully retrieved projects for user",
-      result
-    })
+      status: "success",
+      message: "Successfully retrieved projects with progress",
+      result: projectsWithProgress
+    });
+  } catch (e) {
+    console.error("Error in getProjectsBasedOnUserId:", e);
+    res.status(500).json({
+      status: "failure",
+      message: "Failed to get projects based on user id",
+      result: e.message
+    });
   }
-  catch(e)
-  {
-      res.status(500).json({
-        status:"failure",
-        message:"failed to get projects based on user id",
-        result : e
-      })
-  }
-}
+};
 
 const getProjectDeliverables = async(req,res)=>{
     const {projectid} = req.params;

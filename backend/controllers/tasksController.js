@@ -28,7 +28,17 @@ const getTasks = async (req, res) => {
       LEFT JOIN project ON tasks.related_entity_id = project.id 
       LEFT JOIN users ON tasks.assigned_to = users.id
       WHERE tasks.assigned_to = ${userId} 
+      ORDER BY tasks.created_date DESC
       LIMIT ${limit} OFFSET ${offset}`;
+
+    // Debug logging
+    console.log(`getTasks: Retrieved ${result.length} tasks for user ${userId}`);
+    if (result.length > 0) {
+      console.log('First task:', result[0].id, result[0].created_date, result[0].task_type);
+      if (result.length > 1) {
+        console.log('Second task:', result[1].id, result[1].created_date, result[1].task_type);
+      }
+    }
 
     const countResult = await sql`
       SELECT COUNT(*) AS totalCount,
@@ -256,7 +266,13 @@ const filterTasks = async (req, res) => {
 
       if (sortStatements.length > 0) {
         queryText += ` ORDER BY ${sortStatements.join(", ")}`;
+      } else {
+        // Default sort by created_date DESC if no sort is specified
+        queryText += ` ORDER BY tasks.created_date DESC`;
       }
+    } else {
+      // Default sort by created_date DESC if no sort clause is provided
+      queryText += ` ORDER BY tasks.created_date DESC`;
     }
 
     const offset = (page - 1) * limit;
@@ -266,6 +282,16 @@ const filterTasks = async (req, res) => {
     queryParams.push(limit, offset);
 
     const result = await sql.unsafe(queryText, queryParams);
+
+    // Debug logging for filterTasks
+    console.log(`filterTasks: Retrieved ${result.length} tasks`);
+    console.log('Query used:', queryText);
+    if (result.length > 0) {
+      console.log('First task:', result[0].id, result[0].created_date, result[0].task_type);
+      if (result.length > 1) {
+        console.log('Second task:', result[1].id, result[1].created_date, result[1].task_type);
+      }
+    }
 
     let countQuery = `
       SELECT COUNT(*) AS totalCount,

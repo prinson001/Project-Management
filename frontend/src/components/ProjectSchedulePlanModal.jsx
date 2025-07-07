@@ -22,6 +22,7 @@ const ProjectSchedulePlanModal = ({
   executionStartDate: initialStartDate,
   executionDuration: initialDuration,
   maintenanceDate: initialMaintenanceDate,
+  maintenanceDuration: initialMaintenanceDuration,
   executionDurationType: initialDurationType,
   onSave
 }) => {
@@ -32,6 +33,8 @@ const ProjectSchedulePlanModal = ({
   const [phases, setPhases] = useState([]);
   const [durationTypes, setDurationTypes] = useState({});
   const [totalDurationUnit, setTotalDurationUnit] = useState("days");
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState(null);
 
   const isInternalSchedule = ["1", "4"].includes(projectType?.toString());
 
@@ -46,31 +49,90 @@ const ProjectSchedulePlanModal = ({
     defaultValues: {
       executionStartDate: initialStartDate || null,
       executionDuration: initialDuration ? String(initialDuration) : "4",
-      maintenanceDate: initialMaintenanceDate || null,
-      execution_duration_type: initialDurationType || "weeks"
+      maintenanceDuration: initialMaintenanceDuration ? String(initialMaintenanceDuration) : "30",
+      execution_duration_type: initialDurationType || "weeks",
+      maintenance_duration_type: "days"
     }
   });
 
   const executionStartDate = watch("executionStartDate");
   const executionDuration = watch("executionDuration");
-  const maintenanceDate = watch("maintenanceDate");
+  const maintenanceDuration = watch("maintenanceDuration");
   const executionDurationType = watch("execution_duration_type");
+  const maintenanceDurationType = watch("maintenance_duration_type");
+
+  // Calculate execution end date
+  const executionEndDate = React.useMemo(() => {
+    if (executionStartDate && executionDuration && executionDurationType) {
+      const startDate = new Date(executionStartDate);
+      if (isValid(startDate)) {
+        const durationNum = parseInt(executionDuration, 10);
+        let daysToAdd = 0;
+        
+        switch (executionDurationType) {
+          case 'days':
+            daysToAdd = durationNum;
+            break;
+          case 'weeks':
+            daysToAdd = durationNum * 7;
+            break;
+          case 'months':
+            daysToAdd = durationNum * 30; // Approximate month
+            break;
+          default:
+            daysToAdd = durationNum * 7; // Default to weeks
+        }
+        
+        return addDays(startDate, daysToAdd);
+      }
+    }
+    return null;
+  }, [executionStartDate, executionDuration, executionDurationType]);
 
   const totalDurationDays = React.useMemo(() => {
     if (
       executionStartDate &&
-      maintenanceDate &&
+      maintenanceDuration &&
       isValid(new Date(executionStartDate)) &&
-      isValid(new Date(maintenanceDate))
+      !isNaN(parseInt(maintenanceDuration, 10))
     ) {
-      const diffTime = Math.abs(
-        new Date(maintenanceDate) - new Date(executionStartDate)
-      );
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      return diffDays + 1; // Inclusive of start and end date
+      const executionDays = parseInt(executionDuration, 10) || 0;
+      const maintenanceDays = parseInt(maintenanceDuration, 10) || 0;
+      
+      let executionInDays = 0;
+      switch (executionDurationType) {
+        case 'days':
+          executionInDays = executionDays;
+          break;
+        case 'weeks':
+          executionInDays = executionDays * 7;
+          break;
+        case 'months':
+          executionInDays = executionDays * 30;
+          break;
+        default:
+          executionInDays = executionDays * 7;
+      }
+      
+      let maintenanceInDays = 0;
+      switch (maintenanceDurationType) {
+        case 'days':
+          maintenanceInDays = maintenanceDays;
+          break;
+        case 'weeks':
+          maintenanceInDays = maintenanceDays * 7;
+          break;
+        case 'months':
+          maintenanceInDays = maintenanceDays * 30;
+          break;
+        default:
+          maintenanceInDays = maintenanceDays;
+      }
+      
+      return executionInDays + maintenanceInDays;
     }
     return 0;
-  }, [executionStartDate, maintenanceDate]);
+  }, [executionStartDate, executionDuration, executionDurationType, maintenanceDuration, maintenanceDurationType]);
 
   const getTotalDurationDisplay = () => {
     if (totalDurationUnit === "days") {
@@ -120,6 +182,79 @@ const ProjectSchedulePlanModal = ({
     }
     return `${durationDays} days`;
   }, []);
+
+  // Function to get phase flag based on dates
+  const getPhaseFlag = useCallback((startDate, endDate) => {
+    if (!startDate || !endDate) return null;
+    
+    const now = new Date();
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    // Set time to start of day for accurate comparison
+    now.setHours(0, 0, 0, 0);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+    
+    if (end < now && start < now) {
+      // Both start and end dates are in the past - red flag
+      return { type: 'red', message: 'Phase overdue' };
+    } else if (start < now && end >= now) {
+      // Start date is in the past but end date is in future/today - yellow flag
+      return { type: 'yellow', message: 'Phase in progress (delayed start)' };
+    }
+    
+    return null; // No flag needed
+  }, []);
+
+  // Function to convert maintenance duration to days
+  const convertMaintenanceToDays = useCallback((duration, type) => {
+    const durationNum = parseInt(duration, 10) || 0;
+    switch (type) {
+      case 'days':
+        return durationNum;
+      case 'weeks':
+        return durationNum * 7;
+      case 'months':
+        return durationNum * 30;
+      default:
+        return durationNum;
+    }
+  }, []);
+
+  // Function to check if there are any phases with past dates
+  const hasPhaseIssues = useCallback(() => {
+    return scheduleData.some(phase => {
+      const flag = getPhaseFlag(
+        phase.start_date || phase.startDate,
+        phase.end_date || phase.endDate
+      );
+      return flag !== null; // Returns true if there's any flag (red or yellow)
+    });
+  }, [scheduleData, getPhaseFlag]);
+
+  // Function to get phase issues details for the popup
+  const getPhaseIssuesDetails = useCallback(() => {
+    const issues = scheduleData
+      .map((phase, index) => {
+        const flag = getPhaseFlag(
+          phase.start_date || phase.startDate,
+          phase.end_date || phase.endDate
+        );
+        if (flag) {
+          return {
+            phase: phase.main_phase || phase.mainPhase,
+            subPhase: phase.phase_name || phase.subPhase,
+            type: flag.type,
+            message: flag.message
+          };
+        }
+        return null;
+      })
+      .filter(issue => issue !== null);
+    
+    return issues;
+  }, [scheduleData, getPhaseFlag]);
 
   const getDurationOptions = (type) => {
     if (type === "B. Days") {
@@ -175,9 +310,16 @@ const ProjectSchedulePlanModal = ({
 
   useEffect(() => {
     if (isOpen && projectId) {
+      console.log("ProjectSchedulePlanModal opened:");
+      console.log("- projectId:", projectId);
+      console.log("- projectType:", projectType);
+      console.log("- isInternalSchedule:", isInternalSchedule);
+      
       if (isInternalSchedule) {
+        console.log("Loading internal schedule...");
         loadInternalSchedule();
       } else {
+        console.log("Loading external schedule...");
         loadExternalSchedule();
       }
     }
@@ -225,48 +367,88 @@ const ProjectSchedulePlanModal = ({
   const loadInternalSchedule = async () => {
     setLoading(true);
     try {
+      console.log("Fetching internal schedule for projectId:", projectId);
+      
       // Load existing internal schedule
       const response = await axiosInstance.post(
         "/data-management/getInternalSchedulePlan",
         { projectId }
       );
 
-      if (response.data.status === "success") {
-        const scheduleResult = response.data.result;
+      console.log("Internal schedule response:", response.data);
+
+      if (response.data.status === "success" && response.data.result.length > 0) {
+        console.log("Found existing internal schedule data");
+        const scheduleResult = response.data.result.map(item => ({
+          phaseId: item.phase_id,
+          mainPhase: item.main_phase,
+          subPhase: item.phase_name,
+          duration: `${item.duration_days} days`,
+          durationDays: item.duration_days,
+          startDate: item.start_date ? new Date(item.start_date) : null,
+          endDate: item.end_date ? new Date(item.end_date) : null,
+        }));
         setScheduleData(scheduleResult);
         
-        // Set form values
+        // Set form values from backend response
         if (response.data.execution_duration) {
-          setValue("executionDuration", response.data.execution_duration.split(" ")[0]);
-          setValue("execution_duration_type", response.data.execution_duration.split(" ")[1] || "weeks");
+          const durationParts = response.data.execution_duration.split(" ");
+          setValue("executionDuration", durationParts[0]);
+          setValue("execution_duration_type", durationParts[1] || "weeks");
         }
-        if (response.data.maintenance_date) {
-          setValue("maintenanceDate", new Date(response.data.maintenance_date));
+        if (response.data.maintenance_duration) {
+          setValue("maintenanceDuration", response.data.maintenance_duration.toString());
+          setValue("maintenance_duration_type", "days");
         }
       } else {
-        // Initialize default internal schedule
+        console.log("No existing internal schedule found, initializing default");
+        // Initialize default internal schedule with consistent structure
         setScheduleData([
           {
-            phase_id: 1,
-            main_phase: "Planning",
-            phase_name: "Prepare scope",
-            duration_days: 28,
-            start_date: null,
-            end_date: null
+            phaseId: 1,
+            mainPhase: "Planning",
+            subPhase: "Prepare scope",
+            duration: "28 days",
+            durationDays: 28,
+            startDate: null,
+            endDate: null
           },
           {
-            phase_id: 4,
-            main_phase: "Execution", 
-            phase_name: "Execute phase",
-            duration_days: 28,
-            start_date: null,
-            end_date: null
+            phaseId: 4,
+            mainPhase: "Execution", 
+            subPhase: "Execute phase",
+            duration: "28 days",
+            durationDays: 28,
+            startDate: null,
+            endDate: null
           }
         ]);
       }
     } catch (error) {
       console.error("Error loading internal schedule:", error);
-      toast.error("Failed to load schedule data");
+      toast.error("Failed to load internal schedule data");
+      
+      // Initialize default internal schedule on error
+      setScheduleData([
+        {
+          phaseId: 1,
+          mainPhase: "Planning",
+          subPhase: "Prepare scope",
+          duration: "28 days",
+          durationDays: 28,
+          startDate: null,
+          endDate: null
+        },
+        {
+          phaseId: 4,
+          mainPhase: "Execution", 
+          subPhase: "Execute phase",
+          duration: "28 days",
+          durationDays: 28,
+          startDate: null,
+          endDate: null
+        }
+      ]);
     } finally {
       setLoading(false);
     }
@@ -334,8 +516,27 @@ const ProjectSchedulePlanModal = ({
       return;
     }
 
+    // Check if there are phases with past dates
+    if (hasPhaseIssues()) {
+      // Store form data and show confirmation modal
+      setPendingFormData(formData);
+      setShowConfirmationModal(true);
+      return;
+    }
+
+    // If no issues, proceed with save
+    await performSave(formData);
+  };
+
+  const performSave = async (formData) => {
     setSaving(true);
     try {
+      // Convert maintenance duration to days
+      const maintenanceDurationInDays = convertMaintenanceToDays(
+        maintenanceDuration,
+        maintenanceDurationType
+      );
+
       if (isInternalSchedule) {
         // Save internal schedule
         const response = await axiosInstance.post(
@@ -343,18 +544,23 @@ const ProjectSchedulePlanModal = ({
           {
             projectId,
             schedule: scheduleData.map(phase => ({
-              phaseId: phase.phase_id,
-              durationDays: phase.duration_days,
-              startDate: phase.start_date ? phase.start_date.toISOString().split('T')[0] : null,
-              endDate: phase.end_date ? phase.end_date.toISOString().split('T')[0] : null
+              phaseId: phase.phaseId,
+              durationDays: phase.durationDays,
+              startDate: phase.startDate ? phase.startDate.toISOString().split('T')[0] : null,
+              endDate: phase.endDate ? phase.endDate.toISOString().split('T')[0] : null
             })),
             executionDuration: `${executionDuration} ${executionDurationType}`,
-            maintenanceDate: maintenanceDate ? maintenanceDate.toISOString().split('T')[0] : null
+            maintenanceDuration: maintenanceDurationInDays,
+            executionStartDate: executionStartDate ? executionStartDate.toISOString().split('T')[0] : null,
+            executionEndDate: executionEndDate ? executionEndDate.toISOString().split('T')[0] : null
           }
         );
 
         if (response.data.status === "success") {
           toast.success("Internal schedule plan saved successfully!");
+          if (onSave) {
+            onSave();
+          }
           onClose();
         } else {
           throw new Error(response.data.message || "Failed to save schedule");
@@ -372,13 +578,17 @@ const ProjectSchedulePlanModal = ({
               endDate: phase.endDate ? phase.endDate.toISOString().split('T')[0] : null
             })),
             execution_duration: `${executionDuration} ${executionDurationType}`,
-            maintenance_duration: maintenanceDate ? maintenanceDate.toISOString().split('T')[0] : null,
-            execution_start_date: executionStartDate ? executionStartDate.toISOString().split('T')[0] : null
+            maintenance_duration: maintenanceDurationInDays,
+            execution_start_date: executionStartDate ? executionStartDate.toISOString().split('T')[0] : null,
+            execution_end_date: executionEndDate ? executionEndDate.toISOString().split('T')[0] : null
           }
         );
 
         if (response.data.status === "success") {
           toast.success("Schedule plan saved successfully!");
+          if (onSave) {
+            onSave();
+          }
           onClose();
         } else {
           throw new Error(response.data.message || "Failed to save schedule");
@@ -390,6 +600,19 @@ const ProjectSchedulePlanModal = ({
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleConfirmSave = async () => {
+    setShowConfirmationModal(false);
+    if (pendingFormData) {
+      await performSave(pendingFormData);
+      setPendingFormData(null);
+    }
+  };
+
+  const handleCancelSave = () => {
+    setShowConfirmationModal(false);
+    setPendingFormData(null);
   };
 
   const getRowColor = (mainPhase) => {
@@ -407,14 +630,15 @@ const ProjectSchedulePlanModal = ({
 
   useEffect(() => {
     if (isOpen) {
-      console.log('ProjectSchedulePlanModal opened with initial values:', { initialStartDate, initialDuration, initialMaintenanceDate, initialDurationType });
+      console.log('ProjectSchedulePlanModal opened with initial values:', { initialStartDate, initialDuration, initialMaintenanceDuration, initialDurationType });
       // Use form setValue instead of direct state setters
       setValue("executionStartDate", initialStartDate || '');
       setValue("executionDuration", initialDuration?.toString() || '');
-      setValue("maintenanceDate", initialMaintenanceDate || '');
+      setValue("maintenanceDuration", initialMaintenanceDuration?.toString() || '30');
       setValue("execution_duration_type", initialDurationType || 'weeks');
+      setValue("maintenance_duration_type", 'days'); // Default to days for maintenance
     }
-  }, [isOpen, initialStartDate, initialDuration, initialMaintenanceDate, initialDurationType, setValue]);
+  }, [isOpen, initialStartDate, initialDuration, initialMaintenanceDuration, initialDurationType, setValue]);
 
   if (!isOpen) return null;
 
@@ -515,29 +739,59 @@ const ProjectSchedulePlanModal = ({
 
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Maintenance Date
+                  Execution End Date
                 </label>
-                <Controller
-                  name="maintenanceDate"
-                  control={control}
-                  render={({ field }) => (
-                    <Datepicker
-                      value={
-                        field.value
-                          ? { startDate: field.value, endDate: field.value }
-                          : null
-                      }
-                      onChange={(newValue) =>
-                        field.onChange(newValue?.startDate)
-                      }
-                      useRange={false}
-                      asSingle={true}
-                      placeholder="Select maintenance date"
-                      inputClassName="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  )}
+                <input
+                  type="text"
+                  className="w-full p-2 border border-gray-300 rounded bg-gray-100"
+                  value={
+                    executionEndDate && isValid(executionEndDate)
+                      ? format(executionEndDate, "dd-MMM-yyyy")
+                      : "Not calculated"
+                  }
+                  readOnly
+                  tabIndex={-1}
                 />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Maintenance Duration <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    className={`w-full p-2 border ${
+                      errors.maintenanceDuration
+                        ? "border-red-500"
+                        : "border-gray-300"
+                    } rounded`}
+                    placeholder="Enter duration"
+                    {...register("maintenanceDuration", {
+                      required: "Maintenance duration is required",
+                      min: { value: 1, message: "Must be at least 1" }
+                    })}
+                  />
+                  <select
+                    className="p-2 border border-gray-300 rounded"
+                    {...register("maintenance_duration_type")}
+                    defaultValue="days"
+                  >
+                    <option value="days">Days</option>
+                    <option value="weeks">Weeks</option>
+                    <option value="months">Months</option>
+                  </select>
+                </div>
+                {errors.maintenanceDuration && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.maintenanceDuration.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-1 gap-4 p-4 border rounded-lg">
               <div>
                 <label className="block text-sm font-medium mb-2">
                   Total Completion Duration
@@ -567,6 +821,7 @@ const ProjectSchedulePlanModal = ({
               <table className="w-full border-collapse border">
                 <thead>
                   <tr className="bg-gray-100">
+                    <th className="border p-3 text-left">Status</th>
                     <th className="border p-3 text-left">Main Phase</th>
                     <th className="border p-3 text-left">Sub Phase</th>
                     <th className="border p-3 text-center">Duration</th>
@@ -575,98 +830,129 @@ const ProjectSchedulePlanModal = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {scheduleData.map((phase, index) => (
-                    <tr
-                      key={index}
-                      className={getRowColor(phase.main_phase || phase.mainPhase)}
-                    >
-                      <td className="border p-3 font-medium">
-                        {phase.main_phase || phase.mainPhase}
-                      </td>
-                      <td className="border p-3">
-                        {phase.phase_name || phase.subPhase}
-                      </td>
-                      <td className="border p-3">
-                        <div className="flex items-center gap-2">
-                          <div className="relative flex-1">
-                            <select
-                              className="w-full p-1 border border-gray-300 rounded appearance-none"
-                              value={phase.duration}
-                              onChange={(e) =>
-                                handleDurationChange(
-                                  phase.phase_id || phase.phaseId,
-                                  e.target.value,
+                  {scheduleData.map((phase, index) => {
+                    const flag = getPhaseFlag(
+                      phase.start_date || phase.startDate,
+                      phase.end_date || phase.endDate
+                    );
+                    
+                    return (
+                      <tr
+                        key={index}
+                        className={getRowColor(phase.main_phase || phase.mainPhase)}
+                      >
+                        <td className="border p-3 text-center">
+                          {flag ? (
+                            <div className="flex items-center justify-center">
+                              <div
+                                className={`w-4 h-4 rounded-full flex items-center justify-center text-white text-xs font-bold ${
+                                  flag.type === 'red'
+                                    ? 'bg-red-500'
+                                    : flag.type === 'yellow'
+                                    ? 'bg-yellow-500'
+                                    : ''
+                                }`}
+                                title={flag.message}
+                              >
+                                !
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-center">
+                              <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-bold">
+                                ✓
+                              </div>
+                            </div>
+                          )}
+                        </td>
+                        <td className="border p-3 font-medium">
+                          {phase.main_phase || phase.mainPhase}
+                        </td>
+                        <td className="border p-3">
+                          {phase.phase_name || phase.subPhase}
+                        </td>
+                        <td className="border p-3">
+                          <div className="flex items-center gap-2">
+                            <div className="relative flex-1">
+                              <select
+                                className="w-full p-1 border border-gray-300 rounded appearance-none"
+                                value={phase.duration}
+                                onChange={(e) =>
+                                  handleDurationChange(
+                                    phase.phase_id || phase.phaseId,
+                                    e.target.value,
+                                    durationTypes[
+                                      phase.phase_id || phase.phaseId
+                                    ] || activeTab
+                                  )
+                                }
+                              >
+                                {getDurationOptions(
                                   durationTypes[
                                     phase.phase_id || phase.phaseId
                                   ] || activeTab
-                                )
-                              }
-                            >
-                              {getDurationOptions(
-                                durationTypes[
-                                  phase.phase_id || phase.phaseId
-                                ] || activeTab
-                              ).map((option) => (
-                                <option
-                                  key={option.value}
-                                  value={option.value}
-                                >
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                            <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                              <ChevronUp size={16} />
+                                ).map((option) => (
+                                  <option
+                                    key={option.value}
+                                    value={option.value}
+                                  >
+                                    {option.label}
+                                  </option>
+                                ))}
+                              </select>
+                              <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                                <ChevronUp size={16} />
+                              </div>
+                            </div>
+                            <div className="relative flex-1">
+                              <select
+                                className="w-full p-1 border border-gray-300 rounded appearance-none"
+                                value={
+                                  durationTypes[
+                                    phase.phase_id || phase.phaseId
+                                  ] || activeTab
+                                }
+                                onChange={(e) =>
+                                  handleDurationChange(
+                                    phase.phase_id || phase.phaseId,
+                                    phase.duration,
+                                    e.target.value
+                                  )
+                                }
+                              >
+                                {["B. Days", "Weeks", "Months"].map((type) => (
+                                  <option key={type} value={type}>
+                                    {type}
+                                  </option>
+                                ))}
+                              </select>
+                              <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                                <ChevronUp size={16} />
+                              </div>
                             </div>
                           </div>
-                          <div className="relative flex-1">
-                            <select
-                              className="w-full p-1 border border-gray-300 rounded appearance-none"
-                              value={
-                                durationTypes[
-                                  phase.phase_id || phase.phaseId
-                                ] || activeTab
-                              }
-                              onChange={(e) =>
-                                handleDurationChange(
-                                  phase.phase_id || phase.phaseId,
-                                  phase.duration,
-                                  e.target.value
-                                )
-                              }
-                            >
-                              {["B. Days", "Weeks", "Months"].map((type) => (
-                                <option key={type} value={type}>
-                                  {type}
-                                </option>
-                              ))}
-                            </select>
-                            <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                              <ChevronUp size={16} />
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="border p-3">
-                        {(phase.start_date || phase.startDate) &&
-                        isValid(new Date(phase.start_date || phase.startDate))
-                          ? format(
-                              new Date(phase.start_date || phase.startDate),
-                              "dd-MMM-yyyy"
-                            )
-                          : "-"}
-                      </td>
-                      <td className="border p-3">
-                        {(phase.end_date || phase.endDate) &&
-                        isValid(new Date(phase.end_date || phase.endDate))
-                          ? format(
-                              new Date(phase.end_date || phase.endDate),
-                              "dd-MMM-yyyy"
-                            )
-                          : "-"}
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="border p-3">
+                          {(phase.start_date || phase.startDate) &&
+                          isValid(new Date(phase.start_date || phase.startDate))
+                            ? format(
+                                new Date(phase.start_date || phase.startDate),
+                                "dd-MMM-yyyy"
+                              )
+                            : "-"}
+                        </td>
+                        <td className="border p-3">
+                          {(phase.end_date || phase.endDate) &&
+                          isValid(new Date(phase.end_date || phase.endDate))
+                            ? format(
+                                new Date(phase.end_date || phase.endDate),
+                                "dd-MMM-yyyy"
+                              )
+                            : "-"}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -695,6 +981,80 @@ const ProjectSchedulePlanModal = ({
           </form>
         )}
       </div>
+
+      {/* Confirmation Modal for Phase Issues */}
+      {showConfirmationModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-60">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <div className="flex items-center mb-4">
+              <div className="flex-shrink-0 w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center mr-3">
+                <span className="text-yellow-600 text-xl">⚠️</span>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Schedule Issues Detected
+              </h3>
+            </div>
+            
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 mb-3">
+                The following phases have timing issues:
+              </p>
+              
+              <div className="max-h-40 overflow-y-auto space-y-2">
+                {getPhaseIssuesDetails().map((issue, index) => (
+                  <div
+                    key={index}
+                    className={`p-2 rounded-md border-l-4 ${
+                      issue.type === 'red'
+                        ? 'bg-red-50 border-red-400'
+                        : 'bg-yellow-50 border-yellow-400'
+                    }`}
+                  >
+                    <div className="flex items-center">
+                      <div
+                        className={`w-4 h-4 rounded-full flex items-center justify-center text-white text-xs font-bold mr-2 ${
+                          issue.type === 'red' ? 'bg-red-500' : 'bg-yellow-500'
+                        }`}
+                      >
+                        !
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">
+                          {issue.phase} - {issue.subPhase}
+                        </p>
+                        <p className="text-xs text-gray-600">{issue.message}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="mb-4">
+              <p className="text-sm text-gray-700">
+                Are you sure you want to save this schedule with these timing issues?
+              </p>
+            </div>
+            
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={handleCancelSave}
+                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmSave}
+                className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition-colors"
+              >
+                Save Anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

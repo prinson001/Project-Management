@@ -63,6 +63,7 @@ const {
   updateProjectObjectives,
   getDeliverableCompletionStatus,
   updateDeliverableCompletionApproval,
+  getProjectTimeline,
 } = require("../controllers/projectController");
 const {
   getSchedulePlan,
@@ -185,6 +186,7 @@ router.post("/updateObjective", updateObjective);
 router.post("/deleteObjective", deleteObjective);
 router.post("/getRelatedProjectsforObjective", getRelatedProjectsforObjective);
 router.post("/getProjectDocuments", getProjectDocuments);
+router.post("/addProjectDocument", upload.single("file"), addProjectDocument);
 //router.post("/addProjectDocument",addProjectDocument);
 router.post("/getProjectPhases", getProjectPhases);
 router.post("/getProjectPhase", getProjectPhase);
@@ -195,6 +197,7 @@ router.post("/getSchedulePhases", getSchedulePhases);
 router.post("/getPhaseDurations", getPhaseDurations);
 
 router.post("/getSchedulePlan", getSchedulePlan);
+router.post("/getProjectTimeline", getProjectTimeline);
 
 router.post("/addBeneficiaryDepartments", addBeneficiaryDepartments);
 router.post("/getBeneficiaryDepartments", getBeneficiaryDepartments);

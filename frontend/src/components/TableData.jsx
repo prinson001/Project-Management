@@ -359,6 +359,7 @@ const TableData = ({
 
   // New handlers for project documents and schedule plan modals
   const handleOpenProjectDocumentsModal = (project) => {
+    console.log("Opening documents modal for project:", project);
     setSelectedProjectForAction(project);
     setIsProjectDocumentsModalOpen(true);
   };

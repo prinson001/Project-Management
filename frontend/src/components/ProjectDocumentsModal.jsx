@@ -23,13 +23,22 @@ const ProjectDocumentsModal = ({
 
   // Add console logs to debug fetching existing documents
   useEffect(() => {
-    if (isOpen && projectId && currentPhase) {
-      console.log('ProjectDocumentsModal opened with:', { projectId, currentPhase, isNewProject });
+    if (isOpen) {
+      console.log('ProjectDocumentsModal opened with:', { 
+        projectId, 
+        currentPhase, 
+        isNewProject,
+        projectPhases: projectPhases.map(p => ({ id: p.id, name: p.name }))
+      });
+      
       const load = async () => {
-        await fetchDocumentTemplates();
+        // Always fetch document templates based on phase
+        if (currentPhase) {
+          await fetchDocumentTemplates();
+        }
         
-        // Only fetch existing documents if this is not a new project
-        if (!isNewProject) {
+        // Only fetch existing documents if this is not a new project and we have a project ID
+        if (!isNewProject && projectId) {
           await fetchProjectDocuments();
         }
       };
@@ -39,15 +48,33 @@ const ProjectDocumentsModal = ({
 
   const fetchDocumentTemplates = async () => {
     setLoading(true);
-    console.log('Fetching document templates for projectId and phase:', { projectId, currentPhase });
+    console.log('Fetching document templates for phase:', currentPhase);
     try {
       // Get current phase name
-      const phase = projectPhases.find(p => p.id === currentPhase);
-      if (!phase) {
-        toast.error("Invalid project phase");
+      if (!currentPhase) {
+        console.error("Missing currentPhase value:", currentPhase);
+        toast.error("Missing phase information");
+        setLoading(false);
         return;
       }
-
+      
+      // Convert currentPhase to string to ensure consistent comparison
+      const phaseId = String(currentPhase);
+      console.log('Looking for phase with ID:', phaseId, 'in phases:', projectPhases);
+      
+      const phase = projectPhases.find(p => String(p.id) === phaseId);
+      
+      if (!phase) {
+        console.error("Phase not found. phaseId:", phaseId, "Available phases:", 
+          projectPhases.map(p => ({ id: String(p.id), name: p.name })));
+        toast.error("Invalid project phase");
+        setLoading(false);
+        return;
+      }
+      
+      console.log('Found phase:', phase, 'sending phase name:', phase.name);
+      
+      // Make API call with phase name only - no need for project ID as templates are phase-specific
       const response = await axiosInstance.post(
         "/data-management/getCurrentPhaseDocumentTemplates",
         { phase: phase.name }
@@ -55,11 +82,19 @@ const ProjectDocumentsModal = ({
       console.log('Received templates response:', response.data);
 
       if (response.data.status === "success") {
-        setDocuments(response.data.data.map(doc => ({
+        const templateData = response.data.data || [];
+        console.log('Template data:', templateData);
+        
+        if (templateData.length === 0) {
+          console.warn('No document templates found for phase:', phase.name);
+          toast.info(`No document templates found for phase: ${phase.name}`);
+        }
+        
+        setDocuments(templateData.map(doc => ({
           id: doc.id,
           name: doc.name,
           arabic_name: doc.arabic_name,
-          isrequired: doc.isrequired,
+          isrequired: doc.isrequired || false,
           file: null,
           filename: null,
           date: null,
@@ -67,6 +102,9 @@ const ProjectDocumentsModal = ({
           fileUrl: null,
           documentId: null
         })));
+      } else {
+        console.error('API returned error:', response.data);
+        toast.error(response.data.message || "Failed to load document templates");
       }
     } catch (error) {
       console.error("Error fetching document templates:", error);
@@ -86,9 +124,10 @@ const ProjectDocumentsModal = ({
     
     console.log('Fetching existing project documents for projectId:', projectId);
     try {
+      console.log('Sending request to fetch documents with projectId:', projectId);
       const response = await axiosInstance.post(
         '/data-management/getProjectDocuments',
-        { project_id: projectId }
+        { project_id: parseInt(projectId) }
       );
       console.log('Received existing documents response:', response.data);
       
@@ -138,7 +177,15 @@ const ProjectDocumentsModal = ({
       formData.append("file", file);
       formData.append("project_id", projectId);
       formData.append("template_id", documents[index].id);
-      formData.append("phase", projectPhases.find(p => p.id === currentPhase)?.name || "");
+      
+      // Get current phase name
+      const phaseId = String(currentPhase);
+      const phase = projectPhases.find(p => String(p.id) === phaseId);
+      if (!phase) {
+        throw new Error("Invalid project phase");
+      }
+      
+      formData.append("phase", phase.name);
 
       const response = await axiosInstance.post(
         "/data-management/addProjectDocument",
@@ -247,11 +294,11 @@ const ProjectDocumentsModal = ({
           <div>
             <h2 className="text-xl font-semibold">Project Documents</h2>
             <p className="text-gray-600">Upload documents for: {projectName}</p>
-            {isNewProject && (
+            {/* {isNewProject && (
               <p className="text-blue-600 text-sm mt-1">
                 Initial document setup for new project
               </p>
-            )}
+            )} */}
           </div>
           <button
             onClick={onClose}
@@ -362,7 +409,11 @@ const ProjectDocumentsModal = ({
 
         <div className="flex justify-end gap-3 mt-6">
           <button
-            onClick={onClose}
+            onClick={() => {
+              // Check if any documents have been uploaded
+              const hasUploads = documents.some(doc => doc.uploaded);
+              onClose(hasUploads);
+            }}
             className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
           >
             Close

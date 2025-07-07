@@ -1,16 +1,22 @@
 import React, { useState, useEffect } from "react";
 import axiosInstance from "../axiosInstance";
-import DynamicForm from "./DynamicForm";
-import ProjectModal from "./ProjectModal";
-import UpdateProjectModal from "./UpdateProjectModal";
 import { toast } from "sonner";
-import { constructNow } from "date-fns";
 import useAuthStore from "../store/authStore";
+import { Eye, CheckCircle, XCircle, Calendar, DollarSign, User, Building, Target, FileText, X } from "lucide-react";
 
 function ProjectCreationAccordion({ project, closeAccordion }) {
   const [projectData, setProjectData] = useState(null);
   const [projectApproval, setProjectApproval] = useState("null");
   const [isDataReady, setIsDataReady] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [departments, setDepartments] = useState([]);
+  const [objectives, setObjectives] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [portfolios, setPortfolios] = useState([]);
+  const [initiatives, setInitiatives] = useState([]);
+  const [vendors, setVendors] = useState([]);
+  const [selectedProgramDetails, setSelectedProgramDetails] = useState(null);
+  
   const { users, projectTypes, projectPhases, setDocuments, documents } =
     useAuthStore();
 
@@ -27,6 +33,14 @@ function ProjectCreationAccordion({ project, closeAccordion }) {
         setProjectApproval(result.data.approval_status);
       }
 
+      // Fetch dropdown data
+      await Promise.all([
+        fetchPrograms(),
+        fetchPortfolios(),
+        fetchInitiatives(),
+        fetchVendors(),
+      ]);
+
       // Fetch complete project details
       const response = await axiosInstance.post(
         "/tasks/getProjectWithAllRelatedData",
@@ -39,41 +53,102 @@ function ProjectCreationAccordion({ project, closeAccordion }) {
       const fullProject = fullData.project;
 
       const modifiedProjectData = {
-        id: fullProject.id,
-        name: fullProject.name,
-        arabic_name: fullProject.arabic_name,
-        description: fullProject.description,
+        ...fullProject,
         project_type_id: fullProject.project_type_id?.toString() || "",
         current_phase_id: fullProject.current_phase_id?.toString() || "",
-        category: fullProject.category,
         project_manager_id: fullProject.project_manager_id?.toString() || "",
         alternative_project_manager_id:
           fullProject.alternative_project_manager_id?.toString() || "",
-        execution_start_date: fullProject.execution_start_date,
-        execution_duration: fullProject.execution_duration,
-        maintenance_duration: fullProject.maintenance_duration,
-        project_budget: fullProject.project_budget,
-        approved_project_budget: fullProject.approved_project_budget,
-        approval_status: projectApproval || fullProject.approval_status,
         program_id: fullProject.program_id?.toString() || "",
         initiative_id: fullProject.initiative_id?.toString() || "",
         portfolio_id: fullProject.portfolio_id?.toString() || "",
         vendor_id: fullProject.vendor_id?.toString() || "",
+        approval_status: projectApproval || fullProject.approval_status,
         beneficiary_departments: fullProject.beneficiary_departments || [],
         objectives: fullProject.objectives || [],
         documents: fullProject.documents || [],
-
-        // Optionally include related program, portfolio, initiative info if needed:
+        // Include related data
         program: fullData.program || {},
         portfolio: fullData.portfolio || {},
         initiative: fullData.initiative || {},
       };
 
       setProjectData(modifiedProjectData);
+      
+      // Set departments and objectives for display
+      if (fullProject.beneficiary_departments) {
+        setDepartments(fullProject.beneficiary_departments);
+      }
+      if (fullProject.objectives) {
+        setObjectives(fullProject.objectives);
+      }
+
+      // Fetch program details if available
+      if (fullProject.program_id) {
+        await fetchProgramDetails(fullProject.program_id);
+      }
+
       setIsDataReady(true);
     } catch (error) {
       console.error("Error fetching project data:", error);
       setIsDataReady(false);
+    }
+  };
+
+  const fetchPrograms = async () => {
+    try {
+      const response = await axiosInstance.post("/data-management/getPrograms");
+      if (response.data.status === "success") {
+        setPrograms(response.data.result);
+      }
+    } catch (error) {
+      console.error("Error fetching programs:", error);
+    }
+  };
+
+  const fetchPortfolios = async () => {
+    try {
+      const response = await axiosInstance.post("/data-management/getPortfolios");
+      if (response.data.status === "success") {
+        setPortfolios(response.data.result);
+      }
+    } catch (error) {
+      console.error("Error fetching portfolios:", error);
+    }
+  };
+
+  const fetchInitiatives = async () => {
+    try {
+      const response = await axiosInstance.post("/data-management/getInitiatives");
+      if (response.data.status === "success") {
+        setInitiatives(response.data.result);
+      }
+    } catch (error) {
+      console.error("Error fetching initiatives:", error);
+    }
+  };
+
+  const fetchVendors = async () => {
+    try {
+      const response = await axiosInstance.post("/data-management/getVendors");
+      if (response.data.status === "success") {
+        setVendors(response.data.result);
+      }
+    } catch (error) {
+      console.error("Error fetching vendors:", error);
+    }
+  };
+
+  const fetchProgramDetails = async (programId) => {
+    try {
+      const response = await axiosInstance.post("/data-management/getProgram", {
+        id: programId,
+      });
+      if (response.data.status === "success") {
+        setSelectedProgramDetails(response.data.result);
+      }
+    } catch (error) {
+      console.error("Error fetching program details:", error);
     }
   };
 
@@ -92,7 +167,8 @@ function ProjectCreationAccordion({ project, closeAccordion }) {
     }
 
     try {
-      const response = await axiosInstance.post(
+      // First update the project approval status
+      const approvalResponse = await axiosInstance.post(
         `/deputy/updateApprovalStatus`,
         {
           id: projectData.id,
@@ -100,25 +176,32 @@ function ProjectCreationAccordion({ project, closeAccordion }) {
         }
       );
 
-      if (response.data.status === "success") {
-        closeAccordion("Success ", "success");
-        const response = await axiosInstance.post(
+      if (approvalResponse.data.status === "success") {
+        // Then update the task status to done
+        const taskResponse = await axiosInstance.post(
           `/deputy/updateTaskStatusToDone`,
           {
             taskId: project.id,
           }
         );
 
-        console.log(`Project status updated to: ${status}`);
-
-        toast.success("Project status updated successfully");
+        if (taskResponse.data.status === "success") {
+          console.log(`Project status updated to: ${status}`);
+          toast.success("Project status updated successfully");
+          
+          // Close accordion and refresh table after both operations are complete
+          closeAccordion("Success ", "success");
+        } else {
+          console.error("Error updating task status:", taskResponse.data.message);
+          toast.error("Error updating task status");
+        }
       } else {
-        console.error(response.data.message);
+        console.error(approvalResponse.data.message);
         toast.error("Error updating project status");
       }
     } catch (error) {
       console.error("Error updating project status:", error);
-      alert("Error updating project status");
+      toast.error("Error updating project status");
     }
   };
 
@@ -131,41 +214,143 @@ function ProjectCreationAccordion({ project, closeAccordion }) {
     updateApprovalStatus({ status: "Rejected", projectData });
   };
 
+  // Helper functions for displaying data
+  const formatCurrency = (amount) => {
+    if (!amount) return "N/A";
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'SAR',
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const getProjectTypeName = (typeId) => {
+    const type = projectTypes.find(t => t.id.toString() === typeId?.toString());
+    return type?.name || "Unknown";
+  };
+
+  const getProjectPhaseName = (phaseId) => {
+    const phase = projectPhases.find(p => p.id.toString() === phaseId?.toString());
+    return phase?.phase_name || "Unknown";
+  };
+
+  const getProjectManagerName = (managerId) => {
+    if (!managerId) return "N/A";
+    const manager = users.find(u => u.id.toString() === managerId?.toString());
+    return manager ? `${manager.first_name} ${manager.family_name}` : "Unknown";
+  };
+
+  const getProgramName = (programId) => {
+    if (!programId) return "N/A";
+    const program = programs.find(p => p.id.toString() === programId?.toString());
+    return program?.name || "Unknown";
+  };
+
+  const getPortfolioName = (portfolioId) => {
+    if (!portfolioId) return "N/A";
+    const portfolio = portfolios.find(p => p.id.toString() === portfolioId?.toString());
+    return portfolio?.name || "Unknown";
+  };
+
+  const getInitiativeName = (initiativeId) => {
+    if (!initiativeId) return "N/A";
+    const initiative = initiatives.find(i => i.id.toString() === initiativeId?.toString());
+    return initiative?.name || "Unknown";
+  };
+
+  const getVendorName = (vendorId) => {
+    if (!vendorId) return "N/A";
+    const vendor = vendors.find(v => v.id.toString() === vendorId?.toString());
+    return vendor?.name || "Unknown";
+  };
+
+  const getApprovalStatusBadge = (status) => {
+    const statusColors = {
+      "Draft": "bg-gray-100 text-gray-800",
+      "Waiting on deputy": "bg-yellow-100 text-yellow-800",
+      "Approved": "bg-green-100 text-green-800",
+      "Rejected": "bg-red-100 text-red-800"
+    };
+    
+    return (
+      <span className={`px-3 py-1 text-sm font-medium rounded-full ${statusColors[status] || "bg-gray-100 text-gray-800"}`}>
+        {status || "N/A"}
+      </span>
+    );
+  };
+
+  const getBooleanBadge = (value, trueLabel = "Yes", falseLabel = "No") => {
+    return (
+      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+        value 
+          ? "bg-green-100 text-green-800" 
+          : "bg-red-100 text-red-800"
+      }`}>
+        {value ? trueLabel : falseLabel}
+      </span>
+    );
+  };
+
+  if (!isDataReady || !projectData) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+        <span className="ml-2 text-gray-600">Loading project details...</span>
+      </div>
+    );
+  }
+
   return (
-    <>
-      {isDataReady && projectData && (
-        <UpdateProjectModal
-          showButtons={false}
-          title="Project details"
-          readOnly={true}
-          projectData={projectData}
-        />
-      )}
-      {project.status != "Done" && (
-        <div className="py-10 flex justify-center gap-6">
-          <button
-            onClick={handleRejectBtnClick}
-            className="bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded-sm shadow-md transition duration-200"
-          >
-            Reject
-          </button>
-          <button
-            onClick={handleApproveBtnClick}
-            className="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2 rounded-sm shadow-md transition duration-200"
-          >
-            Approve
-          </button>
-        </div>
-      )}
-      {project.status == "Done" && (
-        <div className="flex align-center justify-center p-4">
-          <p>
+    <div className="space-y-6 p-4">
+      {/* Action Buttons Section */}
+      <div className="flex justify-center gap-4 pb-4 border-b">
+        {/* <button
+          onClick={() => setShowModal(true)}
+          className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-2 rounded-md shadow-md transition duration-200 flex items-center gap-2"
+        >
+          <Eye size={16} />
+          View Full Details
+        </button> */}
+        
+        {project.status !== "Done" && (
+          <>
+            <button
+              onClick={handleRejectBtnClick}
+              className="bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded-md shadow-md transition duration-200 flex items-center gap-2"
+            >
+              <XCircle size={16} />
+              Reject
+            </button>
+            <button
+              onClick={handleApproveBtnClick}
+              className="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2 rounded-md shadow-md transition duration-200 flex items-center gap-2"
+            >
+              <CheckCircle size={16} />
+              Approve
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Status Display for Completed Tasks */}
+      {project.status === "Done" && (
+        <div className="text-center p-4 bg-gray-50 rounded-lg">
+          <p className="text-lg">
             Project was{" "}
             <span
               className={
-                projectApproval == "Rejected"
-                  ? "text-red-500"
-                  : "text-green-500"
+                projectApproval === "Rejected"
+                  ? "text-red-600 font-semibold"
+                  : "text-green-600 font-semibold"
               }
             >
               {projectApproval}
@@ -173,7 +358,281 @@ function ProjectCreationAccordion({ project, closeAccordion }) {
           </p>
         </div>
       )}
-    </>
+
+      {/* Comprehensive Project Details */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* Basic Information */}
+        <div className="bg-white border rounded-lg">
+          <div className="bg-blue-50 px-4 py-3 border-b">
+            <div className="flex items-center space-x-2">
+              <FileText className="text-blue-600" size={18} />
+              <h3 className="text-lg font-semibold text-gray-900">Basic Information</h3>
+            </div>
+          </div>
+          <div className="p-4 space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Project Name</label>
+              <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">
+                {projectData.name || "N/A"}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Arabic Name</label>
+              <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">
+                {projectData.arabic_name || "N/A"}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Description</label>
+              <div className="mt-1 p-2 bg-gray-50 rounded border text-sm min-h-[60px]">
+                {projectData.description || "N/A"}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Project Type</label>
+              <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">
+                {getProjectTypeName(projectData.project_type_id)}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Current Phase</label>
+              <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">
+                {getProjectPhaseName(projectData.current_phase_id)}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Category</label>
+              <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">
+                {projectData.category || "N/A"}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Approval Status</label>
+              <div className="mt-1 flex items-center">
+                {getApprovalStatusBadge(projectData.approval_status)}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Management Information */}
+        <div className="bg-white border rounded-lg">
+          <div className="bg-purple-50 px-4 py-3 border-b">
+            <div className="flex items-center space-x-2">
+              <User className="text-purple-600" size={18} />
+              <h3 className="text-lg font-semibold text-gray-900">Management</h3>
+            </div>
+          </div>
+          <div className="p-4 space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Project Manager</label>
+              <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">
+                {getProjectManagerName(projectData.project_manager_id)}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Alternative Project Manager</label>
+              <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">
+                {getProjectManagerName(projectData.alternative_project_manager_id)}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Vendor</label>
+              <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">
+                {getVendorName(projectData.vendor_id)}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Project Categories */}
+        <div className="bg-white border rounded-lg">
+          <div className="bg-indigo-50 px-4 py-3 border-b">
+            <div className="flex items-center space-x-2">
+              <Building className="text-indigo-600" size={18} />
+              <h3 className="text-lg font-semibold text-gray-900">Categories</h3>
+            </div>
+          </div>
+          <div className="p-4 space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Program</label>
+              <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">
+                {getProgramName(projectData.program_id)}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Portfolio</label>
+              <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">
+                {selectedProgramDetails?.portfolio_name || getPortfolioName(projectData.portfolio_id)}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Initiative</label>
+              <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">
+                {selectedProgramDetails?.initiative_name || getInitiativeName(projectData.initiative_id)}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Financial Information */}
+        <div className="bg-white border rounded-lg">
+          <div className="bg-green-50 px-4 py-3 border-b">
+            <div className="flex items-center space-x-2">
+              <DollarSign className="text-green-600" size={18} />
+              <h3 className="text-lg font-semibold text-gray-900">Financial</h3>
+            </div>
+          </div>
+          <div className="p-4 space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Project Budget</label>
+              <div className="mt-1 p-2 bg-gray-50 rounded border text-sm font-medium">
+                {formatCurrency(projectData.project_budget)}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Approved Budget</label>
+              <div className="mt-1 p-2 bg-gray-50 rounded border text-sm font-medium">
+                {formatCurrency(projectData.approved_project_budget)}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Timeline Information */}
+        <div className="bg-white border rounded-lg lg:col-span-2">
+          <div className="bg-orange-50 px-4 py-3 border-b">
+            <div className="flex items-center space-x-2">
+              <Calendar className="text-orange-600" size={18} />
+              <h3 className="text-lg font-semibold text-gray-900">Timeline</h3>
+            </div>
+          </div>
+          <div className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Execution Start Date</label>
+                <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">
+                  {formatDate(projectData.execution_start_date)}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Execution End Date</label>
+                <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">
+                  {formatDate(projectData.execution_enddate)}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Execution Duration</label>
+                <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">
+                  {projectData.execution_duration || "N/A"}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Maintenance Duration</label>
+                <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">
+                  {formatDate(projectData.maintenance_duration)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Upload Status */}
+        <div className="bg-white border rounded-lg lg:col-span-2">
+          <div className="bg-teal-50 px-4 py-3 border-b">
+            <div className="flex items-center space-x-2">
+              <FileText className="text-teal-600" size={18} />
+              <h3 className="text-lg font-semibold text-gray-900">Upload Status</h3>
+            </div>
+          </div>
+          <div className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Documents Uploaded</label>
+                <div className="mt-1 flex items-center">
+                  {getBooleanBadge(projectData.project_documents_uploaded)}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Schedule Uploaded</label>
+                <div className="mt-1 flex items-center">
+                  {getBooleanBadge(projectData.project_schedule_uploaded)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Beneficiary Departments */}
+        {departments && departments.length > 0 && (
+          <div className="bg-white border rounded-lg lg:col-span-2">
+            <div className="bg-blue-50 px-4 py-3 border-b">
+              <div className="flex items-center space-x-2">
+                <Building className="text-blue-600" size={18} />
+                <h3 className="text-lg font-semibold text-gray-900">Beneficiary Departments ({departments.length})</h3>
+              </div>
+            </div>
+            <div className="p-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {departments.map((dept, index) => (
+                  <div key={index} className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="font-medium text-blue-900">{dept.name || dept.department_name}</div>
+                    {(dept.arabic_name || dept.arabic_department_name) && (
+                      <div className="text-sm text-blue-700">{dept.arabic_name || dept.arabic_department_name}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Objectives */}
+        {objectives && objectives.length > 0 && (
+          <div className="bg-white border rounded-lg lg:col-span-2">
+            <div className="bg-red-50 px-4 py-3 border-b">
+              <div className="flex items-center space-x-2">
+                <Target className="text-red-600" size={18} />
+                <h3 className="text-lg font-semibold text-gray-900">Objectives ({objectives.length})</h3>
+              </div>
+            </div>
+            <div className="p-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {objectives.map((objective, index) => (
+                  <div key={index} className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="font-medium text-red-900">{objective.text || objective.name}</div>
+                    {(objective.arabic_text || objective.arabic_name) && (
+                      <div className="text-sm text-red-700">{objective.arabic_text || objective.arabic_name}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Modal for full details (if needed) */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center p-6 border-b">
+              <h2 className="text-2xl font-bold text-gray-900">Complete Project Details</h2>
+              <button
+                onClick={() => setShowModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-600">Comprehensive project details view can be extended here with additional sections as needed.</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

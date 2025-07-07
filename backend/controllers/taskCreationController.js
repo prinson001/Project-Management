@@ -5,13 +5,44 @@ const createProjectCreationTaskForDeputy = async (req, res) => {
   let { projectId } = req.body;
   console.log("Deputy project Id", projectId);
   try {
+    // First, check if project has both document and schedule plan uploaded
+    const projectCheck = await sql`
+      SELECT project_documents_uploaded, project_schedule_uploaded 
+      FROM project 
+      WHERE id = ${projectId};
+    `;
+
+    if (projectCheck.length === 0) {
+      return res.status(404).json({
+        status: "failure",
+        message: "Project not found",
+        result: null,
+      });
+    }
+
+    const project = projectCheck[0];
+    if (!project.project_documents_uploaded || !project.project_schedule_uploaded) {
+      return res.status(400).json({
+        status: "failure",
+        message: "Cannot send for approval: Both project document and schedule plan must be uploaded first",
+        result: {
+          project_documents_uploaded: project.project_documents_uploaded,
+          project_schedule_uploaded: project.project_schedule_uploaded,
+        },
+      });
+    }
+
     // Get the activity duration for "Approve project creation"
     result =
       await sql`SELECT * FROM activity_duration WHERE activity_name = 'Approve project creation';`;
 
     if (result.length === 0) {
       console.log("No activity duration found for 'Approve project creation'.");
-      return;
+      return res.status(500).json({
+        status: "failure",
+        message: "Activity duration not configured for project approval",
+        result: null,
+      });
     }
 
     const activityDuration = result[0];
@@ -26,7 +57,11 @@ const createProjectCreationTaskForDeputy = async (req, res) => {
 
     if (deputies.length === 0) {
       console.log("No deputy found.");
-      return;
+      return res.status(500).json({
+        status: "failure",
+        message: "No deputy user found in the system",
+        result: null,
+      });
     }
 
     const deputy = deputies[0]; // Assigning to the first deputy found
@@ -64,6 +99,11 @@ const createProjectCreationTaskForDeputy = async (req, res) => {
     });
   } catch (e) {
     console.error("Error creating project creation task for deputy:", e);
+    return res.status(500).json({
+      status: "failure",
+      message: "Error creating approval task for deputy",
+      result: e.message || e,
+    });
   }
 };
 

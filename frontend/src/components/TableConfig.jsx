@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Zap, Users, ShoppingBag, BarChart2 } from "lucide-react";
+import useAuthStore from "../store/authStore";
 
 const TableConfig = ({
   children,
@@ -11,6 +12,11 @@ const TableConfig = ({
   const [selectedTaskFilter, setSelectedTaskFilter] = useState("open");
   const [selectedDepartmentFilter, setSelectedDepartmentFilter] =
     useState("Me");
+  
+  const { role } = useAuthStore();
+  
+  // Check if user can see all departments (only PMO and Deputy can)
+  const canViewAllDepartments = role === "PMO" || role === "Deputy";
 
   function radioButtonChangeHandler(value) {
     setSelectedDepartmentFilter(value);
@@ -111,26 +117,29 @@ const TableConfig = ({
               My Tasks
             </label>
           </div>
-          <div
-            className="flex items-center me-4"
-            onClick={() => radioButtonChangeHandler("Department")}
-          >
-            <input
-              id="inline-2-radio"
-              type="radio"
-              value=""
-              name="inline-radio-group"
-              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-              checked={selectedDepartmentFilter === "Department"}
-              onChange={() => {}}
-            />
-            <label
-              htmlFor="inline-2-radio"
-              className="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300"
+          {/* Only show "All Departments" option for PMO and Deputy roles */}
+          {canViewAllDepartments && (
+            <div
+              className="flex items-center me-4"
+              onClick={() => radioButtonChangeHandler("Department")}
             >
-              All Departments
-            </label>
-          </div>
+              <input
+                id="inline-2-radio"
+                type="radio"
+                value=""
+                name="inline-radio-group"
+                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                checked={selectedDepartmentFilter === "Department"}
+                onChange={() => {}}
+              />
+              <label
+                htmlFor="inline-2-radio"
+                className="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300"
+              >
+                All Departments
+              </label>
+            </div>
+          )}
         </div>
       </div>
     </>

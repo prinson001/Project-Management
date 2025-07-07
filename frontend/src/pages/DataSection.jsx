@@ -120,7 +120,7 @@ const DataSection = ({
     }
     fetchData();
     tablefilters = {};
-    sortClause = {};
+    sortClause = { created_date: "DESC" }; // Set default sort to newest first
     dateFilter = null;
     getAllTasks = null;
     taskStatus = null;

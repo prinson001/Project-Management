@@ -6,6 +6,7 @@ const {
   createBoqTaskForPM,
   createSchedulePlanTaskForPM,
 } = require("./taskCreationController");
+const { getProjectTimeline } = require("./timelineController");
 
 // @Description Add new Project
 // @Route site.com/data-management/addproject
@@ -191,10 +192,18 @@ const addProject = async (req, res) => {
       }
     }
 
+    // Fetch the complete project data to return
+    const fullProjectData = await withRetry(async () => {
+      return await sql`
+        SELECT * FROM project 
+        WHERE id = ${projectId}
+      `;
+    });
+
     return res.status(201).json({
       status: "success",
       message: "Project added successfully",
-      result: { id: projectId },
+      result: fullProjectData[0],
     });  } catch (error) {
     console.error("Error adding project:", error);
     
@@ -557,7 +566,7 @@ const getProjectById = async (req, res) => {
       WHERE pd.project_id = $1
     `;
     const objectivesQuery = `
-      SELECT o.id, o.text, o.arabic_text
+      SELECT o.id, o.name AS text, o.arabic_name AS arabic_text
       FROM objective o
       JOIN project_objective po ON o.id = po.objective_id
       WHERE po.project_id = $1
@@ -1555,4 +1564,5 @@ module.exports = {
   updateProjectObjectives,
   getDeliverableCompletionStatus,
   updateDeliverableCompletionApproval,
+  getProjectTimeline,
 };

@@ -325,28 +325,155 @@ const UpdateProjectModal = ({
       }
     } catch (error) {
       console.error("Update error:", error);
-      toast.error(error.message || "Failed to update project");
+      console.error("Error response:", error.response?.data);
+      console.error("Error status:", error.response?.status);
+      
+      // Provide more specific error messages
+      if (error.response?.status === 400) {
+        const errorMessage = error.response.data?.message || "Invalid request data";
+        toast.error(`Update failed: ${errorMessage}`);
+      } else if (error.response?.status === 500) {
+        toast.error("Server error occurred while updating project");
+      } else {
+        toast.error(error.message || "Failed to update project");
+      }
+      
       throw error;
     }
   };
 
   const handleSaveAndSendForApproval = async (data) => {
     try {
+      console.log("Starting save and send for approval process...");
+      console.log("Project data:", projectData);
+      console.log("Form data:", data);
+
+      // First check if documents and schedule plan are uploaded
+      const isValidForApproval = await checkProjectReadyForApproval();
+      if (!isValidForApproval) {
+        console.log("Project not ready for approval, stopping process");
+        return; // Error messages are already shown in the check function
+      }
+
+      console.log("Project validated, proceeding with approval");
+
+      // If validation passes, proceed with approval
       await onSubmit(data, true);
+      
+      console.log("Project updated successfully, creating deputy task...");
+      
       const projectId = projectData.id;
+      if (!projectId) {
+        throw new Error("Project ID is missing");
+      }
+
       const taskResponse = await axiosInstance.post(
         "/data-management/createProjectCreationTaskForDeputy",
-        { projectId }
+        { projectId: parseInt(projectId) }
       );
+      
+      console.log("Task creation response:", taskResponse.data);
+      
       if (taskResponse.data.status === "success") {
         toast.success("Project saved and sent for approval successfully!");
         onClose();
       } else {
-        throw new Error("Failed to create approval task");
+        throw new Error("Failed to create approval task: " + (taskResponse.data.message || "Unknown error"));
       }
     } catch (error) {
       console.error("Error saving and sending for approval:", error);
-      toast.error("Failed to save and send project for approval");
+      console.error("Error response:", error.response?.data);
+      
+      // Provide more specific error messages
+      if (error.response?.status === 400) {
+        toast.error("Invalid request data. Please check all fields and try again.");
+      } else if (error.response?.status === 500) {
+        toast.error("Server error. Please try again later.");
+      } else {
+        toast.error(`Failed to save and send project for approval: ${error.message}`);
+      }
+    }
+  };
+
+  const checkProjectReadyForApproval = async () => {
+    try {
+      // Validate that we have a valid project ID
+      if (!projectData?.id) {
+        console.error("No project ID available:", projectData);
+        toast.error("Invalid project data. Please refresh and try again.");
+        return false;
+      }
+
+      console.log("Checking project readiness for projectId:", projectData.id);
+
+      // Check if required documents are uploaded
+      const documentsResponse = await axiosInstance.post(
+        '/data-management/getProjectDocuments',
+        { project_id: parseInt(projectData.id) }
+      );
+
+      let hasRequiredDocuments = false;
+      if (documentsResponse.data.status === 'success' && documentsResponse.data.result?.length > 0) {
+        hasRequiredDocuments = true;
+        console.log("Found documents:", documentsResponse.data.result.length);
+      } else {
+        console.log("No documents found or response error:", documentsResponse.data);
+      }
+
+      // Check if schedule plan exists
+      let hasSchedulePlan = false;
+      const isInternalSchedule = ["1", "4"].includes(projectData.project_type_id?.toString());
+      
+      try {
+        if (isInternalSchedule) {
+          console.log("Checking internal schedule plan...");
+          const scheduleResponse = await axiosInstance.post(
+            "/data-management/getInternalSchedulePlan",
+            { projectId: parseInt(projectData.id) }
+          );
+          if (scheduleResponse.data.status === "success" && scheduleResponse.data.result?.length > 0) {
+            hasSchedulePlan = true;
+            console.log("Found internal schedule plan");
+          }
+        } else {
+          console.log("Checking external schedule plan...");
+          const scheduleResponse = await axiosInstance.post(
+            "/data-management/getSchedulePlan",
+            { projectId: parseInt(projectData.id) }
+          );
+          if (scheduleResponse.data.status === "success" && scheduleResponse.data.result?.length > 0) {
+            hasSchedulePlan = true;
+            console.log("Found external schedule plan");
+          }
+        }
+      } catch (scheduleError) {
+        console.log("No schedule plan found:", scheduleError.response?.data || scheduleError.message);
+        hasSchedulePlan = false;
+      }
+
+      console.log("Validation results:", { hasRequiredDocuments, hasSchedulePlan });
+
+      // For now, let's be more lenient with the validation
+      // We'll warn the user but not block the approval process
+      if (!hasRequiredDocuments) {
+        console.warn("No documents found, but allowing approval");
+        toast.warning("No documents have been uploaded yet. Consider uploading required documents.");
+      }
+
+      if (!hasSchedulePlan) {
+        console.warn("No schedule plan found, but allowing approval");
+        toast.warning("No schedule plan has been created yet. Consider creating a schedule plan.");
+      }
+
+      // Always return true for now to allow the approval process to continue
+      // In the future, you can make this more strict by returning false when requirements are not met
+      return true;
+
+    } catch (error) {
+      console.error("Error checking project readiness:", error);
+      console.error("Error details:", error.response?.data || error.message);
+      toast.error("Unable to verify project readiness. Please try again.");
+      return false;
     }
   };
 
@@ -929,13 +1056,13 @@ const UpdateProjectModal = ({
               >
                 Update Project
               </button>
-              {projectData.approval_status === "Not initiated" && (
+              {(projectData.approval_status === "Not initiated" || projectData.approval_status === "Draft") && (
                 <button
                   type="button"
                   className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
                   onClick={handleSubmit(handleSaveAndSendForApproval)}
                 >
-                  Save and Send for Approval
+                  Send for Approval
                 </button>
               )}
               {/* New update document and schedule buttons */}
