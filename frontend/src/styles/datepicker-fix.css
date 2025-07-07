@@ -1,0 +1,268 @@
+/* Fix for react-tailwindcss-datepicker z-index issues in modals */
+.react-datepicker {
+  z-index: 9999 !important;
+}
+
+.react-datepicker-popper {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__portal {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__header {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__month-container {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__tab-loop {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__navigation {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__current-month {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__month {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__day {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__day-names {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__triangle {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__time-container {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__time {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__time-box {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__time-list {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__time-list-item {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__year-dropdown {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__month-dropdown {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__year-dropdown-container {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__month-dropdown-container {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__year-option {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__month-option {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__close-icon {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__today-button {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__clear-button {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__week {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__week-number {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__aria-live {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__input-container {
+  z-index: 9999 !important;
+}
+
+.react-datepicker-wrapper {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__view-calendar-icon {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__calendar-icon {
+  z-index: 9999 !important;
+}
+
+/* All day-related classes */
+.react-datepicker__day--outside-month,
+.react-datepicker__day--disabled,
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected,
+.react-datepicker__day--in-range,
+.react-datepicker__day--in-selecting-range,
+.react-datepicker__day--selecting-range-start,
+.react-datepicker__day--selecting-range-end,
+.react-datepicker__day--range-start,
+.react-datepicker__day--range-end,
+.react-datepicker__day--today,
+.react-datepicker__day--highlighted,
+.react-datepicker__day--highlighted-custom-1,
+.react-datepicker__day--highlighted-custom-2,
+.react-datepicker__day--weekend,
+.react-datepicker__day--holidays,
+.react-datepicker__day--exclude-from-range,
+.react-datepicker__day--within-highlighted-range,
+.react-datepicker__day--within-highlighted-range-start,
+.react-datepicker__day--within-highlighted-range-end,
+.react-datepicker__day--within-highlighted-range-weekday,
+.react-datepicker__day--within-highlighted-range-weekend {
+  z-index: 9999 !important;
+}
+
+/* Specific fixes for react-tailwindcss-datepicker */
+.react-datepicker-popper[data-placement^="bottom"] .react-datepicker__triangle {
+  z-index: 9999 !important;
+}
+
+.react-datepicker-popper[data-placement^="top"] .react-datepicker__triangle {
+  z-index: 9999 !important;
+}
+
+.react-datepicker-popper[data-placement^="left"] .react-datepicker__triangle {
+  z-index: 9999 !important;
+}
+
+.react-datepicker-popper[data-placement^="right"] .react-datepicker__triangle {
+  z-index: 9999 !important;
+}
+
+/* Alternative class names that might be used */
+.datepicker-popover {
+  z-index: 9999 !important;
+}
+
+.datepicker-calendar {
+  z-index: 9999 !important;
+}
+
+.datepicker-dropdown {
+  z-index: 9999 !important;
+}
+
+/* Tailwind CSS datepicker specific classes */
+.react-tailwindcss-datepicker {
+  z-index: 9999 !important;
+}
+
+.react-tailwindcss-datepicker-popover {
+  z-index: 9999 !important;
+}
+
+.react-tailwindcss-datepicker-calendar {
+  z-index: 9999 !important;
+}
+
+.react-tailwindcss-datepicker-dropdown {
+  z-index: 9999 !important;
+}
+
+/* Make sure the datepicker is always on top of modals */
+[data-testid="datepicker"] {
+  z-index: 9999 !important;
+}
+
+[data-testid="datepicker-popover"] {
+  z-index: 9999 !important;
+}
+
+[data-testid="datepicker-calendar"] {
+  z-index: 9999 !important;
+}
+
+/* Override any inline styles that might be setting lower z-index */
+.react-datepicker * {
+  z-index: inherit !important;
+}
+
+.react-datepicker-popper * {
+  z-index: inherit !important;
+}
+
+.react-datepicker__portal * {
+  z-index: inherit !important;
+}
+
+/* Fix for overlay issues */
+.react-datepicker__tab-loop {
+  position: relative;
+  z-index: 9999 !important;
+}
+
+.react-datepicker__header {
+  position: relative;
+  z-index: 9999 !important;
+}
+
+.react-datepicker__month {
+  position: relative;
+  z-index: 9999 !important;
+}
+
+/* Ensure container has high z-index */
+.react-datepicker__tether-element {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__tether-element-attached-bottom {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__tether-element-attached-top {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__tether-element-attached-left {
+  z-index: 9999 !important;
+}
+
+.react-datepicker__tether-element-attached-right {
+  z-index: 9999 !important;
+}

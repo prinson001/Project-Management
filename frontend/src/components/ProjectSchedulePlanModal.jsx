@@ -11,6 +11,7 @@ import {
   parseISO,
   subDays,
 } from "date-fns";
+import "../styles/datepicker-fix.css";
 
 const ProjectSchedulePlanModal = ({ 
   isOpen, 
@@ -310,16 +311,9 @@ const ProjectSchedulePlanModal = ({
 
   useEffect(() => {
     if (isOpen && projectId) {
-      console.log("ProjectSchedulePlanModal opened:");
-      console.log("- projectId:", projectId);
-      console.log("- projectType:", projectType);
-      console.log("- isInternalSchedule:", isInternalSchedule);
-      
       if (isInternalSchedule) {
-        console.log("Loading internal schedule...");
         loadInternalSchedule();
       } else {
-        console.log("Loading external schedule...");
         loadExternalSchedule();
       }
     }
@@ -367,88 +361,50 @@ const ProjectSchedulePlanModal = ({
   const loadInternalSchedule = async () => {
     setLoading(true);
     try {
-      console.log("Fetching internal schedule for projectId:", projectId);
-      
       // Load existing internal schedule
       const response = await axiosInstance.post(
         "/data-management/getInternalSchedulePlan",
         { projectId }
       );
 
-      console.log("Internal schedule response:", response.data);
-
-      if (response.data.status === "success" && response.data.result.length > 0) {
-        console.log("Found existing internal schedule data");
-        const scheduleResult = response.data.result.map(item => ({
-          phaseId: item.phase_id,
-          mainPhase: item.main_phase,
-          subPhase: item.phase_name,
-          duration: `${item.duration_days} days`,
-          durationDays: item.duration_days,
-          startDate: item.start_date ? new Date(item.start_date) : null,
-          endDate: item.end_date ? new Date(item.end_date) : null,
-        }));
+      if (response.data.status === "success") {
+        const scheduleResult = response.data.result;
         setScheduleData(scheduleResult);
         
-        // Set form values from backend response
+        // Set form values
         if (response.data.execution_duration) {
-          const durationParts = response.data.execution_duration.split(" ");
-          setValue("executionDuration", durationParts[0]);
-          setValue("execution_duration_type", durationParts[1] || "weeks");
+          setValue("executionDuration", response.data.execution_duration.split(" ")[0]);
+          setValue("execution_duration_type", response.data.execution_duration.split(" ")[1] || "weeks");
         }
         if (response.data.maintenance_duration) {
+          // maintenance_duration is now in days (integer), so set to days type
           setValue("maintenanceDuration", response.data.maintenance_duration.toString());
           setValue("maintenance_duration_type", "days");
         }
       } else {
-        console.log("No existing internal schedule found, initializing default");
-        // Initialize default internal schedule with consistent structure
+        // Initialize default internal schedule
         setScheduleData([
           {
-            phaseId: 1,
-            mainPhase: "Planning",
-            subPhase: "Prepare scope",
-            duration: "28 days",
-            durationDays: 28,
-            startDate: null,
-            endDate: null
+            phase_id: 1,
+            main_phase: "Planning",
+            phase_name: "Prepare scope",
+            duration_days: 28,
+            start_date: null,
+            end_date: null
           },
           {
-            phaseId: 4,
-            mainPhase: "Execution", 
-            subPhase: "Execute phase",
-            duration: "28 days",
-            durationDays: 28,
-            startDate: null,
-            endDate: null
+            phase_id: 4,
+            main_phase: "Execution", 
+            phase_name: "Execute phase",
+            duration_days: 28,
+            start_date: null,
+            end_date: null
           }
         ]);
       }
     } catch (error) {
       console.error("Error loading internal schedule:", error);
-      toast.error("Failed to load internal schedule data");
-      
-      // Initialize default internal schedule on error
-      setScheduleData([
-        {
-          phaseId: 1,
-          mainPhase: "Planning",
-          subPhase: "Prepare scope",
-          duration: "28 days",
-          durationDays: 28,
-          startDate: null,
-          endDate: null
-        },
-        {
-          phaseId: 4,
-          mainPhase: "Execution", 
-          subPhase: "Execute phase",
-          duration: "28 days",
-          durationDays: 28,
-          startDate: null,
-          endDate: null
-        }
-      ]);
+      toast.error("Failed to load schedule data");
     } finally {
       setLoading(false);
     }
@@ -544,10 +500,10 @@ const ProjectSchedulePlanModal = ({
           {
             projectId,
             schedule: scheduleData.map(phase => ({
-              phaseId: phase.phaseId,
-              durationDays: phase.durationDays,
-              startDate: phase.startDate ? phase.startDate.toISOString().split('T')[0] : null,
-              endDate: phase.endDate ? phase.endDate.toISOString().split('T')[0] : null
+              phaseId: phase.phase_id,
+              durationDays: phase.duration_days,
+              startDate: phase.start_date ? phase.start_date.toISOString().split('T')[0] : null,
+              endDate: phase.end_date ? phase.end_date.toISOString().split('T')[0] : null
             })),
             executionDuration: `${executionDuration} ${executionDurationType}`,
             maintenanceDuration: maintenanceDurationInDays,
@@ -644,7 +600,7 @@ const ProjectSchedulePlanModal = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg p-6 w-full max-w-6xl max-h-[90vh] overflow-y-auto relative">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h2 className="text-xl font-semibold">
@@ -679,20 +635,45 @@ const ProjectSchedulePlanModal = ({
                   control={control}
                   rules={{ required: "Execution start date is required" }}
                   render={({ field }) => (
-                    <Datepicker
-                      value={
-                        field.value
-                          ? { startDate: field.value, endDate: field.value }
-                          : null
-                      }
-                      onChange={(newValue) =>
-                        field.onChange(newValue?.startDate)
-                      }
-                      useRange={false}
-                      asSingle={true}
-                      placeholder="Select start date"
-                      inputClassName="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
+                    <div className="relative">
+                      <Datepicker
+                        value={
+                          field.value
+                            ? { startDate: field.value, endDate: field.value }
+                            : null
+                        }
+                        onChange={(newValue) =>
+                          field.onChange(newValue?.startDate)
+                        }
+                        useRange={false}
+                        asSingle={true}
+                        placeholder="Select start date"
+                        inputClassName="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        popoverDirection="down"
+                        toggleClassName="absolute bg-blue-300 rounded-r-lg text-white right-0 h-full px-3 text-gray-400 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed"
+                        displayFormat="DD/MM/YYYY"
+                        configs={{
+                          shortcuts: {
+                            today: "Today",
+                            yesterday: "Yesterday",
+                            past: period => `Last ${period} Days`,
+                            currentMonth: "This Month",
+                            pastMonth: "Last Month"
+                          }
+                        }}
+                        containerClassName="relative"
+                        classNames={{
+                          popover: "z-[9999] !important",
+                          calendar: "z-[9999] !important",
+                          day: "z-[9999] !important",
+                          month: "z-[9999] !important",
+                          year: "z-[9999] !important",
+                          header: "z-[9999] !important",
+                          navigation: "z-[9999] !important",
+                          dropdown: "z-[9999] !important"
+                        }}
+                      />
+                    </div>
                   )}
                 />
                 {errors.executionStartDate && (

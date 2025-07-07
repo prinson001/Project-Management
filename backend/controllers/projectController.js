@@ -268,7 +268,10 @@ const updateProject = async (req, res) => {
     delete data.objectives;
   }
 
-  if (Object.keys(data).length === 0) {
+  console.log("Update project - incoming data:", data);
+  console.log("Update project - approval flag:", req.body.approval);
+
+  if (Object.keys(data).length === 0 && !req.body.approval) {
     return res.status(400).json({
       status: "failure",
       message: "No data fields provided for update",
@@ -300,9 +303,21 @@ const updateProject = async (req, res) => {
 
     if (req.body.approval == true) {
       console.log("the pmo sent the project for approval");
-      columns.push("approval_status");
-      values.push("Waiting on deputy");
+      // Only add approval_status if it's not already in the data
+      if (!columns.includes('approval_status')) {
+        columns.push("approval_status");
+        values.push("Waiting on deputy");
+      } else {
+        // Update the existing approval_status value
+        const approvalIndex = columns.indexOf('approval_status');
+        if (approvalIndex !== -1) {
+          values[approvalIndex] = "Waiting on deputy";
+        }
+      }
     }
+
+    console.log("Final columns:", columns);
+    console.log("Final values:", values);
 
     const setClause = columns
       .map((col, index) => `"${col}" = $${index + 1}`)
@@ -331,7 +346,20 @@ const updateProject = async (req, res) => {
       if (req.body.approval == true) {
         console.log(req.body.approval);
         console.log("the approval is true");
-        // createProjectCreationTaskForDeputy(req.body.id);
+        console.log("Creating deputy task for project ID:", req.body.id);
+        
+        // Create deputy task for project approval
+        try {
+          await createProjectCreationTaskForDeputy({ body: { projectId: req.body.id } }, {
+            status: (code) => ({ json: (data) => {
+              console.log("Deputy task creation response:", data);
+              return data;
+            }})
+          });
+        } catch (taskError) {
+          console.error("Error creating deputy task:", taskError);
+          // Don't fail the project update if task creation fails
+        }
       }
     } catch (e) {
       console.log("there was an error in creation of tasks object ", e);
