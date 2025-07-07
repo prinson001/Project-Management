@@ -25,15 +25,19 @@ const DocumentFormModal = ({ onClose }) => {
   const [externalSelected, setExternalSelected] = useState(false);
   const [documentFile, setDocumentFile] = useState(null);
 
-  // Handles phase toggling (ensuring all below phases are selected)
+  // Handles phase toggling (ensuring all below phases are selected when toggled on, or untoggled when toggled off)
   const handlePhaseToggle = (index) => {
     const newSelection = [...selectedPhases];
     if (!newSelection[index]) {
+      // When toggling a phase ON, select all subsequent phases
       for (let i = index; i < newSelection.length; i++) {
         newSelection[i] = true;
       }
     } else {
-      newSelection[index] = false;
+      // When toggling a phase OFF, deselect all subsequent phases
+      for (let i = index; i < newSelection.length; i++) {
+        newSelection[i] = false;
+      }
     }
     setSelectedPhases(newSelection);
   };
@@ -53,6 +57,36 @@ const DocumentFormModal = ({ onClose }) => {
   };
 
   const handleSave = async () => {
+    // Validate required fields
+    if (!data.name || !data.arabic_name) {
+      toast.error("Please fill in both English and Arabic names");
+      return;
+    }
+
+    if (!data.description) {
+      toast.error("Please provide a document description");
+      return;
+    }
+
+    // Check if at least one phase is selected
+    const hasSelectedPhase = selectedPhases.some(phase => phase);
+    if (!hasSelectedPhase) {
+      toast.error("Please select at least one phase");
+      return;
+    }
+
+    // Check if at least one project category is selected
+    if (!capexSelected && !opexSelected) {
+      toast.error("Please select either Capex or Opex project type");
+      return;
+    }
+
+    // Check if at least one project type is selected
+    if (!internalSelected && !externalSelected) {
+      toast.error("Please select at least one project type (Internal or External)");
+      return;
+    }
+
     let payloadData = { ...data, phase: [] };
     selectedPhases.forEach((p, index) => {
       if (p === true) {
@@ -210,7 +244,12 @@ const DocumentFormModal = ({ onClose }) => {
                   type="checkbox"
                   className="sr-only peer"
                   checked={capexSelected}
-                  onChange={() => setCapexSelected(!capexSelected)}
+                  onChange={() => {
+                    setCapexSelected(!capexSelected);
+                    if (!capexSelected) {
+                      setOpexSelected(false); // Deselect opex when capex is selected
+                    }
+                  }}
                 />
                 <div
                   className={`relative w-11 h-6 bg-gray-200 rounded-full transition-all ${
@@ -230,7 +269,12 @@ const DocumentFormModal = ({ onClose }) => {
                   type="checkbox"
                   className="sr-only peer"
                   checked={opexSelected}
-                  onChange={() => setOpexSelected(!opexSelected)}
+                  onChange={() => {
+                    setOpexSelected(!opexSelected);
+                    if (!opexSelected) {
+                      setCapexSelected(false); // Deselect capex when opex is selected
+                    }
+                  }}
                 />
                 <div
                   className={`relative w-11 h-6 bg-gray-200 rounded-full transition-all ${

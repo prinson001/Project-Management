@@ -747,6 +747,46 @@ const ProjectModal = ({
     toast.success("Documents uploaded successfully!");
   };
 
+  const handleSendForApproval = async () => {
+    if (!savedProjectData) {
+      toast.error("No project data available to send for approval");
+      return;
+    }
+
+    try {
+      // Update the project with approval flag
+      const response = await axiosInstance.post(
+        `/data-management/updateProject`,
+        {
+          id: savedProjectData.id,
+          data: {},
+          approval: true
+        }
+      );
+
+      if (response.data.status === "success") {
+        toast.success("Project has been sent for approval successfully!");
+        
+        // Close the modal and refresh the project list
+        setSavedProjectData(null);
+        setScheduleUploadedSuccessfully(false);
+        setDocumentsUploadedSuccessfully(false);
+        
+        // Call the onProjectAdded callback to refresh the project table
+        if (onProjectAdded) {
+          onProjectAdded();
+        }
+        
+        if (onClose) onClose();
+      } else {
+        toast.error("Failed to send project for approval");
+      }
+    } catch (error) {
+      console.error("Error sending project for approval:", error);
+      toast.error("An error occurred while sending the project for approval");
+    }
+  };
+
   const handleFinalClose = () => {
     setSavedProjectData(null);
     setScheduleUploadedSuccessfully(false);

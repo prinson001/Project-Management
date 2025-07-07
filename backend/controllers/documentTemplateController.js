@@ -28,27 +28,6 @@ const createDocumentTemplate = async (req, res) => {
     const storagePath = fileUrl ? `document-templates/${fileName}` : null;
 
     // Insert template data into database, including file URL if provided
-    const insertQuery = `
-      INSERT INTO document_template (
-        name, arabic_name, description, is_capex, is_opex, is_internal, is_external, phase, document_name, document_path, document_url
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-      RETURNING id, name;
-    `;
-
-    const insertParams = [
-      templateData.name,
-      templateData.arabic_name,
-      templateData.description || null,
-      templateData.is_capex || false,
-      templateData.is_opex || false,
-      templateData.is_internal || false,
-      templateData.is_external || false,
-      templateData.phase || [],
-      fileName, // Optional: You can adjust this based on your needs
-      storagePath, // Optional: Adjust this if you want to store a path
-      fileUrl, // Store the provided file URL directly
-    ];
-
     const dbResult = await sql`
       INSERT INTO document_template (
         name, arabic_name, description, is_capex, is_opex, is_internal, is_external, phase, document_name, document_path, document_url

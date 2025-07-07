@@ -489,7 +489,7 @@ const getInternalSchedulePlan = async (req, res) => {
 
     if (projectResult.length > 0) {
       response.execution_duration = projectResult[0].execution_duration; // e.g., "4 weeks"
-      response.maintenance_duration = projectResult[0].maintenance_duration; // integer (days)
+      response.maintenance_duration = projectResult[0].maintenance_duration; // Should be integer (days)
     }
 
     return res.status(200).json(response);

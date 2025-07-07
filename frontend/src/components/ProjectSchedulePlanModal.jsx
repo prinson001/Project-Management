@@ -301,7 +301,7 @@ const ProjectSchedulePlanModal = ({
 
       const updatedSchedule = scheduleData.map((phase) =>
         (phase.phaseId || phase.phase_id) === phaseId
-          ? { ...phase, duration: updatedDuration, durationDays }
+          ? { ...phase, duration: updatedDuration, durationDays, duration_days: durationDays }
           : phase
       );
       setScheduleData(updatedSchedule);
@@ -332,7 +332,7 @@ const ProjectSchedulePlanModal = ({
     let nextPhaseStartDate = new Date(executionStartDate);
 
     const updatedScheduleReversed = reversedSchedule.map((row) => {
-      const durationDays = row.durationDays || 0;
+      const durationDays = row.durationDays || row.duration_days || 0;
       const endDate = subDays(nextPhaseStartDate, 0); // Corrected: No gap
       const startDate = subDays(
         endDate,
@@ -355,7 +355,7 @@ const ProjectSchedulePlanModal = ({
     }
   }, [
     executionStartDate,
-    JSON.stringify(scheduleData.map((s) => s.durationDays)),
+    JSON.stringify(scheduleData.map((s) => s.durationDays || s.duration_days)),
   ]);
 
   const loadInternalSchedule = async () => {
@@ -367,9 +367,21 @@ const ProjectSchedulePlanModal = ({
         { projectId }
       );
 
-      if (response.data.status === "success") {
+      if (response.data.status === "success" && response.data.result.length > 0) {
         const scheduleResult = response.data.result;
-        setScheduleData(scheduleResult);
+        
+        // Transform the data to match the expected format
+        const transformedData = scheduleResult.map((phase) => ({
+          phase_id: phase.phase_id,
+          main_phase: phase.main_phase,
+          phase_name: phase.phase_name,
+          duration_days: phase.duration_days || 28,
+          duration: `${phase.duration_days || 28} days`,
+          start_date: phase.start_date,
+          end_date: phase.end_date
+        }));
+        
+        setScheduleData(transformedData);
         
         // Set form values
         if (response.data.execution_duration) {
@@ -389,6 +401,7 @@ const ProjectSchedulePlanModal = ({
             main_phase: "Planning",
             phase_name: "Prepare scope",
             duration_days: 28,
+            duration: "28 days",
             start_date: null,
             end_date: null
           },
@@ -397,13 +410,47 @@ const ProjectSchedulePlanModal = ({
             main_phase: "Execution", 
             phase_name: "Execute phase",
             duration_days: 28,
+            duration: "28 days",
             start_date: null,
             end_date: null
           }
         ]);
+        
+        // Set form values from response if available
+        if (response.data.execution_duration) {
+          setValue("executionDuration", response.data.execution_duration.split(" ")[0]);
+          setValue("execution_duration_type", response.data.execution_duration.split(" ")[1] || "weeks");
+        }
+        if (response.data.maintenance_duration) {
+          setValue("maintenanceDuration", response.data.maintenance_duration.toString());
+          setValue("maintenance_duration_type", "days");
+        }
       }
     } catch (error) {
       console.error("Error loading internal schedule:", error);
+      
+      // Initialize default internal schedule on error
+      setScheduleData([
+        {
+          phase_id: 1,
+          main_phase: "Planning",
+          phase_name: "Prepare scope",
+          duration_days: 28,
+          duration: "28 days",
+          start_date: null,
+          end_date: null
+        },
+        {
+          phase_id: 4,
+          main_phase: "Execution", 
+          phase_name: "Execute phase",
+          duration_days: 28,
+          duration: "28 days",
+          start_date: null,
+          end_date: null
+        }
+      ]);
+      
       toast.error("Failed to load schedule data");
     } finally {
       setLoading(false);
@@ -494,6 +541,16 @@ const ProjectSchedulePlanModal = ({
       );
 
       if (isInternalSchedule) {
+        // Validate that all phases have calculated dates
+        const phasesWithMissingDates = scheduleData.filter(phase => 
+          !phase.startDate || !phase.endDate
+        );
+        
+        if (phasesWithMissingDates.length > 0) {
+          toast.error("Please ensure execution start date is set and phase durations are properly calculated");
+          return;
+        }
+
         // Save internal schedule
         const response = await axiosInstance.post(
           "/data-management/upsertInternalSchedulePlan",
@@ -501,9 +558,9 @@ const ProjectSchedulePlanModal = ({
             projectId,
             schedule: scheduleData.map(phase => ({
               phaseId: phase.phase_id,
-              durationDays: phase.duration_days,
-              startDate: phase.start_date ? phase.start_date.toISOString().split('T')[0] : null,
-              endDate: phase.end_date ? phase.end_date.toISOString().split('T')[0] : null
+              durationDays: phase.duration_days || phase.durationDays,
+              startDate: phase.startDate ? phase.startDate.toISOString().split('T')[0] : null,
+              endDate: phase.endDate ? phase.endDate.toISOString().split('T')[0] : null
             })),
             executionDuration: `${executionDuration} ${executionDurationType}`,
             maintenanceDuration: maintenanceDurationInDays,
@@ -811,8 +868,15 @@ const ProjectSchedulePlanModal = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {scheduleData.map((phase, index) => {
-                    const flag = getPhaseFlag(
+                  {scheduleData.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="border p-3 text-center text-gray-500">
+                        No schedule data available
+                      </td>
+                    </tr>
+                  ) : (
+                    scheduleData.map((phase, index) => {
+                      const flag = getPhaseFlag(
                       phase.start_date || phase.startDate,
                       phase.end_date || phase.endDate
                     );
@@ -933,7 +997,8 @@ const ProjectSchedulePlanModal = ({
                         </td>
                       </tr>
                     );
-                  })}
+                  })
+                  )}
                 </tbody>
               </table>
             </div>
