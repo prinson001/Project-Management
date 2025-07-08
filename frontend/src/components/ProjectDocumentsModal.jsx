@@ -32,6 +32,9 @@ const ProjectDocumentsModal = ({
         projectPhases: projectPhases.map(p => ({ id: p.id, name: p.name }))
       });
       
+      // Clear previous documents state when opening modal or changing phase
+      setDocuments([]);
+      
       const load = async () => {
         // Always fetch document templates based on phase
         if (currentPhase) {
@@ -44,12 +47,19 @@ const ProjectDocumentsModal = ({
         }
       };
       load();
+    } else {
+      // Clear documents when modal is closed to ensure fresh state on next open
+      setDocuments([]);
     }
-  }, [isOpen, projectId, currentPhase, isNewProject]);
+  }, [isOpen, projectId, currentPhase, isNewProject, projectPhases]);
 
   const fetchDocumentTemplates = async () => {
     setLoading(true);
     console.log('Fetching document templates for phase:', currentPhase);
+    
+    // Clear previous documents first
+    setDocuments([]);
+    
     try {
       // Get current phase name
       if (!currentPhase) {
@@ -89,27 +99,33 @@ const ProjectDocumentsModal = ({
         if (templateData.length === 0) {
           console.warn('No document templates found for phase:', phase.name);
           toast.info(`No document templates found for phase: ${phase.name}`);
+          // Set empty documents array to clear any previous templates
+          setDocuments([]);
+        } else {
+          setDocuments(templateData.map(doc => ({
+            id: doc.id,
+            name: doc.name,
+            arabic_name: doc.arabic_name,
+            isrequired: doc.isrequired || false,
+            file: null,
+            filename: null,
+            date: null,
+            uploaded: false,
+            fileUrl: null,
+            documentId: null
+          })));
         }
-        
-        setDocuments(templateData.map(doc => ({
-          id: doc.id,
-          name: doc.name,
-          arabic_name: doc.arabic_name,
-          isrequired: doc.isrequired || false,
-          file: null,
-          filename: null,
-          date: null,
-          uploaded: false,
-          fileUrl: null,
-          documentId: null
-        })));
       } else {
         console.error('API returned error:', response.data);
         toast.error(response.data.message || "Failed to load document templates");
+        // Clear documents on API error
+        setDocuments([]);
       }
     } catch (error) {
       console.error("Error fetching document templates:", error);
       toast.error("Failed to load document templates");
+      // Clear documents on error
+      setDocuments([]);
     } finally {
       setLoading(false);
     }
@@ -325,19 +341,28 @@ const ProjectDocumentsModal = ({
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse border">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="border p-3 text-left">Document Name</th>
-                  <th className="border p-3 text-left">Arabic Name</th>
-                  <th className="border p-3 text-left">Required</th>
-                  <th className="border p-3 text-left">File Name</th>
-                  <th className="border p-3 text-left">Upload Date</th>
-                  <th className="border p-3 text-left">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {documents.map((doc, index) => (
+            {documents.length === 0 && !loading ? (
+              <div className="text-center py-8">
+                <div className="text-gray-500 text-lg mb-2">📄</div>
+                <h3 className="text-lg font-medium text-gray-700 mb-1">No Document Templates</h3>
+                <p className="text-gray-500">
+                  No document templates are configured for the selected project phase.
+                </p>
+              </div>
+            ) : (
+              <table className="w-full border-collapse border">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border p-3 text-left">Document Name</th>
+                    <th className="border p-3 text-left">Arabic Name</th>
+                    <th className="border p-3 text-left">Required</th>
+                    <th className="border p-3 text-left">File Name</th>
+                    <th className="border p-3 text-left">Upload Date</th>
+                    <th className="border p-3 text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {documents.map((doc, index) => (
                   <tr key={index} className="hover:bg-gray-50">
                     <td className="border p-3">{doc.name}</td>
                     <td className="border p-3">{doc.arabic_name || "-"}</td>
@@ -415,6 +440,7 @@ const ProjectDocumentsModal = ({
                 ))}
               </tbody>
             </table>
+            )}
           </div>
         )}
 

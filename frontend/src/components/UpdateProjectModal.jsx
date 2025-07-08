@@ -1603,7 +1603,7 @@ const UpdateProjectModal = ({
           onClose={() => setIsProjectDocumentsModalOpen(false)}
           projectId={projectData.id}
           projectName={projectData.name}
-          currentPhase={projectData.current_phase_id}
+          currentPhase={watch("current_phase_id") || projectData.current_phase_id}
           isNewProject={false} // This is an existing project being updated
           onSave={handleDocumentsSave}
         />

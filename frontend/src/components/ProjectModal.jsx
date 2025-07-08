@@ -2139,13 +2139,15 @@ const ProjectModal = ({
 
       {/* Project Documents Modal */}
       {showDocumentsModal && savedProjectData && (() => {
-        // Get current phase with multiple fallbacks
-        const currentPhaseId = savedProjectData.current_phase_id || 
+        // Get current phase with multiple fallbacks - prioritize current form value over saved data
+        const currentPhaseId = watch("current_phase_id") || 
+                              savedProjectData.current_phase_id || 
                               savedProjectData.phase_id || 
-                              savedProjectData.currentPhase || 
-                              watch("currentPhase");
+                              savedProjectData.currentPhase;
         
         console.log("Rendering ProjectDocumentsModal with currentPhase:", currentPhaseId);
+        console.log("Form current_phase_id:", watch("current_phase_id"));
+        console.log("Saved current_phase_id:", savedProjectData.current_phase_id);
         
         return (
           <ProjectDocumentsModal
