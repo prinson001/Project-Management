@@ -22,7 +22,6 @@ const getBudgetRanges = async (req, res) => {
   }
 };
 
-// Example: If you have a function to update budget ranges (add this if it doesn't exist)
 const updateBudgetRanges = async (req, res) => {
   const { ranges } = req.body; // Expecting an array of range objects
   // ranges = [{id?, label, min_budget, max_budget, budget_order}]
@@ -38,25 +37,25 @@ const updateBudgetRanges = async (req, res) => {
   try {
     await sql.begin(async (sql) => {
       for (const range of ranges) {
-        if (range.isNew && !range.id) {
-          // New range
+        if (range.isNew || !range.id || typeof range.id === 'string') {
+          // New range (including those with temporary string IDs)
           await sql`
             INSERT INTO public.budget_range (label, min_budget, max_budget, budget_order)
-            VALUES (${range.label}, ${parseFloat(range.min_budget)}, ${parseFloat(
-              range.max_budget
-            )}, ${range.budget_order || 0})
+            VALUES (${range.label}, ${parseFloat(range.min_budget) || 0}, ${
+              range.max_budget === null || range.max_budget === '' ? null : parseFloat(range.max_budget)
+            }, ${range.budget_order || 0})
           `;
         } else if (range.id && range.toDelete) {
           // Mark for deletion
           await sql`DELETE FROM public.phase_duration WHERE range_id = ${range.id}`; // Cascade or handle related phase_duration
           await sql`DELETE FROM public.budget_range WHERE id = ${range.id}`;
-        } else if (range.id) {
+        } else if (range.id && typeof range.id === 'number') {
           // Existing range to update
           await sql`
             UPDATE public.budget_range
             SET label = ${range.label}, 
-                min_budget = ${parseFloat(range.min_budget)}, 
-                max_budget = ${parseFloat(range.max_budget)},
+                min_budget = ${parseFloat(range.min_budget) || 0}, 
+                max_budget = ${range.max_budget === null || range.max_budget === '' ? null : parseFloat(range.max_budget)},
                 budget_order = ${range.budget_order || 0}
             WHERE id = ${range.id}
           `;
@@ -85,6 +84,5 @@ const updateBudgetRanges = async (req, res) => {
 // Make sure to export any new functions:
 module.exports = {
   getBudgetRanges,
-  updateBudgetRanges, // Add this
-  // ... other exports
+  updateBudgetRanges,
 };

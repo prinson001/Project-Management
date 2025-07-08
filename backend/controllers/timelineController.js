@@ -15,7 +15,7 @@ const getProjectTimeline = async (req, res) => {
   }
 
   try {
-    // Get project basic info
+    // Get project basic info including execution and maintenance details
     const projectInfo = await withRetry(async () => {
       return await sql`
         SELECT 
@@ -24,6 +24,7 @@ const getProjectTimeline = async (req, res) => {
           p.execution_start_date,
           p.execution_enddate,
           p.execution_duration,
+          p.maintenance_duration,
           p.current_phase_id,
           p.created_date,
           pp.name as current_phase_name,
@@ -44,7 +45,7 @@ const getProjectTimeline = async (req, res) => {
 
     const project = projectInfo[0];
 
-    // Get schedule plan for the project
+    // Get schedule plan for the project grouped by main phases
     const schedulePlan = await withRetry(async () => {
       return await sql`
         SELECT 
@@ -55,18 +56,16 @@ const getProjectTimeline = async (req, res) => {
           spn.end_date,
           ph.phase_name,
           ph.phase_order,
+          ph.main_phase,
+          -- Normalize main phase names to match reference image expectations
           CASE 
-            WHEN ph.phase_name ILIKE '%prepare%' OR ph.phase_name ILIKE '%plan%' THEN 'Planning'
-            WHEN ph.phase_name ILIKE '%rfp%' OR ph.phase_name ILIKE '%bid%' THEN 'Bidding'
-            WHEN ph.phase_name ILIKE '%before%' OR ph.phase_name ILIKE '%pre%' THEN 'Pre-execution'
-            WHEN ph.phase_name ILIKE '%execution%' OR ph.phase_name ILIKE '%contract%' THEN 'Execution'
-            WHEN ph.phase_name ILIKE '%maintenance%' OR ph.phase_name ILIKE '%operation%' THEN 'Maintenance and operation'
-            ELSE ph.phase_name
+            WHEN ph.main_phase = 'Before execution' THEN 'Before executing'
+            ELSE COALESCE(ph.main_phase, ph.phase_name)
           END as mapped_phase_name
         FROM schedule_plan_new spn
         JOIN phase ph ON spn.phase_id = ph.id
         WHERE spn.project_id = ${projectId}
-        ORDER BY spn.start_date, ph.phase_order
+        ORDER BY ph.phase_order, spn.start_date
       `;
     });
 
@@ -98,30 +97,39 @@ const getProjectTimeline = async (req, res) => {
     const timeline = [];
     const currentDate = new Date();
 
+    // Define expected main phases in order
+    const expectedMainPhases = ["Planning", "Bidding", "Before executing", "Executing", "Support"];
+
     if (schedulePlan.length > 0) {
-      // Use schedule plan data
+      // Group schedule items by main phase
       const phaseGroups = {};
       
-      // Group schedule items by project phase
+      // Initialize all expected main phases
+      expectedMainPhases.forEach((mainPhase, index) => {
+        phaseGroups[mainPhase] = {
+          phaseName: mainPhase,
+          items: [],
+          startDate: null,
+          endDate: null,
+          order: index + 1,
+          exists: false
+        };
+      });
+
+      // Group actual schedule items by main phase
       schedulePlan.forEach(item => {
         const phaseKey = item.mapped_phase_name;
-        if (!phaseGroups[phaseKey]) {
-          phaseGroups[phaseKey] = {
-            phaseName: phaseKey,
-            items: [],
-            startDate: item.start_date,
-            endDate: item.end_date,
-            order: item.phase_order || 0
-          };
-        }
-        phaseGroups[phaseKey].items.push(item);
-        
-        // Update phase date range
-        if (item.start_date < phaseGroups[phaseKey].startDate) {
-          phaseGroups[phaseKey].startDate = item.start_date;
-        }
-        if (item.end_date > phaseGroups[phaseKey].endDate) {
-          phaseGroups[phaseKey].endDate = item.end_date;
+        if (phaseGroups[phaseKey]) {
+          phaseGroups[phaseKey].exists = true;
+          phaseGroups[phaseKey].items.push(item);
+          
+          // Update phase date range
+          if (!phaseGroups[phaseKey].startDate || item.start_date < phaseGroups[phaseKey].startDate) {
+            phaseGroups[phaseKey].startDate = item.start_date;
+          }
+          if (!phaseGroups[phaseKey].endDate || item.end_date > phaseGroups[phaseKey].endDate) {
+            phaseGroups[phaseKey].endDate = item.end_date;
+          }
         }
       });
 
@@ -129,6 +137,11 @@ const getProjectTimeline = async (req, res) => {
       Object.values(phaseGroups)
         .sort((a, b) => a.order - b.order)
         .forEach((phase, index) => {
+          // Skip phases that don't exist in the database
+          if (!phase.exists) {
+            return;
+          }
+
           const startDate = new Date(phase.startDate);
           const endDate = new Date(phase.endDate);
           const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
@@ -153,7 +166,11 @@ const getProjectTimeline = async (req, res) => {
             const allCompleted = phaseDeliverables.every(d => d.calculated_status === 'COMPLETED');
             const hasInProgress = phaseDeliverables.some(d => d.calculated_status === 'IN_PROGRESS');
 
-            if (allCompleted) {
+            // Check if phase end date has passed - if so, mark as completed regardless of deliverable status
+            if (currentDate > endDate) {
+              progress = 100;
+              status = "Completed";
+            } else if (allCompleted) {
               status = "Completed";
             } else if (hasDelayed) {
               status = "Delayed";
@@ -224,7 +241,11 @@ const getProjectTimeline = async (req, res) => {
           let progress = 0;
           let status = "Not Started";
 
-          if (phase.id === project.current_phase_id) {
+          // First check if phase end date has passed - if so, mark as completed
+          if (currentDate > phaseEndDate) {
+            progress = 100;
+            status = "Completed";
+          } else if (phase.id === project.current_phase_id) {
             // This is the current phase
             if (phaseDeliverables.length > 0) {
               progress = Math.round(phaseDeliverables.reduce((sum, d) => sum + (d.progress_percentage || 0), 0) / phaseDeliverables.length);
@@ -262,14 +283,17 @@ const getProjectTimeline = async (req, res) => {
       }
     }
 
+    // Add calculated Executing and Support phases based on project execution data
+    await addCalculatedPhases(timeline, project, deliverablesProgress, currentDate);
+
     // If no timeline data could be generated, create a basic structure
     if (timeline.length === 0) {
       const basicPhases = [
         { name: "Planning", order: 1 },
         { name: "Bidding", order: 2 },
-        { name: "Pre-execution", order: 3 },
-        { name: "Execution", order: 4 },
-        { name: "Maintenance and operation", order: 5 }
+        { name: "Before executing", order: 3 },
+        { name: "Executing", order: 4 },
+        { name: "Support", order: 5 }
       ];
 
       basicPhases.forEach((phase, index) => {
@@ -354,6 +378,145 @@ function parseDurationToDays(duration) {
   }
   
   return 30; // default fallback
+}
+
+// Helper function to add calculated Executing and Support phases
+async function addCalculatedPhases(timeline, project, deliverablesProgress, currentDate) {
+  const currentOrder = Math.max(...timeline.map(t => t.order || 0), 0);
+  
+  // Calculate Executing phase if execution dates are available
+  if (project.execution_start_date && (project.execution_enddate || project.execution_duration)) {
+    const executionStart = new Date(project.execution_start_date);
+    let executionEnd;
+    
+    if (project.execution_enddate) {
+      executionEnd = new Date(project.execution_enddate);
+    } else if (project.execution_duration) {
+      const durationDays = parseDurationToDays(project.execution_duration);
+      executionEnd = new Date(executionStart.getTime() + (durationDays * 24 * 60 * 60 * 1000));
+    }
+    
+    if (executionEnd) {
+      // Calculate progress for Executing phase
+      const executionDeliverables = deliverablesProgress.filter(d => {
+        const deliverableStart = new Date(d.start_date);
+        const deliverableEnd = new Date(d.end_date);
+        return (deliverableStart >= executionStart && deliverableStart <= executionEnd) ||
+               (deliverableEnd >= executionStart && deliverableEnd <= executionEnd) ||
+               (deliverableStart <= executionStart && deliverableEnd >= executionEnd);
+      });
+      
+      let executionProgress = 0;
+      let executionStatus = "Not Started";
+      
+      if (currentDate > executionEnd) {
+        executionProgress = 100;
+        executionStatus = "Completed";
+      } else if (currentDate >= executionStart) {
+        if (executionDeliverables.length > 0) {
+          executionProgress = Math.round(
+            executionDeliverables.reduce((sum, d) => sum + (d.progress_percentage || 0), 0) / 
+            executionDeliverables.length
+          );
+          
+          const hasDelayed = executionDeliverables.some(d => d.calculated_status === 'DELAYED');
+          const hasInProgress = executionDeliverables.some(d => d.calculated_status === 'IN_PROGRESS');
+          
+          if (hasDelayed) {
+            executionStatus = "Delayed";
+          } else if (hasInProgress || executionProgress > 0) {
+            executionStatus = "In Progress";
+          } else {
+            executionStatus = "In Progress";
+          }
+        } else {
+          // Calculate based on time elapsed
+          const daysPassed = Math.ceil((currentDate - executionStart) / (1000 * 60 * 60 * 24));
+          const totalDays = Math.ceil((executionEnd - executionStart) / (1000 * 60 * 60 * 24));
+          executionProgress = Math.min(100, Math.round((daysPassed / totalDays) * 100));
+          executionStatus = "In Progress";
+        }
+      }
+      
+      const totalDays = Math.ceil((executionEnd - executionStart) / (1000 * 60 * 60 * 24)) + 1;
+      
+      timeline.push({
+        id: `executing-phase`,
+        phaseName: "Executing",
+        duration: `${totalDays} days`,
+        startDate: formatDate(executionStart),
+        endDate: formatDate(executionEnd),
+        progress: executionProgress,
+        status: executionStatus,
+        deliverableCount: executionDeliverables.length,
+        order: currentOrder + 1
+      });
+    }
+  }
+  
+  // Calculate Support phase if maintenance duration is available
+  if (project.maintenance_duration && project.execution_enddate) {
+    const supportStart = new Date(project.execution_enddate);
+    supportStart.setDate(supportStart.getDate() + 1); // Start day after execution ends
+    
+    const maintenanceDays = parseInt(project.maintenance_duration) || 365; // Default 1 year
+    const supportEnd = new Date(supportStart.getTime() + (maintenanceDays * 24 * 60 * 60 * 1000));
+    
+    // Calculate progress for Support phase
+    const supportDeliverables = deliverablesProgress.filter(d => {
+      const deliverableStart = new Date(d.start_date);
+      const deliverableEnd = new Date(d.end_date);
+      return (deliverableStart >= supportStart && deliverableStart <= supportEnd) ||
+             (deliverableEnd >= supportStart && deliverableEnd <= supportEnd) ||
+             (deliverableStart <= supportStart && deliverableEnd >= supportEnd);
+    });
+    
+    let supportProgress = 0;
+    let supportStatus = "Not Started";
+    
+    if (currentDate > supportEnd) {
+      supportProgress = 100;
+      supportStatus = "Completed";
+    } else if (currentDate >= supportStart) {
+      if (supportDeliverables.length > 0) {
+        supportProgress = Math.round(
+          supportDeliverables.reduce((sum, d) => sum + (d.progress_percentage || 0), 0) / 
+          supportDeliverables.length
+        );
+        
+        const hasDelayed = supportDeliverables.some(d => d.calculated_status === 'DELAYED');
+        const hasInProgress = supportDeliverables.some(d => d.calculated_status === 'IN_PROGRESS');
+        
+        if (hasDelayed) {
+          supportStatus = "Delayed";
+        } else if (hasInProgress || supportProgress > 0) {
+          supportStatus = "In Progress";
+        } else {
+          supportStatus = "In Progress";
+        }
+      } else {
+        // Calculate based on time elapsed
+        const daysPassed = Math.ceil((currentDate - supportStart) / (1000 * 60 * 60 * 1000));
+        supportProgress = Math.min(100, Math.round((daysPassed / maintenanceDays) * 100));
+        supportStatus = "In Progress";
+      }
+    }
+    
+    timeline.push({
+      id: `support-phase`,
+      phaseName: "Support",
+      duration: `${maintenanceDays} days`,
+      startDate: formatDate(supportStart),
+      endDate: formatDate(supportEnd),
+      progress: supportProgress,
+      status: supportStatus,
+      deliverableCount: supportDeliverables.length,
+      order: currentOrder + 2
+    });
+  }
+  
+  // Sort timeline by order to ensure proper sequence
+  timeline.sort((a, b) => (a.order || 0) - (b.order || 0));
 }
 
 module.exports = {

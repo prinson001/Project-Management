@@ -17,12 +17,21 @@ function ProjectCreationAccordion({ project, closeAccordion }) {
   const [vendors, setVendors] = useState([]);
   const [selectedProgramDetails, setSelectedProgramDetails] = useState(null);
   
-  const { users, projectTypes, projectPhases, setDocuments, documents } =
+  const { users, projectTypes, projectPhases, setDocuments, documents, setUsers, setProjectTypes, setProjectPhases } =
     useAuthStore();
 
   const fetchFullProjectData = async () => {
     try {
       setIsDataReady(false);
+
+      // Ensure auth store data is loaded
+      await Promise.all([
+        fetchAuthStoreData(),
+        fetchPrograms(),
+        fetchPortfolios(),
+        fetchInitiatives(),
+        fetchVendors(),
+      ]);
 
       // Fetch approval status if needed
       if (project.status === "Done") {
@@ -32,14 +41,6 @@ function ProjectCreationAccordion({ project, closeAccordion }) {
         );
         setProjectApproval(result.data.approval_status);
       }
-
-      // Fetch dropdown data
-      await Promise.all([
-        fetchPrograms(),
-        fetchPortfolios(),
-        fetchInitiatives(),
-        fetchVendors(),
-      ]);
 
       // Fetch complete project details
       const response = await axiosInstance.post(
@@ -92,6 +93,36 @@ function ProjectCreationAccordion({ project, closeAccordion }) {
     } catch (error) {
       console.error("Error fetching project data:", error);
       setIsDataReady(false);
+    }
+  };
+
+  const fetchAuthStoreData = async () => {
+    try {
+      // Fetch users if not already loaded
+      if (!users || users.length === 0) {
+        const usersResponse = await axiosInstance.get("/data-management/users");
+        if (usersResponse.data.status === "success") {
+          setUsers(usersResponse.data.result);
+        }
+      }
+
+      // Fetch project types if not already loaded
+      if (!projectTypes || projectTypes.length === 0) {
+        const typesResponse = await axiosInstance.post("/data-management/getProjectTypes");
+        if (typesResponse.data.status === "success") {
+          setProjectTypes(typesResponse.data.result);
+        }
+      }
+
+      // Fetch project phases if not already loaded
+      if (!projectPhases || projectPhases.length === 0) {
+        const phasesResponse = await axiosInstance.post("/data-management/getProjectPhases");
+        if (phasesResponse.data.status === "success") {
+          setProjectPhases(phasesResponse.data.result);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching auth store data:", error);
     }
   };
 
@@ -233,6 +264,41 @@ function ProjectCreationAccordion({ project, closeAccordion }) {
     });
   };
 
+  const formatExecutionDuration = (duration) => {
+    if (!duration) return "N/A";
+    
+    // If duration is in time format like "00:00:21", convert to days
+    if (typeof duration === 'string' && duration.includes(':')) {
+      const parts = duration.split(':');
+      if (parts.length === 3) {
+        const hours = parseInt(parts[0]) || 0;
+        const minutes = parseInt(parts[1]) || 0;
+        const seconds = parseInt(parts[2]) || 0;
+        
+        // Convert to total hours
+        const totalHours = hours + (minutes / 60) + (seconds / 3600);
+        
+        // Convert to days (assuming 8 working hours per day)
+        const days = Math.ceil(totalHours / 24);
+        
+        return `${days} ${days === 1 ? 'day' : 'days'}`;
+      }
+    }
+    
+    // If duration is already a number or contains "days"/"weeks"
+    if (typeof duration === 'string' && (duration.includes('day') || duration.includes('week'))) {
+      return duration;
+    }
+    
+    // If it's a number, assume it's in days
+    if (typeof duration === 'number' || !isNaN(parseInt(duration))) {
+      const days = parseInt(duration);
+      return `${days} ${days === 1 ? 'day' : 'days'}`;
+    }
+    
+    return duration; // Return as-is if we can't parse it
+  };
+
   const getProjectTypeName = (typeId) => {
     const type = projectTypes.find(t => t.id.toString() === typeId?.toString());
     return type?.name || "Unknown";
@@ -240,7 +306,8 @@ function ProjectCreationAccordion({ project, closeAccordion }) {
 
   const getProjectPhaseName = (phaseId) => {
     const phase = projectPhases.find(p => p.id.toString() === phaseId?.toString());
-    return phase?.phase_name || "Unknown";
+    // Try both 'name' and 'phase_name' properties
+    return phase?.name || phase?.phase_name || "Unknown";
   };
 
   const getProjectManagerName = (managerId) => {
@@ -525,7 +592,7 @@ function ProjectCreationAccordion({ project, closeAccordion }) {
               <div>
                 <label className="block text-sm font-medium text-gray-700">Execution Duration</label>
                 <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">
-                  {projectData.execution_duration || "N/A"}
+                  {formatExecutionDuration(projectData.execution_duration)}
                 </div>
               </div>
               <div>

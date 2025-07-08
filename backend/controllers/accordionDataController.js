@@ -241,6 +241,25 @@ const getProjectWithAllRelatedData = async (req, res) => {
       });
     }
 
+    // Get beneficiary departments for this project
+    const beneficiaryDepartments = await sql`
+        SELECT d.id, d.name, d.arabic_name
+        FROM department d
+        JOIN beneficiary_departments pd ON d.id = pd.department_id
+        WHERE pd.project_id = ${projectId}`;
+
+    // Get objectives for this project  
+    const objectives = await sql`
+        SELECT o.id, o.name AS text, o.arabic_name AS arabic_text
+        FROM objective o
+        JOIN project_objective po ON o.id = po.objective_id
+        WHERE po.project_id = ${projectId}`;
+
+    // Get documents for this project (if needed)
+    const documents = await sql`
+        SELECT * FROM project_documents
+        WHERE project_id = ${projectId}`;
+
     // Get parent program
     const program = await sql`
         SELECT * FROM program WHERE id = ${project[0].program_id}`;
@@ -259,6 +278,14 @@ const getProjectWithAllRelatedData = async (req, res) => {
           SELECT * FROM initiative WHERE id = ${portfolio[0].initiative_id}`;
     }
 
+    // Add the related data to the project object
+    const enrichedProject = {
+      ...project[0],
+      beneficiary_departments: beneficiaryDepartments,
+      objectives: objectives,
+      documents: documents
+    };
+
     // Return all the hierarchical data
     res.status(200).json({
       status: "success",
@@ -267,7 +294,7 @@ const getProjectWithAllRelatedData = async (req, res) => {
         initiative: initiative && initiative.length > 0 ? initiative[0] : null,
         portfolio: portfolio && portfolio.length > 0 ? portfolio[0] : null,
         program: program.length > 0 ? program[0] : null,
-        project: project[0],
+        project: enrichedProject,
       },
     });
   } catch (e) {

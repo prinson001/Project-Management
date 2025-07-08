@@ -16,12 +16,16 @@ const SystemSettingsPage = () => {
   const [roles, setRoles] = useState([]);
   const [users, setUsers] = useState([]);
   const [showForm, setShowForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fetchUsers = async () => {
     try {
       const response = await axiosInstance.get(`/data-management/users`);
       if (response.data.status === "success") {
         setUsers(response.data.result);
-        console.log(response.data.result);
+        console.log("Users fetched:", response.data.result);
+      } else {
+        console.error("Failed to fetch users:", response.data.message);
+        toast.error(response.data.message || "Failed to load users");
       }
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -111,6 +115,9 @@ const SystemSettingsPage = () => {
         required: true,
         columnSpan: 1,
         className: "col-start-2",
+        validate: (value, formData) => {
+          return value === formData.password || "Passwords do not match";
+        },
       },
       {
         name: "department",
@@ -174,23 +181,39 @@ const SystemSettingsPage = () => {
     }
   };
   const handleFormSubmit = async (data) => {
+    if (isSubmitting) return; // Prevent multiple submissions
+    
     try {
+      setIsSubmitting(true);
+      
+      // Validate password match on frontend as well
+      if (data.password !== data.rewritePassword) {
+        toast.error("Passwords do not match");
+        return;
+      }
+
       let endpoint = "addUser";
       const result = await axiosInstance.post(`/data-management/${endpoint}`, {
         data: { ...data },
         userId: 1,
       });
+      
       console.log("Form submission result:", result);
+      
       if (result.data.status === "success") {
-        toast.success(`user added successfully!`);
-        //await getData(); // Ensure it completes before closing the form
+        toast.success("User added successfully!");
+        // Refresh the users list after successful addition
+        await fetchUsers();
         setShowForm(false);
+      } else {
+        toast.error(result.data.message || "Failed to add user");
       }
     } catch (e) {
-      console.log("Error submitting form:", e);
-      toast.error(
-        `Failed to add User}: ${e.response?.data?.message || e.message}`
-      );
+      console.error("Error submitting form:", e);
+      const errorMessage = e.response?.data?.message || e.message || "Failed to add user";
+      toast.error(errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -233,6 +256,7 @@ const SystemSettingsPage = () => {
               fields={getFormFields()["user"] || []}
               onSubmit={handleFormSubmit}
               isEmbedded={true}
+              isLoading={isSubmitting}
             />
           </div>
         </div>

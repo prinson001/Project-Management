@@ -36,9 +36,25 @@ const getProjectDetails = async (req, res) => {
 
     const deliverableResult = await sql`
       SELECT 
-        dd.*
-      FROM deliverables_dashboard dd
-      WHERE dd.project_id = ${projectid};
+        d.id,
+        d.name,
+        d.start_date,
+        d.end_date,
+        d.duration,
+        d.amount AS contract_amount,
+        COALESCE(dp.scope_percentage, 0) AS scope_pct,
+        COALESCE(dp.progress_percentage, 0) AS progress_percentage,
+        GREATEST((CURRENT_DATE - d.end_date), 0) AS days_overdue,
+        CASE 
+          WHEN COALESCE(dp.progress_percentage, 0) >= 100 OR COALESCE(dp.scope_percentage, 0) >= 100 THEN 'COMPLETED'
+          WHEN CURRENT_DATE > d.end_date AND COALESCE(dp.progress_percentage, 0) < 100 THEN 'DELAYED'
+          WHEN COALESCE(dp.progress_percentage, 0) > 0 OR COALESCE(dp.scope_percentage, 0) > 0 THEN 'IN_PROGRESS'
+          ELSE 'NOT_STARTED'
+        END AS dashboard_status
+      FROM deliverable d
+      LEFT JOIN item i ON i.id = d.item_id  
+      LEFT JOIN deliverable_progress dp ON dp.deliverable_id = d.id
+      WHERE i.project_id = ${projectid};
     `;    // Get aggregated invoice data for project totals
     const paymentSummary = await sql`
       SELECT 
@@ -56,11 +72,14 @@ const getProjectDetails = async (req, res) => {
     let totalProgress = 0, totalExpectedProgress = 0, validProgressCount = 0;
     const today = new Date();
     
-    // Calculate deliverable statistics using the dashboard view
+    // Calculate deliverable statistics using the actual progress data
     for (const row of deliverableResult) {
       total++;
-      console.log(row);
-      const { dashboard_status, scope_pct, contract_amount } = row;
+      console.log('Deliverable data:', row);
+      const { dashboard_status, scope_pct, progress_percentage, contract_amount } = row;
+      
+      // Use the maximum of scope_pct and progress_percentage for the most accurate progress
+      const actualProgress = Math.max(parseFloat(scope_pct || 0), parseFloat(progress_percentage || 0));
       
       // Add to planned invoices total (all deliverables amounts)
       totalPlannedInvoices += parseFloat(contract_amount || 0);
@@ -75,7 +94,7 @@ const getProjectDetails = async (req, res) => {
           break;
         case 'DELAYED':
           delayed++;
-          totalProgress += parseFloat(scope_pct || 0);
+          totalProgress += actualProgress;
           // For delayed items, expected progress should be 100%
           totalExpectedProgress += 100;
           validProgressCount++;
@@ -85,8 +104,7 @@ const getProjectDetails = async (req, res) => {
           break;
         default:
           // IN_PROGRESS or other statuses
-          const currentProgress = parseFloat(scope_pct || 0);
-          totalProgress += currentProgress;
+          totalProgress += actualProgress;
           
           // Calculate expected progress based on time elapsed
           const start = new Date(row.start_date);
@@ -99,14 +117,24 @@ const getProjectDetails = async (req, res) => {
           validProgressCount++;
           
           // Determine if on plan or partially delayed
-          if (currentProgress >= expected) {
+          if (actualProgress >= expected) {
             onPlan++;
-          } else if (currentProgress > 0) {
+          } else {
             partialDelayed++;
           }
           break;
       }
-    }    // Calculate payment statistics
+    }
+
+    console.log('Progress calculation summary:', {
+      total,
+      validProgressCount,
+      totalProgress,
+      totalExpectedProgress,
+      averageProgress: validProgressCount > 0 ? totalProgress / validProgressCount : 0
+    });
+
+    // Calculate payment statistics
     if (paymentSummary.length > 0) {
       const payment = paymentSummary[0];
       totalInvoiced = parseFloat(payment.total_invoiced || 0);
@@ -184,25 +212,25 @@ const getProjectsBasedOnUserId = async(req,res)=>{
     // Calculate progress for each project
     const projectsWithProgress = await Promise.all(projects.map(async (project) => {
       try {
-        // Get project phases if available
+        // Get project phases if available (project_phase table contains global phases, not project-specific)
         const phases = await sql`
           SELECT * FROM project_phase 
-          WHERE project_id = ${project.id}
-          ORDER BY phase_order ASC
+          ORDER BY order_position ASC
         `;
 
         // Get all deliverables for the project with their status and scope percentage
         const deliverables = await sql`
           SELECT 
             d.*,
-            i.project_id,
-            COALESCE(d.scope_pct, 0) as scope_pct,
+            COALESCE(dp.scope_percentage, 0) as scope_pct,
+            COALESCE(dp.progress_percentage, 0) as progress_percentage,
             d.status as deliverable_status,
             d.start_date as deliverable_start_date,
             d.end_date as deliverable_end_date,
-            d.phase_id as phase_id
+            dp.status as progress_status
           FROM deliverable d
           JOIN item i ON d.item_id = i.id
+          LEFT JOIN deliverable_progress dp ON d.id = dp.deliverable_id
           WHERE i.project_id = ${project.id}
         `;
 
@@ -238,21 +266,35 @@ const getProjectsBasedOnUserId = async(req,res)=>{
 
         const now = new Date();
         
-        // Calculate overall progress based on phases
-        let totalWeight = 0;
-        let weightedProgress = 0;
+        // Calculate overall progress based on average of all deliverables
+        let totalProgress = 0;
         let completedDeliverables = 0;
         let totalDeliverables = deliverables.length;
         let onTimeDeliverables = 0;
         let delayedDeliverables = 0;
 
-        // Count completed and on-time deliverables
-        deliverables.forEach(deliverable => {
-          const weight = 1;
-          totalWeight += weight;
-          
+        console.log(`\n=== PROGRESS CALCULATION DEBUG for Project ${project.id} ===`);
+        console.log(`Total deliverables: ${totalDeliverables}`);
+
+        // Count completed and on-time deliverables, sum up progress
+        deliverables.forEach((deliverable, index) => {
           let progress = 0;
-          if (deliverable.deliverable_status === 'COMPLETED') {
+          const status = (deliverable.deliverable_status || deliverable.status || deliverable.progress_status || '').toUpperCase();
+          const scopePct = parseFloat(deliverable.scope_pct) || 0;
+          const progressPct = parseFloat(deliverable.progress_percentage) || 0;
+          
+          // Use the highest available progress value
+          const maxProgress = Math.max(scopePct, progressPct);
+          
+          console.log(`Deliverable ${index + 1}:`);
+          console.log(`  Name: ${deliverable.name || 'N/A'}`);
+          console.log(`  Status: "${deliverable.deliverable_status}" | Progress Status: "${deliverable.progress_status}"`);
+          console.log(`  Scope %: ${deliverable.scope_pct} | Progress %: ${deliverable.progress_percentage}`);
+          console.log(`  Max Progress: ${maxProgress}`);
+          console.log(`  Normalized Status: "${status}"`);
+          
+          // More flexible status checking with fallback to progress percentage
+          if (status === 'COMPLETED' || status === 'COMPLETE' || maxProgress === 100) {
             progress = 100;
             completedDeliverables++;
             // Check if completed on time
@@ -261,35 +303,83 @@ const getProjectsBasedOnUserId = async(req,res)=>{
             } else {
               delayedDeliverables++;
             }
-          } else if (deliverable.deliverable_status === 'IN_PROGRESS') {
-            progress = Math.min(100, Math.max(0, parseFloat(deliverable.scope_pct) || 0));
+            console.log(`  → Treated as COMPLETED (100%)`);
+          } else if (status === 'IN_PROGRESS' || status === 'IN PROGRESS' || status === 'INPROGRESS' || maxProgress > 0) {
+            progress = Math.min(100, Math.max(0, maxProgress));
             // Check if in progress but past due
             if (deliverable.deliverable_end_date && new Date(deliverable.deliverable_end_date) < now) {
               delayedDeliverables++;
             }
-          } else if (deliverable.deliverable_status === 'NOT_STARTED' && 
+            console.log(`  → Treated as IN_PROGRESS (${progress}%)`);
+          } else if ((status === 'NOT_STARTED' || status === 'NOT STARTED' || status === 'NOTSTARTED' || !status) && 
                     deliverable.deliverable_start_date && 
                     new Date(deliverable.deliverable_start_date) < now) {
             // Not started but should have started
             delayedDeliverables++;
+            progress = 0;
+            console.log(`  → Treated as DELAYED NOT_STARTED (0%)`);
+          } else {
+            progress = maxProgress; // Use the progress percentage even if status is unclear
+            console.log(`  → Using progress percentage (${progress}%)`);
           }
           
-          weightedProgress += (progress * weight);
+          totalProgress += progress;
+          console.log(`  → Adding ${progress}% to total. Running total: ${totalProgress}`);
         });
 
-        // Calculate overall progress (0-100)
-        const overallProgress = totalWeight > 0 
-          ? Math.round(weightedProgress / totalWeight) 
+        // Calculate overall progress as simple average of all deliverables
+        const overallProgress = totalDeliverables > 0 
+          ? Math.round(totalProgress / totalDeliverables) 
           : 0;
+
+        console.log(`Final calculation: ${totalProgress} / ${totalDeliverables} = ${overallProgress}%`);
+        console.log(`=== END DEBUG ===\n`);
 
         // Calculate time-based progress if project has start and end dates
         let timeProgress = 0;
         //const now = new Date();
-        if (project.start_date && project.end_date) {
-          const start = new Date(project.start_date);
-          const end = new Date(project.end_date);
-          const totalDuration = end - start;
-          const elapsedDuration = now - start;
+        
+        // Try to use execution dates first, then fall back to project dates
+        let projectStart = null;
+        let projectEnd = null;
+        
+        if (project.execution_start_date && project.execution_enddate) {
+          projectStart = new Date(project.execution_start_date);
+          projectEnd = new Date(project.execution_enddate);
+        } else if (project.execution_start_date && project.execution_duration) {
+          projectStart = new Date(project.execution_start_date);
+          // Parse execution_duration to calculate end date
+          let durationDays = 0;
+          if (typeof project.execution_duration === 'string') {
+            const durationStr = project.execution_duration.toLowerCase();
+            if (durationStr.includes('week')) {
+              const weeks = parseInt(durationStr, 10) || 0;
+              durationDays = weeks * 7;
+            } else if (durationStr.includes('month')) {
+              const months = parseInt(durationStr, 10) || 0;
+              durationDays = months * 30;
+            } else if (durationStr.includes('day')) {
+              durationDays = parseInt(durationStr, 10) || 0;
+            } else {
+              // Assume it's in weeks if no unit specified
+              durationDays = (parseInt(durationStr, 10) || 0) * 7;
+            }
+          } else if (typeof project.execution_duration === 'number') {
+            // Assume days if it's a number
+            durationDays = project.execution_duration;
+          }
+          
+          if (durationDays > 0) {
+            projectEnd = new Date(projectStart.getTime() + durationDays * 24 * 60 * 60 * 1000);
+          }
+        } else if (project.start_date && project.end_date) {
+          projectStart = new Date(project.start_date);
+          projectEnd = new Date(project.end_date);
+        }
+        
+        if (projectStart && projectEnd) {
+          const totalDuration = projectEnd - projectStart;
+          const elapsedDuration = now - projectStart;
           
           if (totalDuration > 0) {
             timeProgress = Math.min(100, Math.max(0, (elapsedDuration / totalDuration) * 100));

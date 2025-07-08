@@ -2,7 +2,7 @@ import { constructNow } from "date-fns";
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
-const DynamicForm = ({ title, fields, onSubmit, isEmbedded = false }) => {
+const DynamicForm = ({ title, fields, onSubmit, isEmbedded = false, isLoading = false }) => {
   const [isModalOpen, setIsModalOpen] = useState(false); // State to control modal visibility
   const [pmRole, setPmRole] = useState(false);
   const {
@@ -54,7 +54,7 @@ const DynamicForm = ({ title, fields, onSubmit, isEmbedded = false }) => {
       >
         {fields.map(
           (
-            { name, label, type, required, className, options, columnSpan },
+            { name, label, type, required, className, options, columnSpan, validate },
             index
           ) => (
             <div
@@ -68,7 +68,10 @@ const DynamicForm = ({ title, fields, onSubmit, isEmbedded = false }) => {
               </label>
               {type === "select" ? (
                 <select
-                  {...register(name, { required })}
+                  {...register(name, { 
+                    required, 
+                    validate: validate ? (value) => validate(value, watch()) : undefined 
+                  })}
                   onChange={(e) => {
                     register("role").onChange(e); // This ensures React Hook Form gets the update
                     changeHandler(e);
@@ -85,7 +88,10 @@ const DynamicForm = ({ title, fields, onSubmit, isEmbedded = false }) => {
                 </select>
               ) : type === "textarea" ? (
                 <textarea
-                  {...register(name, { required })}
+                  {...register(name, { 
+                    required, 
+                    validate: validate ? (value) => validate(value, watch()) : undefined 
+                  })}
                   className="mt-1 w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   rows={4}
                 />
@@ -95,7 +101,10 @@ const DynamicForm = ({ title, fields, onSubmit, isEmbedded = false }) => {
                     <input
                       type="checkbox"
                       disabled={!pmRole}
-                      {...register(name, { required })}
+                      {...register(name, { 
+                        required, 
+                        validate: validate ? (value) => validate(value, watch()) : undefined 
+                      })}
                       className="sr-only peer"
                     />
                     <div className="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-500 peer-checked:bg-blue-600 dark:peer-checked:bg-blue-600"></div>
@@ -107,13 +116,16 @@ const DynamicForm = ({ title, fields, onSubmit, isEmbedded = false }) => {
               ) : (
                 <input
                   type={type}
-                  {...register(name, { required })}
+                  {...register(name, { 
+                    required, 
+                    validate: validate ? (value) => validate(value, watch()) : undefined 
+                  })}
                   className="mt-1 w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 />
               )}
               {errors[name] && (
                 <span className="text-red-500 text-sm">
-                  {label} is required
+                  {errors[name].message || `${label} is required`}
                 </span>
               )}
             </div>
@@ -124,9 +136,14 @@ const DynamicForm = ({ title, fields, onSubmit, isEmbedded = false }) => {
         <div className="col-span-2 flex justify-center mt-4">
           <button
             type="submit"
-            className="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 transition"
+            disabled={isLoading}
+            className={`px-6 py-2 rounded-md transition ${
+              isLoading
+                ? "bg-gray-400 text-gray-700 cursor-not-allowed"
+                : "bg-blue-500 text-white hover:bg-blue-600"
+            }`}
           >
-            Save
+            {isLoading ? "Saving..." : "Save"}
           </button>
         </div>
       </form>

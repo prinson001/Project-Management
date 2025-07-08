@@ -377,9 +377,10 @@ const getBudgetRanges = async (req, res) => {
     const result = await sql`
       SELECT 
         id,
-        label AS name,
-        min_budget AS min,
-        max_budget AS max
+        label,
+        min_budget,
+        max_budget,
+        budget_order
       FROM budget_range
       ORDER BY budget_order;
     `;

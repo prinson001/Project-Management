@@ -28,6 +28,7 @@ import UpdateProjectModal from "./UpdateProjectModal";
 import DocumentTemplateAccordion from "./DocumentTemplateAccordion";
 import useAuthStore from "../store/authStore";
 import EditDocumentFormModal from "./EditDocumentFormModal"; // Import the new modal
+import { formatTableDate, formatDateForInput } from "../utils/dateUtils";
 
 const TableData = ({
   getData,
@@ -224,28 +225,6 @@ const TableData = ({
     }
   };
 
-  const getRelativeDate = (dateInput) => {
-    try {
-      const createdDate =
-        dateInput instanceof Date ? dateInput : new Date(dateInput);
-
-      // Check if the date is valid
-      if (isNaN(createdDate.getTime())) {
-        return "Invalid date";
-      }
-
-      const today = new Date();
-      const diffDays = differenceInCalendarDays(today, createdDate);
-      if (diffDays === -1) return "Tomorrow";
-      if (diffDays === 0) return "Today";
-      if (diffDays === 1) return "Yesterday";
-      if (diffDays < 0) return `After ${Math.abs(diffDays)} days`;
-      return `${diffDays} days ago`;
-    } catch (e) {
-      console.error("Error parsing date:", dateInput, e);
-      return "Invalid date";
-    }
-  };
   const sortDataHandler = (event) => {
     const name = event.target.dataset.name;
     const order = event.target.dataset.sort === "ASC" ? "DESC" : "ASC";
@@ -402,11 +381,7 @@ const TableData = ({
                                     "Invalid date"
                                   )
                                 ) : (
-                                  getRelativeDate(
-                                    item[column.dbColumn] instanceof Date
-                                      ? item[column.dbColumn]
-                                      : new Date(item[column.dbColumn])
-                                  )
+                                  formatTableDate(item[column.dbColumn], false)
                                 )
                               ) : (
                                 <input
@@ -423,11 +398,13 @@ const TableData = ({
                               )
                             ) : column.dbColumn === "created_date" ||
                               column.dbColumn === "created_at" ||
-                              column.dbColumn === "due_date" ? (
+                              column.dbColumn === "due_date" ||
+                              column.dbColumn === "start_date" ||
+                              column.dbColumn === "end_date" ? (
                               showDate ? (
-                                item[column.dbColumn].split("T")[0]
+                                formatDateForInput(item[column.dbColumn])
                               ) : (
-                                getRelativeDate(item[column.dbColumn])
+                                formatTableDate(item[column.dbColumn], false)
                               )
                             ) : (
                               <span

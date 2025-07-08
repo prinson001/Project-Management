@@ -454,6 +454,8 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
     }
   };
 
+  // Duration validation function - currently disabled
+  /*
   const validateDurations = () => {
     const totalDuration = calculateTotalProjectDuration();
     
@@ -509,13 +511,11 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
     }
     return true;
   };
+  */
   const handleSave = async () => {
     try {
-      // Validate durations before saving
-      if (!validateDurations()) {
-        return;
-      }
-
+      // Duration validation removed for now
+      
       const payload = {
         newDeliverables: items.flatMap((item) =>
           item.deliverables
@@ -566,10 +566,9 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
 
   const handleSaveandMarkComplete = async () => {
     try {
-      // Validate durations before saving
-      if (!validateDurations()) {
-        return;
-      }      const payload = {
+      // Duration validation removed for now
+      
+      const payload = {
         newDeliverables: items.flatMap((item) =>
           item.deliverables
             .filter((d) => d.status === "new")

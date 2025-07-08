@@ -14,6 +14,18 @@ export default function ProjectSelectCard({ project, onSelect }) {
     lastUpdated
   } = project;
 
+  // Debug logging to see what values we're getting
+  React.useEffect(() => {
+    console.log(`ProjectSelectCard Debug - ${project.name || 'Unnamed'}:`, {
+      progress,
+      timeProgress,
+      health,
+      completedDeliverables,
+      totalDeliverables,
+      rawProject: project
+    });
+  }, [project, progress, timeProgress]);
+
   // Determine colors based on project health
   const getStatusColors = () => {
     switch (health.toLowerCase()) {
@@ -136,30 +148,21 @@ export default function ProjectSelectCard({ project, onSelect }) {
           
           {/* Actual Progress (foreground) */}
           <div 
-            className={`absolute top-0 left-0 h-full ${statusColors.progressBar} rounded-r-full`}
+            className={`absolute top-0 left-0 h-full ${statusColors.progressBar} transition-all duration-300`}
             style={{ 
               width: `${Math.min(100, Math.max(0, progress))}%`,
-              opacity: 0.9
+              opacity: 0.9,
+              minWidth: progress > 0 ? '2px' : '0px' // Ensure small progress is visible
             }}
           ></div>
+          
+          {/* Debug indicator - remove in production */}
+          {progress > 0 && (
+            <div className="absolute top-0 right-0 text-xs text-gray-600 bg-white px-1 rounded" style={{fontSize: '9px'}}>
+              {progress}%
+            </div>
+          )}
         </div>
-
-        {/* Deliverables Status */}
-        {totalDeliverables > 0 && (
-          <div className="flex items-center justify-between text-xs text-gray-600 mt-3">
-            <div className="flex items-center">
-              <GitPullRequest className="w-3 h-3 mr-1 text-gray-500" />
-              <span>Deliverables</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-green-600">{completedDeliverables} done</span>
-              <span className="text-gray-300">•</span>
-              <span className="text-blue-600">{project.onTimeDeliverables || 0} on time</span>
-              <span className="text-gray-300">•</span>
-              <span className="text-red-600">{project.delayedDeliverables || 0} delayed</span>
-            </div>
-          </div>
-        )}
 
         {/* Current Phase */}
         {project.currentPhase && (

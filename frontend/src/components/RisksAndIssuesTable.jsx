@@ -6,6 +6,7 @@ import axiosInstance from "../axiosInstance";
 import UpdateDynamicForm from "./UpdateDynamicForm";
 import Pagination from "./Pagination";
 import useAuthStore from "../store/authStore";
+import { formatTableDate, formatDate } from "../utils/dateUtils";
 
 const sampleRisks = [
   {
@@ -33,8 +34,8 @@ const sampleRisks = [
 const columnSetting = [
   { columnName: "Case Name", dbColumn: "name", isVisible: true, isInput: false, type: "text" },
   { columnName: "Type", dbColumn: "type", isVisible: true, isInput: false },
-  { columnName: "Creation Date", dbColumn: "created_date", isVisible: true, isInput: false },
-  { columnName: "Due Date", dbColumn: "due_date", isVisible: true, isInput: false },
+  { columnName: "Creation Date", dbColumn: "created_date", isVisible: true, isInput: false, type: "date" },
+  { columnName: "Due Date", dbColumn: "due_date", isVisible: true, isInput: false, type: "date" },
   { columnName: "Status", dbColumn: "status", isVisible: true, isInput: false },
   { columnName: "Response Plan", dbColumn: "comments", isVisible: true, isInput: false },
 ]
@@ -264,10 +265,20 @@ const RisksAndIssuesTable = ({ risks, onEdit, onAdd, isLoading, projectName, del
 
   const fetchRiskAndIssues = async (id) => {
     if (!id) return; // Add a guard clause to prevent calling with undefined id
-    const response =await  axiosInstance.get(`/project-card/risk?projectid=${id}&page=${page}&limit=${limit}&sortType=${sortType}&sortOrder=${sortOrder}`);
+    const response = await axiosInstance.get(`/project-card/risk?projectid=${id}&page=${page}&limit=${limit}&sortType=${sortType}&sortOrder=${sortOrder}`);
     console.log("risks and issues");
     console.log(response);
-    setTableData(response.data.result);
+    
+    // Process the data to ensure dates are properly formatted
+    const processedData = response.data.result.map(item => ({
+      ...item,
+      // Ensure date fields are properly handled for display
+      created_date: item.created_date,
+      due_date: item.due_date,
+      // Add any other date fields that might exist
+    }));
+    
+    setTableData(processedData);
     setPagination(response.data.pagination);
   }
 

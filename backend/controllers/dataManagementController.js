@@ -511,15 +511,53 @@ const addUser = async (req, res) => {
       arabic_family_name,
       email,
       password,
+      rewritePassword,
       department,
       role,
       is_program_manager,
     } = req.body.data;
-    console.log(req.body);
+    
+    console.log("Add user request body:", req.body);
+    
+    // Validate required fields
+    if (!first_name || !arabic_first_name || !family_name || !arabic_family_name || !email || !password || !role) {
+      return res.status(400).json({
+        status: "failure",
+        message: "Missing required fields",
+        result: null,
+      });
+    }
+    
+    // Validate password match
+    if (password !== rewritePassword) {
+      return res.status(400).json({
+        status: "failure",
+        message: "Passwords do not match",
+        result: null,
+      });
+    }
+    
+    // Check if email already exists
+    const existingUser = await sql`
+      SELECT id FROM users WHERE email = ${email}
+    `;
+    
+    if (existingUser.length > 0) {
+      return res.status(400).json({
+        status: "failure",
+        message: "Email already exists",
+        result: null,
+      });
+    }
+    
+    // Convert department and role to integers if they exist
+    const departmentId = department ? parseInt(department) : null;
+    const roleId = parseInt(role);
+    
     let result = null;
     // Insert user into the database
     if (is_program_manager) {
-      if (department) {
+      if (departmentId) {
         result = await sql`
           INSERT INTO users (
             first_name, arabic_first_name, family_name, arabic_family_name, 
@@ -527,7 +565,7 @@ const addUser = async (req, res) => {
           ) 
           VALUES (
             ${first_name}, ${arabic_first_name}, ${family_name}, ${arabic_family_name}, 
-            ${email}, ${password}, ${department}, ${role} , ${is_program_manager}
+            ${email}, ${password}, ${departmentId}, ${roleId} , ${is_program_manager}
           ) 
           RETURNING id, first_name, family_name, email, department_id, role_id , is_program_manager
         `;
@@ -539,13 +577,13 @@ const addUser = async (req, res) => {
           ) 
           VALUES (
             ${first_name}, ${arabic_first_name}, ${family_name}, ${arabic_family_name}, 
-            ${email}, ${password}, ${role} , ${is_program_manager}
+            ${email}, ${password}, ${roleId} , ${is_program_manager}
           ) 
           RETURNING id, first_name, family_name, email, department_id, role_id , is_program_manager
         `;
       }
     } else {
-      if (department) {
+      if (departmentId) {
         result = await sql`
           INSERT INTO users (
             first_name, arabic_first_name, family_name, arabic_family_name, 
@@ -553,7 +591,7 @@ const addUser = async (req, res) => {
           ) 
           VALUES (
             ${first_name}, ${arabic_first_name}, ${family_name}, ${arabic_family_name}, 
-            ${email}, ${password}, ${department}, ${role}
+            ${email}, ${password}, ${departmentId}, ${roleId}
           ) 
           RETURNING id, first_name, family_name, email, department_id, role_id
         `;
@@ -565,7 +603,7 @@ const addUser = async (req, res) => {
           ) 
           VALUES (
             ${first_name}, ${arabic_first_name}, ${family_name}, ${arabic_family_name}, 
-            ${email}, ${password},  ${role}
+            ${email}, ${password},  ${roleId}
           ) 
           RETURNING id, first_name, family_name, email, department_id, role_id
         `;

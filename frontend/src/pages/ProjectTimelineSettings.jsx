@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axiosInstance from "../axiosInstance";
+import { toast } from "sonner";
 const PORT = import.meta.env.VITE_PORT;
 
 // ArrowIcon Component
@@ -300,17 +301,18 @@ const ProjectTimelineSettings = () => {
     const fetchranges = async () => {
       try {
         const result = await axiosInstance.get(`/admin/getBudgetRanges`);
-        console.log("Fetched Data:", result.data.data);
+        console.log("Fetched Budget Ranges:", result.data.data);
         setBudgetRanges(result.data.data.map((item) => ({ ...item })));
       } catch (e) {
-        console.log(e);
+        console.error("Error fetching budget ranges:", e);
+        toast.error("Failed to load budget ranges");
       }
     };
+    
     const fetchPhaseData = async () => {
       try {
         const result = await axiosInstance.get(`/admin/getPhaseDurations`);
-        console.log("the fetched data");
-        console.log(result);
+        console.log("Fetched Phase Durations:", result.data.data);
         setTimelineData(
           result.data.data.map((phase) => ({
             ...phase,
@@ -329,9 +331,11 @@ const ProjectTimelineSettings = () => {
           }))
         );
       } catch (e) {
-        console.log(e);
+        console.error("Error fetching phase durations:", e);
+        toast.error("Failed to load phase durations");
       }
     };
+    
     fetchranges();
     fetchPhaseData();
   }, []);
@@ -391,14 +395,23 @@ const ProjectTimelineSettings = () => {
 
   const handleRangeSettingsSave = async (ranges) => {
     console.log("Saved ranges:", ranges);
-    // Here you would update your application state with the new ranges
     try {
       const result = await axiosInstance.post(`/admin/updateBudgetRanges`, {
-        updates: budgetRanges,
+        ranges: ranges, // Send ranges array instead of updates
       });
-      console.log(result);
+      console.log("Update result:", result);
+      
+      if (result.data.status === "success") {
+        toast.success("Budget ranges updated successfully!");
+        // Refresh the budget ranges after successful update
+        const updatedRanges = await axiosInstance.get(`/admin/getBudgetRanges`);
+        setBudgetRanges(updatedRanges.data.data);
+      } else {
+        toast.error(result.data.message || "Failed to update budget ranges");
+      }
     } catch (e) {
-      console.log(e);
+      console.error("Error updating budget ranges:", e);
+      toast.error("Failed to update budget ranges. Please try again.");
     }
   };
 
@@ -406,6 +419,12 @@ const ProjectTimelineSettings = () => {
     console.log("save button clicked");
     console.log("the changes to save");
     console.log(changesToSave);
+    
+    if (changesToSave.length === 0) {
+      toast.info("No changes to save");
+      return;
+    }
+    
     try {
       const result = await axiosInstance.post(`/admin/updatephaseduration`, {
         updates: changesToSave.map(({ duration_weeks, ...rest }) => ({
@@ -413,9 +432,17 @@ const ProjectTimelineSettings = () => {
           duration_days: duration_weeks * 7,
         })),
       });
-      console.log(result);
+      console.log("Save result:", result);
+      
+      if (result.data.status === "success") {
+        toast.success("Phase durations updated successfully!");
+        setChangesToSave([]); // Clear the changes after successful save
+      } else {
+        toast.error(result.data.message || "Failed to save phase durations");
+      }
     } catch (e) {
-      console.log(e);
+      console.error("Error saving phase durations:", e);
+      toast.error("Failed to save phase durations. Please try again.");
     }
   }
 
@@ -449,16 +476,36 @@ const ProjectTimelineSettings = () => {
                     Phase
                   </th>
                   {budgetRanges.map((range, index) => {
+                    // Format the budget display properly
+                    const formatBudget = (amount) => {
+                      if (amount === null || amount === undefined) return '';
+                      if (amount >= 1000000) {
+                        return `${(amount / 1000000).toFixed(1)}M`;
+                      } else if (amount >= 1000) {
+                        return `${(amount / 1000).toFixed(0)}K`;
+                      } else {
+                        return amount.toString();
+                      }
+                    };
+
+                    let displayLabel = range.label;
+                    if (!displayLabel) {
+                      // Generate display label if not provided
+                      if (index === 0) {
+                        displayLabel = `< ${formatBudget(range.max_budget)}`;
+                      } else if (index === budgetRanges.length - 1) {
+                        displayLabel = `> ${formatBudget(range.min_budget)}`;
+                      } else {
+                        displayLabel = `${formatBudget(range.min_budget)} - ${formatBudget(range.max_budget)}`;
+                      }
+                    }
+
                     return (
                       <th
-                        key={index}
+                        key={range.id}
                         className="border p-2 bg-gray-300 text-left text-sm font-medium text-gray-700"
                       >
-                        {index === 0
-                          ? `Budget < ${range.max}`
-                          : index === budgetRanges.length - 1
-                          ? `Budget > ${range.min}`
-                          : `${range.min} > Budget < ${range.max}`}
+                        {displayLabel}
                       </th>
                     );
                   })}

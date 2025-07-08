@@ -32,6 +32,12 @@ const UpdateProjectModal = ({
   const [scheduleTableData, setScheduleTableData] = useState([]);
   const [internalScheduleDataState, setInternalScheduleDataState] = useState([]);
   const internalScheduleData = [];
+  // Add states for upload tracking
+  const [documentsUploadedSuccessfully, setDocumentsUploadedSuccessfully] = useState(false);
+  const [scheduleUploadedSuccessfully, setScheduleUploadedSuccessfully] = useState(false);
+  // State to track if documents/schedule need refresh
+  const [documentsRefreshTrigger, setDocumentsRefreshTrigger] = useState(0);
+  const [scheduleRefreshTrigger, setScheduleRefreshTrigger] = useState(0);
 
   const { users, projectTypes, projectPhases, setDocuments, documents } =
     useAuthStore();
@@ -42,6 +48,7 @@ const UpdateProjectModal = ({
     control,
     watch,
     setValue,
+    reset,
     formState: { errors },
   } = useForm({
     defaultValues: {
@@ -88,7 +95,53 @@ const UpdateProjectModal = ({
     },
   });
 
-  console.log("Project data:", projectData);
+  // Reset form when projectData changes
+  useEffect(() => {
+    if (projectData) {
+      reset({
+        id: projectData?.id || "",
+        name: projectData?.name || "",
+        arabic_name: projectData?.arabic_name || "",
+        description: projectData?.description || "",
+        project_type_id: projectData?.project_type_id?.toString() || "",
+        current_phase_id: projectData?.current_phase_id?.toString() || "",
+        initiative_id: projectData?.initiative_id?.toString() || "",
+        portfolio_id: projectData?.portfolio_id?.toString() || "",
+        program_id: projectData?.program_id?.toString() || "",
+        category: projectData?.category || "",
+        project_manager_id: projectData?.project_manager_id?.toString() || "",
+        alternative_project_manager_id:
+          projectData?.alternative_project_manager_id?.toString() || "",
+        vendor_id: projectData?.vendor_id?.toString() || "",
+        beneficiaryDepartments: [],
+        objectives: [],
+        project_budget: projectData?.project_budget?.toString() || "",
+        approved_budget: projectData?.approved_project_budget?.toString() || "",
+        execution_start_date: {
+          startDate: projectData?.execution_start_date
+            ? new Date(projectData.execution_start_date)
+            : null,
+          endDate: projectData?.execution_start_date
+            ? new Date(projectData.execution_start_date)
+            : null,
+        },
+        execution_duration: projectData?.execution_duration
+          ? parseInt(String(projectData.execution_duration).split(" ")[0])
+          : "4",
+        maintenance_duration: projectData?.maintenance_duration
+          ? new Date(projectData.maintenance_duration)
+          : null,
+        internal_start_date: {
+          startDate: projectData?.execution_start_date
+            ? new Date(projectData.execution_start_date)
+            : null,
+          endDate: projectData?.execution_start_date
+            ? new Date(projectData.execution_start_date)
+            : null,
+        },
+      });
+    }
+  }, [projectData, reset]);
 
   const projectType = watch("project_type_id");
   const currentPhase = watch("current_phase_id");
@@ -98,7 +151,32 @@ const UpdateProjectModal = ({
     return users.filter((user) => user.role_name === "PM");
   }, [users]);
 
+  // Add filtered project phases similar to ProjectModal
+  const filteredProjectPhases = useMemo(() => {
+    if (!projectType) return projectPhases;
+    
+    const isInternal = projectType === "1";
+    const isProofOfConcept = projectType === "4";
+    
+    if (isInternal || isProofOfConcept) {
+      return projectPhases.filter(phase => 
+        ["Implementation", "Maintenance", "Completed"].includes(phase.name)
+      );
+    }
+    
+    return projectPhases;
+  }, [projectType, projectPhases]);
+
   const isVendorDisabled = useMemo(() => {
+    const restrictedTypes = ["Internal Project", "Proof of Concept"];
+    const currentType = projectTypes.find(
+      (type) => type.id.toString() === projectType?.toString()
+    );
+    const isInPlanningBiddingPhase = ["1", "2"].includes(currentPhase);
+    return restrictedTypes.includes(currentType?.name || "") || isInPlanningBiddingPhase;
+  }, [projectType, projectTypes, currentPhase]);
+
+  const isBudgetDisabled = useMemo(() => {
     const restrictedTypes = ["Internal Project", "Proof of Concept"];
     const currentType = projectTypes.find(
       (type) => type.id.toString() === projectType?.toString()
@@ -106,7 +184,7 @@ const UpdateProjectModal = ({
     return restrictedTypes.includes(currentType?.name || "");
   }, [projectType, projectTypes]);
 
-  const isBudgetDisabled = useMemo(() => {
+  const isApprovedBudgetDisabled = useMemo(() => {
     const restrictedTypes = ["Internal Project", "Proof of Concept"];
     const currentType = projectTypes.find(
       (type) => type.id.toString() === projectType?.toString()
@@ -120,6 +198,13 @@ const UpdateProjectModal = ({
       (type) => type.id.toString() === projectType?.toString()
     );
     return restrictedTypes.includes(currentType?.name || "");
+  }, [projectType, projectTypes]);
+
+  const isBudgetRequired = useMemo(() => {
+    const currentType = projectTypes.find(
+      (type) => type.id.toString() === projectType?.toString()
+    );
+    return !["Internal Project", "Proof of Concept"].includes(currentType?.name || "");
   }, [projectType, projectTypes]);
 
 
@@ -252,6 +337,29 @@ const UpdateProjectModal = ({
     fetchProgramDetails(selectedProgramId);
   }, [selectedProgramId]);
 
+  // Effect to check upload status
+  useEffect(() => {
+    const checkUploadStatus = async () => {
+      if (!projectData?.id) return;
+      
+      try {
+        const response = await axiosInstance.post('/data-management/getproject', { 
+          id: parseInt(projectData.id) 
+        });
+        
+        if (response.data.status === 'success') {
+          const project = response.data.result;
+          setDocumentsUploadedSuccessfully(project.project_documents_uploaded === true);
+          setScheduleUploadedSuccessfully(project.project_schedule_uploaded === true);
+        }
+      } catch (error) {
+        console.error("Error checking upload status:", error);
+      }
+    };
+    
+    checkUploadStatus();
+  }, [projectData?.id, documentsRefreshTrigger, scheduleRefreshTrigger]);
+
   const onSubmit = async (data, sendForApproval = false) => {
     try {
       const selectedDepartmentIds = departments
@@ -261,9 +369,14 @@ const UpdateProjectModal = ({
         toast.error("At least one beneficiary department must be selected");
         return;
       }
+      
       const selectedObjectiveIds = objectives
         .filter((obj) => obj.checked)
         .map((obj) => obj.id);
+      if (selectedObjectiveIds.length === 0) {
+        toast.error("At least one objective must be selected");
+        return;
+      }
 
       const updatedProjectData = {
         id: data.id,
@@ -308,8 +421,8 @@ const UpdateProjectModal = ({
         });
 
         await axiosInstance.post(`/data-management/updateProjectObjectives`, {
-          projectId: projectData.id,
-          objectiveIds: selectedObjectiveIds,
+          id: projectData.id,
+          objective_ids: selectedObjectiveIds,
         });
 
         toast.success(
@@ -406,67 +519,37 @@ const UpdateProjectModal = ({
 
       console.log("Checking project readiness for projectId:", projectData.id);
 
-      // Check if required documents are uploaded
-      const documentsResponse = await axiosInstance.post(
-        '/data-management/getProjectDocuments',
-        { project_id: parseInt(projectData.id) }
+      // Get the current project data to check upload flags
+      const projectResponse = await axiosInstance.post(
+        '/data-management/getproject',
+        { id: parseInt(projectData.id) }
       );
 
-      let hasRequiredDocuments = false;
-      if (documentsResponse.data.status === 'success' && documentsResponse.data.result?.length > 0) {
-        hasRequiredDocuments = true;
-        console.log("Found documents:", documentsResponse.data.result.length);
-      } else {
-        console.log("No documents found or response error:", documentsResponse.data);
+      if (projectResponse.data.status !== 'success') {
+        console.error("Failed to fetch project data:", projectResponse.data);
+        toast.error("Failed to fetch project data. Please try again.");
+        return false;
       }
 
-      // Check if schedule plan exists
-      let hasSchedulePlan = false;
-      const isInternalSchedule = ["1", "4"].includes(projectData.project_type_id?.toString());
-      
-      try {
-        if (isInternalSchedule) {
-          console.log("Checking internal schedule plan...");
-          const scheduleResponse = await axiosInstance.post(
-            "/data-management/getInternalSchedulePlan",
-            { projectId: parseInt(projectData.id) }
-          );
-          if (scheduleResponse.data.status === "success" && scheduleResponse.data.result?.length > 0) {
-            hasSchedulePlan = true;
-            console.log("Found internal schedule plan");
-          }
-        } else {
-          console.log("Checking external schedule plan...");
-          const scheduleResponse = await axiosInstance.post(
-            "/data-management/getSchedulePlan",
-            { projectId: parseInt(projectData.id) }
-          );
-          if (scheduleResponse.data.status === "success" && scheduleResponse.data.result?.length > 0) {
-            hasSchedulePlan = true;
-            console.log("Found external schedule plan");
-          }
-        }
-      } catch (scheduleError) {
-        console.log("No schedule plan found:", scheduleError.response?.data || scheduleError.message);
-        hasSchedulePlan = false;
+      const currentProject = projectResponse.data.result;
+      console.log("Current project data:", currentProject);
+
+      const hasSchedulePlan = currentProject.project_schedule_uploaded === true;
+      const hasDocuments = currentProject.project_documents_uploaded === true;
+
+      console.log("Validation results:", { hasDocuments, hasSchedulePlan });
+
+      // Check if both requirements are met
+      if (!hasDocuments || !hasSchedulePlan) {
+        let missingItems = [];
+        if (!hasDocuments) missingItems.push("project documents");
+        if (!hasSchedulePlan) missingItems.push("schedule plan");
+        
+        const message = `Cannot send for approval: ${missingItems.join(" and ")} must be uploaded first.`;
+        toast.error(message);
+        return false;
       }
 
-      console.log("Validation results:", { hasRequiredDocuments, hasSchedulePlan });
-
-      // For now, let's be more lenient with the validation
-      // We'll warn the user but not block the approval process
-      if (!hasRequiredDocuments) {
-        console.warn("No documents found, but allowing approval");
-        toast.warning("No documents have been uploaded yet. Consider uploading required documents.");
-      }
-
-      if (!hasSchedulePlan) {
-        console.warn("No schedule plan found, but allowing approval");
-        toast.warning("No schedule plan has been created yet. Consider creating a schedule plan.");
-      }
-
-      // Always return true for now to allow the approval process to continue
-      // In the future, you can make this more strict by returning false when requirements are not met
       return true;
 
     } catch (error) {
@@ -500,17 +583,34 @@ const UpdateProjectModal = ({
     );
   };
 
+  // Handlers for document and schedule modals
+  const handleOpenDocuments = () => {
+    setIsProjectDocumentsModalOpen(true);
+  };
+
+  const handleOpenSchedulePlan = () => {
+    setIsProjectSchedulePlanModalOpen(true);
+  };
+
+  const handleDocumentsSave = () => {
+    setDocumentsRefreshTrigger(prev => prev + 1);
+    toast.success("Documents updated successfully!");
+  };
+
+  const handleSchedulePlanSave = () => {
+    setScheduleRefreshTrigger(prev => prev + 1);
+    toast.success("Schedule plan updated successfully!");
+  };
+
   const shouldShowSection = (section) => {
     if (activeSection === "all") return true;
     switch (section) {
       case "category":
         return !["1", "4"].includes(projectType);
       case "vendor":
-        return ["2", "3", "4"].includes(projectType);
+        return !["1", "4"].includes(projectType);
       case "budget":
-        if (projectType === "1") return false;
-        if (["1", "2"].includes(currentPhase)) return false;
-        return ["2", "3"].includes(projectType);
+        return !["1", "4"].includes(projectType);
       default:
         return true;
     }
@@ -677,7 +777,7 @@ const UpdateProjectModal = ({
                       {...field}
                     >
                       <option value="">Select Current Phase</option>
-                      {projectPhases.map((phase) => (
+                      {filteredProjectPhases.map((phase) => (
                         <option key={phase.id} value={phase.id}>
                           {phase.name}
                         </option>
@@ -704,17 +804,26 @@ const UpdateProjectModal = ({
               <div className="grid grid-cols-3 gap-6 mb-4">
                 <div>
                   <label className="block text-sm font-semibold mb-1">
-                    Program Name
+                    Program Name <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <Controller
                       name="program_id"
                       control={control}
+                      rules={{ required: "Program name is required" }}
                       render={({ field }) => (
                         <select
                           disabled={readOnly}
-                          className="w-full p-2 border border-gray-300 rounded appearance-none bg-white"
+                          className={`w-full p-2 border ${
+                            errors.program_id
+                              ? "border-red-500"
+                              : "border-gray-300"
+                          } rounded appearance-none bg-white`}
                           {...field}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            fetchProgramDetails(e.target.value);
+                          }}
                         >
                           <option value="">Select Program</option>
                           {programs.map((program) => (
@@ -729,6 +838,11 @@ const UpdateProjectModal = ({
                       <ChevronDown size={16} />
                     </div>
                   </div>
+                  {errors.program_id && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.program_id.message}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-semibold mb-1">
@@ -974,71 +1088,243 @@ const UpdateProjectModal = ({
             <div className="grid grid-cols-2 gap-6 mb-4">
               <div>
                 <label className="block text-sm font-semibold mb-1">
-                  Objectives
+                  Objectives <span className="text-red-500">*</span>
                 </label>
                 <div className="border border-gray-300 rounded p-2 max-h-40 overflow-y-auto">
-                  {objectives.map((objective) => (
-                    <div key={objective.id} className="flex items-center mb-1">
-                      <input
-                        disabled={readOnly}
-                        type="checkbox"
-                        id={`obj-${objective.id}`}
-                        checked={objective.checked}
-                        onChange={() => toggleObjective(objective.id)}
-                        className="mr-2"
-                      />
-                      <label htmlFor={`obj-${objective.id}`}>
-                        {objective.text}{" "}
-                        {objective.arabic_text && `(${objective.arabic_text})`}
-                      </label>
+                  {objectives.length > 0 ? (
+                    objectives.map((objective) => (
+                      <div key={objective.id} className="flex items-center mb-1">
+                        <input
+                          disabled={readOnly}
+                          type="checkbox"
+                          id={`obj-${objective.id}`}
+                          checked={objective.checked}
+                          onChange={() => toggleObjective(objective.id)}
+                          className="mr-2"
+                        />
+                        <label htmlFor={`obj-${objective.id}`}>
+                          {objective.text}{" "}
+                          {objective.arabic_text && `(${objective.arabic_text})`}
+                        </label>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center text-gray-500">
+                      No objectives available. Please add objectives first.
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
               {shouldShowSection("budget") && (
                 <div>
                   <div className="mb-4">
                     <label
-                      className={`block text-sm font-semibold mb-1 ${
-                        isBudgetDisabled ? "opacity-50" : ""
-                      }`}
+                      className="block text-sm font-semibold mb-1"
                     >
-                      Project Planned Budget (In AED)
-                      {isBudgetDisabled && " (Disabled for this project type)"}
+                      Project Planned Budget(in SAR)
+                      {isBudgetRequired && (
+                        <span className="text-red-500"> *</span>
+                      )}
                     </label>
                     <input
                       readOnly={readOnly || isBudgetDisabled}
-                      type="number"
-                      className={`w-full p-2 border border-gray-300 rounded ${
+                      type="text"
+                      className={`w-full p-2 border ${
+                        errors.project_budget
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      } rounded ${
                         isBudgetDisabled ? "bg-gray-100 cursor-not-allowed" : ""
                       }`}
-                      {...register("project_budget")}
+                      placeholder="Enter full amount. For example, 8,000,000 for 8 million."
+                      {...register("project_budget", {
+                        required:
+                          isBudgetRequired &&
+                          "Project planned budget is required",
+                        pattern: {
+                          value: /^\d+(\.\d+)?$/,
+                          message:
+                            "Please enter a valid number (e.g., 10 or 10.5)",
+                        },
+                      })}
                       disabled={isBudgetDisabled}
                     />
+                    {errors.project_budget && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.project_budget.message}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label
                       className={`block text-sm font-semibold mb-1 ${
-                        isBudgetDisabled ? "opacity-50" : ""
+                        isApprovedBudgetDisabled ? "opacity-50" : ""
                       }`}
                     >
-                      Project Approved Budget (In AED)
-                      {isBudgetDisabled && " (Disabled for this project type)"}
+                      Project Approved Budget(in SAR)
+                      {isApprovedBudgetDisabled && " (Disabled for this project type)"}
                     </label>
                     <input
-                      readOnly={readOnly || isBudgetDisabled}
-                      type="number"
+                      readOnly={readOnly || isApprovedBudgetDisabled}
+                      type="text"
                       className={`w-full p-2 border border-gray-300 rounded ${
-                        isBudgetDisabled ? "bg-gray-100 cursor-not-allowed" : ""
+                        isApprovedBudgetDisabled ? "bg-gray-100 cursor-not-allowed" : ""
                       }`}
+                      placeholder="Enter full amount. For example, 8,000,000 for 8 million."
                       {...register("approved_budget")}
-                      disabled={isBudgetDisabled}
+                      disabled={isApprovedBudgetDisabled}
                     />
                   </div>
                 </div>
               )}
             </div>
           </div>
+
+          {/* Upload Status and Actions */}
+          <div className="mb-6 border-t pt-4">
+            <div className="grid grid-cols-2 gap-6">
+              {/* Schedule Plan Status */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-semibold">Schedule Plan</h3>
+                  <span className={`text-sm px-2 py-1 rounded ${
+                    scheduleUploadedSuccessfully 
+                      ? "bg-green-100 text-green-800" 
+                      : "bg-gray-100 text-gray-600"
+                  }`}>
+                    {scheduleUploadedSuccessfully ? "Uploaded" : "Not uploaded"}
+                  </span>
+                </div>
+                {scheduleUploadedSuccessfully ? (
+                  <div className="p-4 border border-green-200 bg-green-50 rounded-lg">
+                    <div className="flex items-center mb-2">
+                      <span className="text-green-600 font-medium">✓ Schedule Plan Uploaded Successfully</span>
+                    </div>
+                    <p className="text-sm text-green-600 mb-3">
+                      The schedule plan has been saved for this project.
+                    </p>
+                    <button
+                      type="button"
+                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                      onClick={handleOpenSchedulePlan}
+                    >
+                      Edit Schedule Plan
+                    </button>
+                  </div>
+                ) : (
+                  <div className="p-4 border border-blue-200 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-gray-600 mb-3">
+                      Add a schedule plan for this project.
+                    </p>
+                    <button
+                      type="button"
+                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                      onClick={handleOpenSchedulePlan}
+                    >
+                      Upload Schedule Plan
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Documents Status */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-semibold">Project Documents</h3>
+                  <span className={`text-sm px-2 py-1 rounded ${
+                    documentsUploadedSuccessfully 
+                      ? "bg-green-100 text-green-800" 
+                      : "bg-gray-100 text-gray-600"
+                  }`}>
+                    {documentsUploadedSuccessfully ? "Uploaded" : "Not uploaded"}
+                  </span>
+                </div>
+                {documentsUploadedSuccessfully ? (
+                  <div className="p-4 border border-green-200 bg-green-50 rounded-lg">
+                    <div className="flex items-center mb-2">
+                      <span className="text-green-600 font-medium">✓ Project Documents Uploaded Successfully</span>
+                    </div>
+                    <p className="text-sm text-green-600 mb-3">
+                      Required documents have been uploaded for this project.
+                    </p>
+                    <button
+                      type="button"
+                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                      onClick={handleOpenDocuments}
+                    >
+                      Manage Documents
+                    </button>
+                  </div>
+                ) : (
+                  <div className="p-4 border border-blue-200 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-gray-600 mb-3">
+                      Upload required documents for this project phase.
+                    </p>
+                    <button
+                      type="button"
+                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                      onClick={handleOpenDocuments}
+                    >
+                      Upload Documents
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Send for Approval Section */}
+          {(projectData.approval_status === "Not initiated" || projectData.approval_status === "Draft") && (
+            <div className="mb-6 border-t pt-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-semibold">Send for Approval</h3>
+              </div>
+              <div className={`p-4 border rounded-lg ${
+                scheduleUploadedSuccessfully && documentsUploadedSuccessfully
+                  ? "border-green-200 bg-green-50" 
+                  : "border-gray-200 bg-gray-50"
+              }`}>
+                {scheduleUploadedSuccessfully && documentsUploadedSuccessfully ? (
+                  <div>
+                    <p className="text-sm text-green-700 mb-3">
+                      Your project is ready for approval! Schedule plan and documents have been uploaded successfully.
+                    </p>
+                    <button
+                      type="button"
+                      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                      onClick={handleSubmit(handleSaveAndSendForApproval)}
+                    >
+                      Send for Approval
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-sm text-gray-600 mb-3">
+                      To send for approval, please complete both the schedule plan and document uploads.
+                    </p>
+                    <div className="text-xs text-gray-500 mb-3">
+                      <p>Requirements:</p>
+                      <ul className="list-disc list-inside ml-2 space-y-1">
+                        <li className={scheduleUploadedSuccessfully ? "text-green-600" : ""}>
+                          {scheduleUploadedSuccessfully ? "✓" : "○"} Schedule plan uploaded
+                        </li>
+                        <li className={documentsUploadedSuccessfully ? "text-green-600" : ""}>
+                          {documentsUploadedSuccessfully ? "✓" : "○"} Project documents uploaded
+                        </li>
+                      </ul>
+                    </div>
+                    <button
+                      type="button"
+                      className="px-4 py-2 bg-gray-300 text-gray-500 rounded cursor-not-allowed"
+                      disabled
+                    >
+                      Send for Approval
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Form Footer */}
           {showButtons && (
@@ -1056,30 +1342,6 @@ const UpdateProjectModal = ({
               >
                 Update Project
               </button>
-              {(projectData.approval_status === "Not initiated" || projectData.approval_status === "Draft") && (
-                <button
-                  type="button"
-                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                  onClick={handleSubmit(handleSaveAndSendForApproval)}
-                >
-                  Send for Approval
-                </button>
-              )}
-              {/* New update document and schedule buttons */}
-              <button
-                type="button"
-                className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-                onClick={() => setIsProjectDocumentsModalOpen(true)}
-              >
-                Update Documents
-              </button>
-              <button
-                type="button"
-                className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-                onClick={() => setIsProjectSchedulePlanModalOpen(true)}
-              >
-                Update Schedule
-              </button>
             </div>
           )}
         </form>
@@ -1093,6 +1355,7 @@ const UpdateProjectModal = ({
           projectName={projectData.name}
           currentPhase={projectData.current_phase_id}
           isNewProject={false} // This is an existing project being updated
+          onSave={handleDocumentsSave}
         />
       )}
       {/* Project Schedule Plan Modal */}
@@ -1124,6 +1387,7 @@ const UpdateProjectModal = ({
               ? String(projectData.execution_duration).split(" ")[1]
               : 'weeks'
           }
+          onSave={handleSchedulePlanSave}
         />
       )}
     </div>

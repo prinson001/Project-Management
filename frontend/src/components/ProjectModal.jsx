@@ -940,7 +940,7 @@ const ProjectModal = ({
       const projectData = {
         name: data.name,
         arabic_name: data.arabic_name,
-        description: data.description,
+        description: data.projectDescription,
         project_type_id: parseInt(data.project_type_id) || null,
         current_phase_id: parseInt(data.current_phase_id) || null,
         initiative_id: parseInt(data.initiative_id) || null,
