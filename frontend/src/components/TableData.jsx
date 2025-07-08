@@ -32,8 +32,6 @@ import { toast } from "sonner";
 import Loader from "./Loader";
 import UpdateProjectModal from "./UpdateProjectModal";
 import DocumentTemplateAccordion from "./DocumentTemplateAccordion";
-import ProjectDocumentsModal from "./ProjectDocumentsModal";
-import ProjectSchedulePlanModal from "./ProjectSchedulePlanModal";
 import useAuthStore from "../store/authStore";
 import EditDocumentFormModal from "./EditDocumentFormModal"; // Import the new modal
 import { getViewableDocumentUrl, getDownloadableDocumentUrl } from "../utils/supabaseUtils";
@@ -64,11 +62,6 @@ const TableData = ({
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [isEditDocumentModalOpen, setIsEditDocumentModalOpen] = useState(false);
-  
-  // New modal states for project documents and schedule plan
-  const [isProjectDocumentsModalOpen, setIsProjectDocumentsModalOpen] = useState(false);
-  const [isProjectSchedulePlanModalOpen, setIsProjectSchedulePlanModalOpen] = useState(false);
-  const [selectedProjectForAction, setSelectedProjectForAction] = useState(null);
   
   const { userId, role } = useAuthStore();
 
@@ -336,28 +329,6 @@ const TableData = ({
     setSelectedDocument(null);
   };
 
-  // New handlers for project documents and schedule plan modals
-  const handleOpenProjectDocumentsModal = (project) => {
-    console.log("Opening documents modal for project:", project);
-    setSelectedProjectForAction(project);
-    setIsProjectDocumentsModalOpen(true);
-  };
-
-  const handleOpenProjectSchedulePlanModal = (project) => {
-    setSelectedProjectForAction(project);
-    setIsProjectSchedulePlanModalOpen(true);
-  };
-
-  const handleCloseProjectDocumentsModal = () => {
-    setIsProjectDocumentsModalOpen(false);
-    setSelectedProjectForAction(null);
-  };
-
-  const handleCloseProjectSchedulePlanModal = () => {
-    setIsProjectSchedulePlanModalOpen(false);
-    setSelectedProjectForAction(null);
-  };
-
   return (
     <>
       <div className="relative text-xs overflow-x-auto rounded-lg shadow-md">
@@ -579,27 +550,6 @@ const TableData = ({
                             title="Edit Project"
                           >
                             <Edit className="w-5 h-5" />
-                          </button>
-                        )}
-                        
-                        {/* New buttons for project documents and schedule plan */}
-                        {showActionButtons && tableName === "project" && (
-                          <button
-                            onClick={() => handleOpenProjectDocumentsModal(item)}
-                            className="text-green-500 hover:text-green-700"
-                            title="Manage Project Documents"
-                          >
-                            <FileText className="w-5 h-5" />
-                          </button>
-                        )}
-                        
-                        {showActionButtons && tableName === "project" && (
-                          <button
-                            onClick={() => handleOpenProjectSchedulePlanModal(item)}
-                            className="text-purple-500 hover:text-purple-700"
-                            title="Manage Schedule Plan"
-                          >
-                            <Calendar className="w-5 h-5" />
                           </button>
                         )}
                         
@@ -842,34 +792,6 @@ const TableData = ({
             onClose={() => setIsEditDocumentModalOpen(false)}
             documentData={selectedDocument}
             onSubmit={handleUpdateDocument}
-          />
-        </div>
-      )}
-
-      {/* Project Documents Modal */}
-      {isProjectDocumentsModalOpen && (
-        <div className="fixed inset-0 flex justify-center items-center bg-black/50 backdrop-blur-sm z-50">
-          <ProjectDocumentsModal
-            isOpen={isProjectDocumentsModalOpen}
-            onClose={handleCloseProjectDocumentsModal}
-            projectId={selectedProjectForAction?.id}
-            projectName={selectedProjectForAction?.name}
-            currentPhase={selectedProjectForAction?.current_phase_id}
-            isNewProject={false} // This is an existing project
-          />
-        </div>
-      )}
-
-      {/* Project Schedule Plan Modal */}
-      {isProjectSchedulePlanModalOpen && (
-        <div className="fixed inset-0 flex justify-center items-center bg-black/50 backdrop-blur-sm z-50">
-          <ProjectSchedulePlanModal
-            isOpen={isProjectSchedulePlanModalOpen}
-            onClose={handleCloseProjectSchedulePlanModal}
-            projectId={selectedProjectForAction?.id}
-            projectName={selectedProjectForAction?.name}
-            projectType={selectedProjectForAction?.project_type_id}
-            projectBudget={selectedProjectForAction?.project_budget}
           />
         </div>
       )}
