@@ -33,8 +33,23 @@ const UpdateProjectModal = ({
   const [internalScheduleDataState, setInternalScheduleDataState] = useState([]);
   const internalScheduleData = [];
   // Add states for upload tracking
-  const [documentsUploadedSuccessfully, setDocumentsUploadedSuccessfully] = useState(false);
-  const [scheduleUploadedSuccessfully, setScheduleUploadedSuccessfully] = useState(false);
+  const [documentsUploadedSuccessfully, setDocumentsUploadedSuccessfully] = useState(
+    projectData?.project_documents_uploaded === true
+  );
+  const [scheduleUploadedSuccessfully, setScheduleUploadedSuccessfully] = useState(
+    projectData?.project_schedule_uploaded === true
+  );
+  
+  // Debug initial upload state
+  console.log("🏁 Initial upload state:", {
+    projectData_documents: projectData?.project_documents_uploaded,
+    projectData_schedule: projectData?.project_schedule_uploaded,
+    documentsUploadedSuccessfully: projectData?.project_documents_uploaded === true,
+    scheduleUploadedSuccessfully: projectData?.project_schedule_uploaded === true
+  });
+  // State to track approval task status
+  const [approvalTaskExists, setApprovalTaskExists] = useState(false);
+  const [approvalTaskInfo, setApprovalTaskInfo] = useState(null);
   // State to track if documents/schedule need refresh
   const [documentsRefreshTrigger, setDocumentsRefreshTrigger] = useState(0);
   const [scheduleRefreshTrigger, setScheduleRefreshTrigger] = useState(0);
@@ -82,8 +97,8 @@ const UpdateProjectModal = ({
         ? parseInt(String(projectData.execution_duration).split(" ")[0])
         : "4", // Ensure execution_duration is treated as a string before split
       maintenance_duration: projectData?.maintenance_duration
-        ? new Date(projectData.maintenance_duration)
-        : null,
+        ? parseInt(String(projectData.maintenance_duration), 10)
+        : 30,
       internal_start_date: {
         startDate: projectData?.execution_start_date
           ? new Date(projectData.execution_start_date)
@@ -129,8 +144,8 @@ const UpdateProjectModal = ({
           ? parseInt(String(projectData.execution_duration).split(" ")[0])
           : "4",
         maintenance_duration: projectData?.maintenance_duration
-          ? new Date(projectData.maintenance_duration)
-          : null,
+          ? parseInt(String(projectData.maintenance_duration), 10)
+          : 30,
         internal_start_date: {
           startDate: projectData?.execution_start_date
             ? new Date(projectData.execution_start_date)
@@ -140,6 +155,15 @@ const UpdateProjectModal = ({
             : null,
         },
       });
+      
+      // Sync upload status with projectData changes
+      console.log("🔄 Syncing upload status with projectData:", {
+        project_documents_uploaded: projectData.project_documents_uploaded,
+        project_schedule_uploaded: projectData.project_schedule_uploaded
+      });
+      
+      setDocumentsUploadedSuccessfully(projectData.project_documents_uploaded === true);
+      setScheduleUploadedSuccessfully(projectData.project_schedule_uploaded === true);
     }
   }, [projectData, reset]);
 
@@ -336,31 +360,85 @@ const UpdateProjectModal = ({
   useEffect(() => {
     fetchProgramDetails(selectedProgramId);
   }, [selectedProgramId]);
-
-  // Effect to check upload status
+  // Effect to check upload status and approval task status
   useEffect(() => {
-    const checkUploadStatus = async () => {
+    const checkUploadAndApprovalStatus = async () => {
       if (!projectData?.id) return;
       
+      console.log("📡 Checking upload and approval status for project:", projectData.id);
+      
       try {
-        const response = await axiosInstance.post('/data-management/getproject', { 
-          id: parseInt(projectData.id) 
+        // Check upload status
+        const uploadResponse = await axiosInstance.post('/data-management/getProject', {
+          id: parseInt(projectData.id)
         });
         
-        if (response.data.status === 'success') {
-          const project = response.data.result;
-          setDocumentsUploadedSuccessfully(project.project_documents_uploaded === true);
-          setScheduleUploadedSuccessfully(project.project_schedule_uploaded === true);
+        if (uploadResponse.data.status === 'success') {
+          const project = uploadResponse.data.result;
+          const docUploaded = project.project_documents_uploaded === true;
+          const schedUploaded = project.project_schedule_uploaded === true;
+          
+          console.log("📊 Upload status from database:", {
+            project_documents_uploaded: project.project_documents_uploaded,
+            project_schedule_uploaded: project.project_schedule_uploaded,
+            docUploadedBool: docUploaded,
+            schedUploadedBool: schedUploaded
+          });
+          
+          setDocumentsUploadedSuccessfully(docUploaded);
+          setScheduleUploadedSuccessfully(schedUploaded);
+        } else {
+          console.error("❌ Failed to get project upload status:", uploadResponse.data);
+          // Fallback: Check if the project data already has upload info
+          if (projectData.project_documents_uploaded !== undefined) {
+            console.log("📋 Using fallback upload status from projectData");
+            setDocumentsUploadedSuccessfully(projectData.project_documents_uploaded === true);
+            setScheduleUploadedSuccessfully(projectData.project_schedule_uploaded === true);
+          }
+        }
+
+        // Check approval task status
+        const taskResponse = await axiosInstance.post('/data-management/checkProjectApprovalTaskExists', {
+          projectId: parseInt(projectData.id)
+        });
+        
+        if (taskResponse.data.status === 'success') {
+          console.log("✅ Approval task check result:", taskResponse.data.result);
+          setApprovalTaskExists(taskResponse.data.result.exists);
+          setApprovalTaskInfo(taskResponse.data.result.task);
+        } else {
+          console.error("❌ Failed to check approval task status:", taskResponse.data);
+          // Default to no approval task if API fails
+          setApprovalTaskExists(false);
+          setApprovalTaskInfo(null);
         }
       } catch (error) {
-        console.error("Error checking upload status:", error);
+        console.error("❌ Error checking upload and approval status:", error);
+        
+        // Fallback: Use projectData for upload status if API fails
+        if (projectData?.project_documents_uploaded !== undefined) {
+          console.log("📋 Using fallback upload status from projectData due to API error");
+          setDocumentsUploadedSuccessfully(projectData.project_documents_uploaded === true);
+          setScheduleUploadedSuccessfully(projectData.project_schedule_uploaded === true);
+        }
+        
+        // Default to no approval task if check fails
+        setApprovalTaskExists(false);
+        setApprovalTaskInfo(null);
       }
     };
     
-    checkUploadStatus();
+    checkUploadAndApprovalStatus();
   }, [projectData?.id, documentsRefreshTrigger, scheduleRefreshTrigger]);
 
   const onSubmit = async (data, sendForApproval = false) => {
+    console.log("🚀 onSubmit called with:", { 
+      sendForApproval, 
+      sendForApprovalType: typeof sendForApproval,
+      sendForApprovalValue: sendForApproval,
+      data: data.name 
+    });
+    
     try {
       const selectedDepartmentIds = departments
         .filter((dept) => dept.checked)
@@ -430,6 +508,7 @@ const UpdateProjectModal = ({
             ? "Project saved and sent for approval successfully!"
             : "Project updated successfully!"
         );
+        console.log("✅ Toast shown:", sendForApproval ? "approval" : "update");
         onUpdate(updatedProjectData);
         onClose();
         return response;
@@ -461,6 +540,12 @@ const UpdateProjectModal = ({
       console.log("Project data:", projectData);
       console.log("Form data:", data);
 
+      // Check if approval task already exists
+      if (approvalTaskExists) {
+        toast.error("Project has already been sent for approval and is pending review.");
+        return;
+      }
+
       // First check if documents and schedule plan are uploaded
       const isValidForApproval = await checkProjectReadyForApproval();
       if (!isValidForApproval) {
@@ -489,7 +574,12 @@ const UpdateProjectModal = ({
       
       if (taskResponse.data.status === "success") {
         toast.success("Project saved and sent for approval successfully!");
+        // Refresh the approval task status
+        setApprovalTaskExists(true);
         onClose();
+      } else if (taskResponse.data.result?.already_sent) {
+        toast.warning("Project approval task already exists.");
+        setApprovalTaskExists(true);
       } else {
         throw new Error("Failed to create approval task: " + (taskResponse.data.message || "Unknown error"));
       }
@@ -497,9 +587,17 @@ const UpdateProjectModal = ({
       console.error("Error saving and sending for approval:", error);
       console.error("Error response:", error.response?.data);
       
+      // Handle specific error cases
+      if (error.response?.data?.result?.already_sent) {
+        toast.warning("Project has already been sent for approval.");
+        setApprovalTaskExists(true);
+        return;
+      }
+      
       // Provide more specific error messages
       if (error.response?.status === 400) {
-        toast.error("Invalid request data. Please check all fields and try again.");
+        const errorMessage = error.response.data?.message || "Invalid request data. Please check all fields and try again.";
+        toast.error(errorMessage);
       } else if (error.response?.status === 500) {
         toast.error("Server error. Please try again later.");
       } else {
@@ -521,7 +619,7 @@ const UpdateProjectModal = ({
 
       // Get the current project data to check upload flags
       const projectResponse = await axiosInstance.post(
-        '/data-management/getproject',
+        '/data-management/getProject',
         { id: parseInt(projectData.id) }
       );
 
@@ -589,6 +687,12 @@ const UpdateProjectModal = ({
   };
 
   const handleOpenSchedulePlan = () => {
+    console.log("Opening schedule plan modal with project data:", {
+      execution_start_date: projectData.execution_start_date,
+      execution_duration: projectData.execution_duration,
+      maintenance_duration: projectData.maintenance_duration,
+      project_type_id: projectData.project_type_id
+    });
     setIsProjectSchedulePlanModalOpen(true);
   };
 
@@ -615,6 +719,64 @@ const UpdateProjectModal = ({
         return true;
     }
   };
+
+  // Helper function to determine if project can be sent for approval
+  const canSendForApproval = useMemo(() => {
+    const allowedStatuses = ["Not initiated", "Draft", "Rejected"];
+    const result = allowedStatuses.includes(projectData?.approval_status);
+    
+    // Enhanced debug logging
+    console.log("🔍 Approval Status Check:", {
+      projectApprovalStatus: projectData?.approval_status,
+      allowedStatuses,
+      canSendForApproval: result,
+      documentsUploaded: documentsUploadedSuccessfully,
+      scheduleUploaded: scheduleUploadedSuccessfully,
+      approvalTaskExists: approvalTaskExists,
+      finalButtonEnabled: result && !approvalTaskExists && documentsUploadedSuccessfully && scheduleUploadedSuccessfully,
+      // Add explanation for why button is disabled
+      disabledReason: !result ? `Status "${projectData?.approval_status}" not in allowed list` : 
+                     approvalTaskExists ? "Approval task already exists" :
+                     !documentsUploadedSuccessfully ? "Documents not uploaded" :
+                     !scheduleUploadedSuccessfully ? "Schedule not uploaded" : "Should be enabled"
+    });
+    
+    return result;
+  }, [projectData?.approval_status, documentsUploadedSuccessfully, scheduleUploadedSuccessfully, approvalTaskExists]);
+
+  // Helper function to get approval status display info
+  const getApprovalStatusInfo = useMemo(() => {
+    const status = projectData?.approval_status;
+    
+    switch (status) {
+      case "Waiting on deputy":
+        return {
+          color: "yellow",
+          message: "Project is pending deputy approval",
+          canEdit: false
+        };
+      case "Approved":
+        return {
+          color: "green", 
+          message: "Project has been approved",
+          canEdit: false
+        };
+      case "Rejected":
+        return {
+          color: "red",
+          message: "Project was rejected and needs revision",
+          canEdit: true
+        };
+      case "Draft":
+      case "Not initiated":
+      default:
+        return {
+          color: "blue",
+          message: "Project is in draft mode",
+          canEdit: true
+        };
+    }
+  }, [projectData?.approval_status]);
 
   if (!projectData?.id) {
     return (
@@ -1274,52 +1436,81 @@ const UpdateProjectModal = ({
           </div>
 
           {/* Send for Approval Section */}
-          {(projectData.approval_status === "Not initiated" || projectData.approval_status === "Draft") && (
+          {canSendForApproval && (
             <div className="mb-6 border-t pt-4">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="font-semibold">Send for Approval</h3>
+                <h3 className="font-semibold">Project Approval Status</h3>
+                <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  getApprovalStatusInfo.color === "yellow" ? "bg-yellow-100 text-yellow-800" :
+                  getApprovalStatusInfo.color === "green" ? "bg-green-100 text-green-800" :
+                  getApprovalStatusInfo.color === "red" ? "bg-red-100 text-red-800" :
+                  "bg-blue-100 text-blue-800"
+                }`}>
+                  {projectData?.approval_status || "Draft"}
+                </div>
               </div>
-              <div className={`p-4 border rounded-lg ${
-                scheduleUploadedSuccessfully && documentsUploadedSuccessfully
-                  ? "border-green-200 bg-green-50" 
-                  : "border-gray-200 bg-gray-50"
-              }`}>
-                {scheduleUploadedSuccessfully && documentsUploadedSuccessfully ? (
-                  <div>
-                    <p className="text-sm text-green-700 mb-3">
-                      Your project is ready for approval! Schedule plan and documents have been uploaded successfully.
+              
+              {projectData?.approval_status === "Rejected" && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                    <p className="text-sm font-medium text-red-800">
+                      Project Rejected
                     </p>
-                    <button
-                      type="button"
-                      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                      onClick={handleSubmit(handleSaveAndSendForApproval)}
-                    >
-                      Send for Approval
-                    </button>
+                  </div>
+                  <p className="text-sm text-red-700">
+                    This project was rejected and needs revision before it can be resubmitted for approval.
+                  </p>
+                </div>
+              )}
+              
+              <div className="space-y-4">
+                {approvalTaskExists ? (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                      <p className="text-sm font-medium text-yellow-800">
+                        Project Already Sent for Approval
+                      </p>
+                    </div>
+                    <p className="text-sm text-yellow-700 mb-2">
+                      This project has already been sent for approval and is currently pending review.
+                    </p>
+                    {approvalTaskInfo && (
+                      <div className="text-xs text-yellow-600 bg-yellow-100 p-2 rounded">
+                        <p><strong>Task assigned to:</strong> {approvalTaskInfo.assigned_to_name || 'Deputy'}</p>
+                        <p><strong>Due date:</strong> {new Date(approvalTaskInfo.due_date).toLocaleDateString()}</p>
+                        <p><strong>Status:</strong> {approvalTaskInfo.status}</p>
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  <div>
-                    <p className="text-sm text-gray-600 mb-3">
-                      To send for approval, please complete both the schedule plan and document uploads.
+                  <div className="p-4 border border-blue-200 bg-blue-50 rounded-lg">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <p className="text-sm font-medium text-blue-800">
+                        Approval Requirements
+                      </p>
+                    </div>
+                    <p className="text-sm text-blue-700 mb-3">
+                      Complete the requirements below to enable approval submission.
                     </p>
-                    <div className="text-xs text-gray-500 mb-3">
-                      <p>Requirements:</p>
+                    <div className="text-xs text-gray-500">
+                      <p className="mb-2">Requirements:</p>
                       <ul className="list-disc list-inside ml-2 space-y-1">
-                        <li className={scheduleUploadedSuccessfully ? "text-green-600" : ""}>
+                        <li className={scheduleUploadedSuccessfully ? "text-green-600" : "text-gray-500"}>
                           {scheduleUploadedSuccessfully ? "✓" : "○"} Schedule plan uploaded
                         </li>
-                        <li className={documentsUploadedSuccessfully ? "text-green-600" : ""}>
+                        <li className={documentsUploadedSuccessfully ? "text-green-600" : "text-gray-500"}>
                           {documentsUploadedSuccessfully ? "✓" : "○"} Project documents uploaded
                         </li>
                       </ul>
+                      {documentsUploadedSuccessfully && scheduleUploadedSuccessfully && (
+                        <p className="text-green-600 mt-2 font-medium">
+                          ✓ All requirements met - Use "Send for Approval" button below to submit
+                        </p>
+                      )}
                     </div>
-                    <button
-                      type="button"
-                      className="px-4 py-2 bg-gray-300 text-gray-500 rounded cursor-not-allowed"
-                      disabled
-                    >
-                      Send for Approval
-                    </button>
                   </div>
                 )}
               </div>
@@ -1328,20 +1519,79 @@ const UpdateProjectModal = ({
 
           {/* Form Footer */}
           {showButtons && (
-            <div className="flex justify-end space-x-4 mt-6 border-t pt-4">
-              <button
-                type="button"
-                className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
-                onClick={onClose}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                Update Project
-              </button>
+            <div className="flex justify-between items-center mt-6 border-t pt-4">
+              <div className="flex space-x-4">
+                <button
+                  type="button"
+                  className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
+                  onClick={onClose}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  title="Save project changes without sending for approval"
+                  onClick={handleSubmit((data) => onSubmit(data, false))}
+                >
+                  Update Project
+                </button>
+              </div>
+              
+              {/* Send for Approval Button - Always visible but enabled/disabled based on requirements */}
+              <div className="flex items-center space-x-4">
+                {/* Determine button state and styling */}
+                {(() => {
+                  const isEnabled = canSendForApproval && !approvalTaskExists && documentsUploadedSuccessfully && scheduleUploadedSuccessfully;
+                  
+                  // Debug the button state
+                  console.log("🔘 Send for Approval Button State:", {
+                    canSendForApproval,
+                    approvalTaskExists,
+                    documentsUploadedSuccessfully,
+                    scheduleUploadedSuccessfully,
+                    isEnabled
+                  });
+                  
+                  const getDisabledReason = () => {
+                    if (!canSendForApproval) {
+                      return `Project status "${projectData?.approval_status}" cannot be sent for approval. Allowed statuses: Not initiated, Draft, Rejected`;
+                    }
+                    if (approvalTaskExists) {
+                      return "Project is already submitted for approval";
+                    }
+                    if (!documentsUploadedSuccessfully && !scheduleUploadedSuccessfully) {
+                      return "Upload required documents and schedule plan before sending for approval";
+                    }
+                    if (!documentsUploadedSuccessfully) {
+                      return "Upload required project documents before sending for approval";
+                    }
+                    if (!scheduleUploadedSuccessfully) {
+                      return "Upload schedule plan before sending for approval";
+                    }
+                    return "";
+                  };
+
+                  const buttonText = projectData?.approval_status === "Rejected" ? "Resubmit for Approval" : "Send for Approval";
+                  const disabledReason = getDisabledReason();
+
+                  return (
+                    <button
+                      type="button"
+                      className={`px-6 py-2 rounded transition-colors font-medium ${
+                        isEnabled
+                          ? "bg-green-600 text-white hover:bg-green-700"
+                          : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      }`}
+                      onClick={isEnabled ? handleSubmit(handleSaveAndSendForApproval) : undefined}
+                      disabled={!isEnabled}
+                      title={isEnabled ? "Save changes and send project for deputy approval" : disabledReason}
+                    >
+                      {buttonText}
+                    </button>
+                  );
+                })()}
+              </div>
             </div>
           )}
         </form>
@@ -1377,14 +1627,14 @@ const UpdateProjectModal = ({
               ? parseInt(String(projectData.execution_duration).split(" ")[0], 10)
               : null
           }
-          maintenanceDate={
+          maintenanceDuration={
             projectData.maintenance_duration
-              ? new Date(projectData.maintenance_duration)
-              : null
+              ? parseInt(String(projectData.maintenance_duration), 10)
+              : 30
           }
           executionDurationType={
             projectData.execution_duration
-              ? String(projectData.execution_duration).split(" ")[1]
+              ? String(projectData.execution_duration).split(" ")[1] || 'weeks'
               : 'weeks'
           }
           onSave={handleSchedulePlanSave}

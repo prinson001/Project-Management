@@ -113,6 +113,7 @@ const {
 } = require("../controllers/documentController");
 const {
   createProjectCreationTaskForDeputy,
+  checkProjectApprovalTaskExists,
 } = require("../controllers/taskCreationController");
 
 const { updateTaskStatusToDone } = require("../controllers/tasksController");
@@ -212,6 +213,10 @@ router.post("/deleteUsers", deleteUser);
 router.post(
   "/createProjectCreationTaskForDeputy",
   createProjectCreationTaskForDeputy
+);
+router.post(
+  "/checkProjectApprovalTaskExists",
+  checkProjectApprovalTaskExists
 );
 
 router.post("/getProgramDetails", getProgramDetails);

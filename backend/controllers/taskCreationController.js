@@ -67,6 +67,26 @@ const createProjectCreationTaskForDeputy = async (req, res) => {
     const deputy = deputies[0]; // Assigning to the first deputy found
     console.log("Found Deputy", deputy);
 
+    // Check if an approval task already exists for this project
+    const existingTask = await sql`
+      SELECT * FROM tasks 
+      WHERE title = 'Approve Project Creation' 
+        AND related_entity_type = 'project' 
+        AND related_entity_id = ${Number(projectId)}
+        AND status = 'Open';
+    `;
+
+    if (existingTask.length > 0) {
+      return res.status(400).json({
+        status: "failure",
+        message: "Project approval task already exists and is pending",
+        result: {
+          task_id: existingTask[0].id,
+          already_sent: true,
+        },
+      });
+    }
+
     // Calculate due date (today's date + activity duration in days)
     const today = new Date();
     const dueDate = new Date(today);
@@ -74,6 +94,7 @@ const createProjectCreationTaskForDeputy = async (req, res) => {
     console.log("deputy id " + deputy.id);
     console.log("due date " + dueDate);
     console.log("project id " + projectId);
+    
     // Insert a new task for the deputy
     await sql`
       INSERT INTO tasks (title, status, due_date, assigned_to, related_entity_type, related_entity_id)
@@ -525,6 +546,50 @@ const createDeliverableCompletionApprovalTaskForPMO = async (deliverableId) => {
   }
 };
 
+const checkProjectApprovalTaskExists = async (req, res) => {
+  const { projectId } = req.body;
+  
+  if (!projectId) {
+    return res.status(400).json({
+      status: "failure",
+      message: "Project ID is required",
+      result: null,
+    });
+  }
+
+  try {
+    // Check if an approval task already exists for this project
+    const existingTask = await sql`
+      SELECT t.*, 
+             COALESCE(u.first_name || ' ' || u.family_name, u.first_name, u.family_name, 'Unknown User') as assigned_to_name 
+      FROM tasks t
+      LEFT JOIN users u ON t.assigned_to = u.id
+      WHERE t.title = 'Approve Project Creation' 
+        AND t.related_entity_type = 'project' 
+        AND t.related_entity_id = ${Number(projectId)}
+        AND t.status = 'Open'
+      ORDER BY t.created_date DESC
+      LIMIT 1;
+    `;
+
+    return res.status(200).json({
+      status: "success",
+      message: "Task check completed",
+      result: {
+        exists: existingTask.length > 0,
+        task: existingTask.length > 0 ? existingTask[0] : null,
+      },
+    });
+  } catch (error) {
+    console.error("Error checking project approval task:", error);
+    return res.status(500).json({
+      status: "failure",
+      message: "Error checking approval task status",
+      result: error.message || error,
+    });
+  }
+};
+
 module.exports = {
   createProjectCreationTaskForDeputy,
   createBoqTaskForPM,
@@ -532,4 +597,5 @@ module.exports = {
   createBoqApprovalTaskForPMO,
   createDeliverableInvoiceApprovalTaskForPMO,
   createDeliverableCompletionApprovalTaskForPMO,
+  checkProjectApprovalTaskExists,
 };

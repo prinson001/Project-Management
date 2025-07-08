@@ -46,6 +46,7 @@ const ProjectSchedulePlanModal = ({
     handleSubmit,
     formState: { errors },
     register,
+    reset,
   } = useForm({
     defaultValues: {
       executionStartDate: initialStartDate || null,
@@ -643,15 +644,24 @@ const ProjectSchedulePlanModal = ({
 
   useEffect(() => {
     if (isOpen) {
-      console.log('ProjectSchedulePlanModal opened with initial values:', { initialStartDate, initialDuration, initialMaintenanceDuration, initialDurationType });
-      // Use form setValue instead of direct state setters
-      setValue("executionStartDate", initialStartDate || '');
-      setValue("executionDuration", initialDuration?.toString() || '');
-      setValue("maintenanceDuration", initialMaintenanceDuration?.toString() || '30');
-      setValue("execution_duration_type", initialDurationType || 'weeks');
-      setValue("maintenance_duration_type", 'days'); // Default to days for maintenance
+      console.log('ProjectSchedulePlanModal opened with initial values:', { 
+        initialStartDate, 
+        initialDuration, 
+        initialMaintenanceDuration, 
+        initialDurationType,
+        projectType 
+      });
+      
+      // Reset the form with new values
+      reset({
+        executionStartDate: initialStartDate || null,
+        executionDuration: initialDuration?.toString() || '4',
+        maintenanceDuration: initialMaintenanceDuration?.toString() || '30',
+        execution_duration_type: initialDurationType || 'weeks',
+        maintenance_duration_type: 'days'
+      });
     }
-  }, [isOpen, initialStartDate, initialDuration, initialMaintenanceDuration, initialDurationType, setValue]);
+  }, [isOpen, initialStartDate, initialDuration, initialMaintenanceDuration, initialDurationType, reset]);
 
   if (!isOpen) return null;
 

@@ -11,7 +11,8 @@ const ProjectDocumentsModal = ({
   projectId, 
   projectName,
   currentPhase,
-  isNewProject = false // Add isNewProject prop with default value of false
+  isNewProject = false, // Add isNewProject prop with default value of false
+  onSave // Add onSave prop to notify parent when documents are uploaded
 }) => {
   const [documents, setDocuments] = useState([]);
   const [localFiles, setLocalFiles] = useState([]);
@@ -208,6 +209,11 @@ const ProjectDocumentsModal = ({
         setDocuments(newDocs);
         
         toast.success("Document uploaded successfully!");
+        
+        // Notify parent component that documents have been updated
+        if (onSave) {
+          onSave();
+        }
       } else {
         throw new Error(response.data.message || "Upload failed");
       }
@@ -249,6 +255,11 @@ const ProjectDocumentsModal = ({
           newDocs[index].documentId = null;
           setDocuments(newDocs);
           toast.success("Document deleted successfully!");
+          
+          // Notify parent component that documents have been updated
+          if (onSave) {
+            onSave();
+          }
         }
       } else {
         throw new Error(response.data.message || "Delete failed");
