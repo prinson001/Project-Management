@@ -590,8 +590,7 @@ const ProjectModal = ({
             setSavedProjectData(projectData);
             
             toast.success("Project saved as draft! You can now add the schedule plan and documents.");
-            
-            // Don't call onProjectAdded yet - only when modal is finally closed
+            if (onProjectAdded) onProjectAdded();
           }
         } catch (error) {
           console.error("Error saving draft:", error);

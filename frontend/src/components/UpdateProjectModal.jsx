@@ -53,9 +53,115 @@ const UpdateProjectModal = ({
   // State to track if documents/schedule need refresh
   const [documentsRefreshTrigger, setDocumentsRefreshTrigger] = useState(0);
   const [scheduleRefreshTrigger, setScheduleRefreshTrigger] = useState(0);
+  // State to track data loading status
+  const [isDataLoading, setIsDataLoading] = useState(true);
+  const [dataLoadedFlags, setDataLoadedFlags] = useState({
+    departments: false,
+    objectives: false,
+    programs: false,
+    initiatives: false,
+    portfolios: false,
+    vendors: false
+  });
 
   const { users, projectTypes, projectPhases, setDocuments, documents } =
     useAuthStore();
+
+  // Helper function to get form default values
+  const getFormDefaultValues = useCallback((data) => {
+    console.log("🔧 Creating form default values from:", data);
+    
+    if (!data) {
+      console.log("⚠️ No data provided, using empty defaults");
+      return {
+        id: "",
+        name: "",
+        arabic_name: "",
+        description: "",
+        project_type_id: "",
+        current_phase_id: "",
+        initiative_id: "",
+        portfolio_id: "",
+        program_id: "",
+        category: "",
+        project_manager_id: "",
+        alternative_project_manager_id: "",
+        vendor_id: "",
+        beneficiaryDepartments: [],
+        objectives: [],
+        project_budget: "",
+        approved_budget: "",
+        execution_start_date: {
+          startDate: null,
+          endDate: null,
+        },
+        execution_duration: 4,
+        maintenance_duration: 30,
+        internal_start_date: {
+          startDate: null,
+          endDate: null,
+        },
+      };
+    }
+
+    // Process execution duration
+    let executionDuration = 4;
+    if (data.execution_duration) {
+      if (typeof data.execution_duration === 'string') {
+        const durationParts = data.execution_duration.split(" ");
+        executionDuration = parseInt(durationParts[0]) || 4;
+      } else {
+        executionDuration = parseInt(data.execution_duration) || 4;
+      }
+    }
+
+    // Process maintenance duration
+    let maintenanceDuration = 30;
+    if (data.maintenance_duration) {
+      maintenanceDuration = parseInt(data.maintenance_duration) || 30;
+    }
+
+    // Process dates safely
+    const executionStartDate = data.execution_start_date 
+      ? new Date(data.execution_start_date) 
+      : null;
+    const internalStartDate = data.internal_start_date 
+      ? new Date(data.internal_start_date) 
+      : null;
+
+    const formValues = {
+      id: data.id || "",
+      name: data.name || "",
+      arabic_name: data.arabic_name || "",
+      description: data.description || "",
+      project_type_id: data.project_type_id?.toString() || "",
+      current_phase_id: data.current_phase_id?.toString() || "",
+      initiative_id: data.initiative_id?.toString() || "",
+      portfolio_id: data.portfolio_id?.toString() || "",
+      program_id: data.program_id?.toString() || "",
+      category: data.category || "",
+      project_manager_id: data.project_manager_id?.toString() || "",
+      alternative_project_manager_id: data.alternative_project_manager_id?.toString() || "",
+      vendor_id: data.vendor_id?.toString() || "",
+      beneficiaryDepartments: [],
+      objectives: [],
+      project_budget: data.project_budget?.toString() || "",
+      approved_budget: data.approved_project_budget?.toString() || "",
+      execution_start_date: {
+        startDate: executionStartDate,
+        endDate: executionStartDate,
+      },
+      execution_duration: executionDuration,
+      maintenance_duration: maintenanceDuration,
+      internal_start_date: {
+        startDate: internalStartDate,
+        endDate: internalStartDate,
+      },
+    };
+
+    console.log("✅ Form default values created:", formValues);
+    return formValues;
+  }, []);
 
   const {
     register,
@@ -66,95 +172,15 @@ const UpdateProjectModal = ({
     reset,
     formState: { errors },
   } = useForm({
-    defaultValues: {
-      id: projectData?.id || "",
-      name: projectData?.name || "",
-      arabic_name: projectData?.arabic_name || "",
-      description: projectData?.description || "",
-      project_type_id: projectData?.project_type_id?.toString() || "",
-      current_phase_id: projectData?.current_phase_id?.toString() || "",
-      initiative_id: projectData?.initiative_id?.toString() || "",
-      portfolio_id: projectData?.portfolio_id?.toString() || "",
-      program_id: projectData?.program_id?.toString() || "",
-      category: projectData?.category || "",
-      project_manager_id: projectData?.project_manager_id?.toString() || "",
-      alternative_project_manager_id:
-        projectData?.alternative_project_manager_id?.toString() || "",
-      vendor_id: projectData?.vendor_id?.toString() || "",
-      beneficiaryDepartments: [],
-      objectives: [],
-      project_budget: projectData?.project_budget?.toString() || "",
-      approved_budget: projectData?.approved_project_budget?.toString() || "",
-      execution_start_date: {
-        startDate: projectData?.execution_start_date
-          ? new Date(projectData.execution_start_date)
-          : null,
-        endDate: projectData?.execution_start_date
-          ? new Date(projectData.execution_start_date)
-          : null,
-      },
-      execution_duration: projectData?.execution_duration
-        ? parseInt(String(projectData.execution_duration).split(" ")[0])
-        : "4", // Ensure execution_duration is treated as a string before split
-      maintenance_duration: projectData?.maintenance_duration
-        ? parseInt(String(projectData.maintenance_duration), 10)
-        : 30,
-      internal_start_date: {
-        startDate: projectData?.execution_start_date
-          ? new Date(projectData.execution_start_date)
-          : null,
-        endDate: projectData?.execution_start_date
-          ? new Date(projectData.execution_start_date)
-          : null,
-      },
-    },
+    defaultValues: getFormDefaultValues(projectData),
   });
 
   // Reset form when projectData changes
   useEffect(() => {
     if (projectData) {
-      reset({
-        id: projectData?.id || "",
-        name: projectData?.name || "",
-        arabic_name: projectData?.arabic_name || "",
-        description: projectData?.description || "",
-        project_type_id: projectData?.project_type_id?.toString() || "",
-        current_phase_id: projectData?.current_phase_id?.toString() || "",
-        initiative_id: projectData?.initiative_id?.toString() || "",
-        portfolio_id: projectData?.portfolio_id?.toString() || "",
-        program_id: projectData?.program_id?.toString() || "",
-        category: projectData?.category || "",
-        project_manager_id: projectData?.project_manager_id?.toString() || "",
-        alternative_project_manager_id:
-          projectData?.alternative_project_manager_id?.toString() || "",
-        vendor_id: projectData?.vendor_id?.toString() || "",
-        beneficiaryDepartments: [],
-        objectives: [],
-        project_budget: projectData?.project_budget?.toString() || "",
-        approved_budget: projectData?.approved_project_budget?.toString() || "",
-        execution_start_date: {
-          startDate: projectData?.execution_start_date
-            ? new Date(projectData.execution_start_date)
-            : null,
-          endDate: projectData?.execution_start_date
-            ? new Date(projectData.execution_start_date)
-            : null,
-        },
-        execution_duration: projectData?.execution_duration
-          ? parseInt(String(projectData.execution_duration).split(" ")[0])
-          : "4",
-        maintenance_duration: projectData?.maintenance_duration
-          ? parseInt(String(projectData.maintenance_duration), 10)
-          : 30,
-        internal_start_date: {
-          startDate: projectData?.execution_start_date
-            ? new Date(projectData.execution_start_date)
-            : null,
-          endDate: projectData?.execution_start_date
-            ? new Date(projectData.execution_start_date)
-            : null,
-        },
-      });
+      console.log("🔄 Resetting form with projectData:", projectData);
+      const formData = getFormDefaultValues(projectData);
+      reset(formData);
       
       // Sync upload status with projectData changes
       console.log("🔄 Syncing upload status with projectData:", {
@@ -165,7 +191,25 @@ const UpdateProjectModal = ({
       setDocumentsUploadedSuccessfully(projectData.project_documents_uploaded === true);
       setScheduleUploadedSuccessfully(projectData.project_schedule_uploaded === true);
     }
-  }, [projectData, reset]);
+  }, [projectData, reset, getFormDefaultValues]);
+
+  // Debug effect to track form values
+  useEffect(() => {
+    const subscription = watch((value, { name, type }) => {
+      if (name && type === 'change') {
+        console.log(`📝 Form field changed: ${name} =`, value[name]);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [watch]);
+
+  // Additional debug effect to log all form values when they change
+  useEffect(() => {
+    if (projectData?.id) {
+      const currentValues = watch();
+      console.log("📊 Current form values:", currentValues);
+    }
+  }, [projectData?.id, watch]);
 
   const projectType = watch("project_type_id");
   const currentPhase = watch("current_phase_id");
@@ -235,106 +279,164 @@ const UpdateProjectModal = ({
   // Fetch departments and beneficiary departments
   useEffect(() => {
     const fetchDepartmentsAndBeneficiaries = async () => {
+      if (!projectData?.id) return;
+      
       try {
-        const deptResponse = await axiosInstance.post(
-          `/data-management/getDepartments`
-        );
-        const beneficiaryResponse = await axiosInstance.post(
-          `/data-management/getBeneficiaryDepartments`,
-          { projectId: projectData.id }
-        );
+        console.log("🏢 Fetching departments and beneficiaries for project:", projectData.id);
+        
+        const [deptResponse, beneficiaryResponse] = await Promise.all([
+          axiosInstance.post(`/data-management/getDepartments`),
+          axiosInstance.post(`/data-management/getBeneficiaryDepartments`, { 
+            projectId: projectData.id 
+          })
+        ]);
 
-        const beneficiaryDeptIds = beneficiaryResponse.data.result || [];
-        const fetchedDepartments = deptResponse.data.result.map((dept) => ({
-          id: dept.id,
-          name: dept.name,
-          arabic_name: dept.arabic_name,
-          checked: beneficiaryDeptIds.includes(dept.id),
-        }));
+        if (deptResponse.data.status === "success") {
+          const beneficiaryDeptIds = beneficiaryResponse.data.result || [];
+          const fetchedDepartments = deptResponse.data.result.map((dept) => ({
+            id: dept.id,
+            name: dept.name,
+            arabic_name: dept.arabic_name,
+            checked: beneficiaryDeptIds.includes(dept.id),
+          }));
 
-        setDepartments(fetchedDepartments);
-        setValue(
-          "beneficiaryDepartments",
-          fetchedDepartments
+          console.log("🏢 Setting departments:", fetchedDepartments);
+          setDepartments(fetchedDepartments);
+          
+          const selectedDepartmentIds = fetchedDepartments
             .filter((dept) => dept.checked)
-            .map((dept) => dept.id),
-          { shouldDirty: false }
-        );
+            .map((dept) => dept.id);
+            
+          setValue("beneficiaryDepartments", selectedDepartmentIds, { 
+            shouldDirty: false,
+            shouldValidate: false 
+          });
+          
+          console.log("🏢 Set beneficiary departments:", selectedDepartmentIds);
+          
+          // Mark departments as loaded
+          setDataLoadedFlags(prev => ({ ...prev, departments: true }));
+        }
       } catch (error) {
-        console.error("Error fetching departments or beneficiaries:", error);
+        console.error("❌ Error fetching departments or beneficiaries:", error);
         toast.error("Failed to load departments or beneficiary data");
+        setDataLoadedFlags(prev => ({ ...prev, departments: true })); // Mark as loaded even on error
       }
     };
 
-    if (projectData?.id) {
-      fetchDepartmentsAndBeneficiaries();
-    }
+    fetchDepartmentsAndBeneficiaries();
   }, [projectData?.id, setValue]);
 
   // Fetch other dropdown data
   useEffect(() => {
     const fetchInitiatives = async () => {
-      const response = await axiosInstance.post(
-        `/data-management/getInitiatives`
-      );
-      if (response.data.status === "success")
-        setInitiatives(response.data.result);
+      try {
+        const response = await axiosInstance.post(`/data-management/getInitiatives`);
+        if (response.data.status === "success") {
+          setInitiatives(response.data.result);
+        }
+        setDataLoadedFlags(prev => ({ ...prev, initiatives: true }));
+      } catch (error) {
+        console.error("❌ Error fetching initiatives:", error);
+        setDataLoadedFlags(prev => ({ ...prev, initiatives: true }));
+      }
     };
     fetchInitiatives();
   }, []);
 
   useEffect(() => {
     const fetchPortfolios = async () => {
-      const response = await axiosInstance.post(
-        `/data-management/getPortfolios`
-      );
-      if (response.data.status === "success")
-        setPortfolios(response.data.result);
+      try {
+        const response = await axiosInstance.post(`/data-management/getPortfolios`);
+        if (response.data.status === "success") {
+          setPortfolios(response.data.result);
+        }
+        setDataLoadedFlags(prev => ({ ...prev, portfolios: true }));
+      } catch (error) {
+        console.error("❌ Error fetching portfolios:", error);
+        setDataLoadedFlags(prev => ({ ...prev, portfolios: true }));
+      }
     };
     fetchPortfolios();
   }, []);
 
   useEffect(() => {
     const fetchPrograms = async () => {
-      const response = await axiosInstance.post(`/data-management/getPrograms`);
-      if (response.data.status === "success") setPrograms(response.data.result);
+      try {
+        const response = await axiosInstance.post(`/data-management/getPrograms`);
+        if (response.data.status === "success") {
+          setPrograms(response.data.result);
+        }
+        setDataLoadedFlags(prev => ({ ...prev, programs: true }));
+      } catch (error) {
+        console.error("❌ Error fetching programs:", error);
+        setDataLoadedFlags(prev => ({ ...prev, programs: true }));
+      }
     };
     fetchPrograms();
   }, []);
 
   useEffect(() => {
     const fetchVendors = async () => {
-      const response = await axiosInstance.post(`/data-management/getVendors`);
-      if (response.data.status === "success") setVendors(response.data.result);
+      try {
+        const response = await axiosInstance.post(`/data-management/getVendors`);
+        if (response.data.status === "success") {
+          setVendors(response.data.result);
+        }
+        setDataLoadedFlags(prev => ({ ...prev, vendors: true }));
+      } catch (error) {
+        console.error("❌ Error fetching vendors:", error);
+        setDataLoadedFlags(prev => ({ ...prev, vendors: true }));
+      }
     };
     fetchVendors();
   }, []);
 
   useEffect(() => {
     const fetchObjectives = async () => {
-      const response = await axiosInstance.post(
-        `/data-management/getObjectives`
-      );
-      if (response.data.status === "success") {
-        const projectObjectivesResponse = await axiosInstance.post(
-          `/data-management/getProjectObjectives`,
-          { projectId: projectData.id }
-        );
-        const projectObjectiveIds =
-          projectObjectivesResponse.data.status === "success"
+      if (!projectData?.id) return;
+      
+      try {
+        console.log("🎯 Fetching objectives for project:", projectData.id);
+        
+        const [objectivesResponse, projectObjectivesResponse] = await Promise.all([
+          axiosInstance.post(`/data-management/getObjectives`),
+          axiosInstance.post(`/data-management/getProjectObjectives`, { 
+            projectId: projectData.id 
+          })
+        ]);
+        
+        if (objectivesResponse.data.status === "success") {
+          const projectObjectiveIds = projectObjectivesResponse.data.status === "success"
             ? projectObjectivesResponse.data.result.map((o) => o.id)
             : [];
-        const fetchedObjectives = response.data.result.map((obj) => ({
-          id: obj.id,
-          text: obj.name,
-          arabic_text: obj.arabic_name,
-          checked: projectObjectiveIds.includes(obj.id),
-        }));
-        setObjectives(fetchedObjectives);
-        setValue("objectives", fetchedObjectives, { shouldDirty: false });
+            
+          const fetchedObjectives = objectivesResponse.data.result.map((obj) => ({
+            id: obj.id,
+            text: obj.name,
+            arabic_text: obj.arabic_name,
+            checked: projectObjectiveIds.includes(obj.id),
+          }));
+          
+          console.log("🎯 Setting objectives:", fetchedObjectives);
+          setObjectives(fetchedObjectives);
+          setValue("objectives", fetchedObjectives, { 
+            shouldDirty: false,
+            shouldValidate: false 
+          });
+          
+          console.log("🎯 Set project objectives:", projectObjectiveIds);
+        }
+        
+        setDataLoadedFlags(prev => ({ ...prev, objectives: true }));
+      } catch (error) {
+        console.error("❌ Error fetching objectives:", error);
+        toast.error("Failed to load objectives");
+        setDataLoadedFlags(prev => ({ ...prev, objectives: true }));
       }
     };
-    if (projectData?.id) fetchObjectives();
+    
+    fetchObjectives();
   }, [projectData?.id, setValue]);
 
   // Fetch program details
@@ -344,22 +446,45 @@ const UpdateProjectModal = ({
       return;
     }
     try {
+      console.log("📋 Fetching program details for ID:", programId);
       const response = await axiosInstance.post(
         "/data-management/getProgramDetails",
         { program_id: programId }
       );
       if (response.data.status === "success") {
+        console.log("📋 Program details fetched:", response.data.result);
         setSelectedProgramDetails(response.data.result);
       }
     } catch (error) {
-      console.error("Error fetching program details:", error);
+      console.error("❌ Error fetching program details:", error);
       toast.error("Failed to load program details");
     }
   };
 
   useEffect(() => {
-    fetchProgramDetails(selectedProgramId);
+    if (selectedProgramId) {
+      fetchProgramDetails(selectedProgramId);
+    }
   }, [selectedProgramId]);
+
+  // Sync program details with form when they're loaded
+  useEffect(() => {
+    if (selectedProgramDetails) {
+      console.log("📋 Syncing program details to form:", selectedProgramDetails);
+      if (selectedProgramDetails.initiative_id) {
+        setValue("initiative_id", selectedProgramDetails.initiative_id.toString(), {
+          shouldDirty: false,
+          shouldValidate: false
+        });
+      }
+      if (selectedProgramDetails.portfolio_id) {
+        setValue("portfolio_id", selectedProgramDetails.portfolio_id.toString(), {
+          shouldDirty: false,
+          shouldValidate: false
+        });
+      }
+    }
+  }, [selectedProgramDetails, setValue]);
   // Effect to check upload status and approval task status
   useEffect(() => {
     const checkUploadAndApprovalStatus = async () => {
@@ -778,14 +903,33 @@ const UpdateProjectModal = ({
     }
   }, [projectData?.approval_status]);
 
-  if (!projectData?.id) {
+  // Update loading flags when data is fetched
+  useEffect(() => {
+    const allDataLoaded = Object.values(dataLoadedFlags).every(flag => flag === true);
+    if (allDataLoaded && projectData?.id) {
+      setIsDataLoading(false);
+      console.log("✅ All data loaded, form ready to render");
+    }
+  }, [dataLoadedFlags, projectData?.id]);
+
+  if (!projectData?.id || isDataLoading) {
+    console.log("⚠️ No project data available or data is still loading, showing loading state");
     return (
       <div className="flex flex-col rounded-lg border border-gray-200 shadow-md bg-white max-w-6xl mx-auto max-h-[90vh] p-4">
         <h2 className="text-xl font-semibold mb-4">{title}</h2>
-        <p>Loading project data...</p>
+        <div className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+            <p className="text-gray-600">
+              {!projectData?.id ? "Loading project data..." : "Loading form data..."}
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
+
+  console.log("✅ Rendering UpdateProjectModal with projectData:", projectData);
 
   return (
     <div className="flex flex-col rounded-lg border border-gray-200 shadow-md bg-white max-w-6xl mx-auto max-h-[90vh]">

@@ -65,6 +65,12 @@ export default function ProjectSelectCard({ project, onSelect }) {
   };
 
   const statusColors = getStatusColors();
+  // Fallback for phase data when backend provides snake_case fields
+  const currentPhaseData = project.currentPhase
+    ? project.currentPhase
+    : project.current_phase_name
+    ? { name: project.current_phase_name, progress: project.current_phase_progress }
+    : null;
 
   // Format budget if it exists
   const formatBudget = (budget) => {
@@ -165,7 +171,7 @@ export default function ProjectSelectCard({ project, onSelect }) {
         </div>
 
         {/* Current Phase */}
-        {project.currentPhase && (
+        {currentPhaseData && (
           <div className="mt-2">
             <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
               <div className="flex items-center">
@@ -173,16 +179,16 @@ export default function ProjectSelectCard({ project, onSelect }) {
                 <span>Current Phase</span>
               </div>
               <div className="flex items-center">
-                <span className="font-medium">{project.currentPhase.name}</span>
+                <span className="font-medium">{currentPhaseData.name}</span>
                 <span className="ml-2 px-1.5 py-0.5 bg-blue-50 text-blue-600 text-xs rounded">
-                  {project.currentPhase.progress}%
+                  {currentPhaseData.progress}%
                 </span>
               </div>
             </div>
             <div className="w-full bg-gray-100 rounded-full h-1.5">
               <div 
                 className="h-full rounded-full bg-blue-400"
-                style={{ width: `${Math.min(100, Math.max(0, project.currentPhase.progress))}%` }}
+                style={{ width: `${Math.min(100, Math.max(0, currentPhaseData.progress))}%` }}
               ></div>
             </div>
           </div>
