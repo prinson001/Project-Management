@@ -48,12 +48,14 @@ const DataSection = ({
   const [pagination, setPagination] = useState({});
   const [openTaskCount, setOpenTaskCount] = useState(0);
   const [delayedTaskCount, setDelayedTaskCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
   let originalTableData = [];
   const { userId, role } = useAuthStore();
 
   async function getData() {
     console.log("user id ", userId);
     console.log("role ", role);
+    setIsLoading(true);
     try {
       console.log("the dableName in getData function", tableName);
       let result = [];
@@ -88,6 +90,8 @@ const DataSection = ({
       setPagination(result.data.pagination);
     } catch (e) {
       console.log(e);
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -134,6 +138,7 @@ const DataSection = ({
   async function getFilteredData() {
     console.log("the filters applied are");
     console.log(structuredClone(tablefilters));
+    setIsLoading(true);
     if (tableName === "tasks") {
       const { project_name, filters } = tablefilters;
       try {
@@ -158,6 +163,8 @@ const DataSection = ({
       } catch (e) {
         console.log("errror");
         console.log(e);
+      } finally {
+        setIsLoading(false);
       }
     } else {
       try {
@@ -180,6 +187,8 @@ const DataSection = ({
       } catch (e) {
         console.log("there was an error");
         console.log(e);
+      } finally {
+        setIsLoading(false);
       }
     }
   }
@@ -280,6 +289,7 @@ const DataSection = ({
             sortTableData={sortTableData}
             columnSetting={columnSetting}
             accordionComponentName={accordionComponentName}
+            isLoading={isLoading}
           ></TableData>
         </Suspense>
       )}

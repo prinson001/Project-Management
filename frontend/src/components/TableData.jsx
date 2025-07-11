@@ -46,6 +46,7 @@ const TableData = ({
   showActionButtons = true,
   sortTableData,
   columnSetting,
+  isLoading = false, // Add explicit loading prop
 }) => {
   const [openAccordion, setOpenAccordion] = useState(null);
   const [changedinput, setChangedinput] = useState({});
@@ -57,6 +58,7 @@ const TableData = ({
   const [showForm, setShowForm] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [hasInitialLoad, setHasInitialLoad] = useState(false);
 
   const [selectedProject, setSelectedProject] = useState(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
@@ -81,19 +83,42 @@ const TableData = ({
 
   useEffect(() => {
     console.log("loader", tableData);
-    if (
-      tableData !== undefined &&
-      tableData !== null &&
-      tableData.length !== 0
-    ) {
-      setIsDataLoaded(true);
-      setLoading(false);
-    } else {
-      setIsDataLoaded(true);
-      setLoading(false);
-      console.log("we are here");
+    
+    // If explicitly loading from parent, show loading
+    if (isLoading) {
+      setLoading(true);
+      setIsDataLoaded(false);
+      return;
     }
-  }, [tableData]);
+    
+    // If tableData is undefined or null, keep loading
+    if (tableData === undefined || tableData === null) {
+      setLoading(true);
+      setIsDataLoaded(false);
+      return;
+    }
+    
+    // Mark that we've received our first data response
+    if (!hasInitialLoad) {
+      setHasInitialLoad(true);
+    }
+    
+    // If we have data (array with items)
+    if (Array.isArray(tableData) && tableData.length > 0) {
+      setIsDataLoaded(true);
+      setLoading(false);
+    } 
+    // If we have an empty array and this is after initial load
+    else if (Array.isArray(tableData) && tableData.length === 0 && hasInitialLoad) {
+      setIsDataLoaded(true);
+      setLoading(false);
+    }
+    // If we have an empty array but haven't had initial load, keep loading
+    else if (Array.isArray(tableData) && tableData.length === 0 && !hasInitialLoad) {
+      setLoading(true);
+      setIsDataLoaded(false);
+    }
+  }, [tableData, hasInitialLoad, isLoading]);
   useEffect(() => {
     if (tableData && tableData.length > 0) {
       const parsedData = tableData.map((item) => {
@@ -118,6 +143,13 @@ const TableData = ({
       }
     }
   }, [tableData]);
+
+  // Reset loading states when table name changes
+  useEffect(() => {
+    setLoading(true);
+    setIsDataLoaded(false);
+    setHasInitialLoad(false);
+  }, [tableName]);
 
   // Resize handlers
   const handleResizeStart = (e, columnId) => {
@@ -369,7 +401,7 @@ const TableData = ({
             </tr>
           </thead>
           <tbody>
-            {loading ? (
+            {loading || isLoading ? (
               <tr>
                 <td
                   colSpan={visibleColumns.length + 1}
@@ -378,7 +410,7 @@ const TableData = ({
                   <Loader />
                 </td>
               </tr>
-            ) : isDataLoaded && tableData.length === 0 ? (
+            ) : isDataLoaded && Array.isArray(tableData) && tableData.length === 0 ? (
               <tr>
                 <td
                   colSpan={visibleColumns.length + 1}
@@ -387,7 +419,7 @@ const TableData = ({
                   No data available
                 </td>
               </tr>
-            ) : (
+            ) : Array.isArray(tableData) && tableData.length > 0 ? (
               tableData.map((item, index) => (
                 <React.Fragment key={item.id}>
                   <tr className="bg-white border-b dark:bg-[#1D1D1D] dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
@@ -721,6 +753,15 @@ const TableData = ({
                   )}
                 </React.Fragment>
               ))
+            ) : (
+              <tr>
+                <td
+                  colSpan={visibleColumns.length + 1}
+                  className="text-center py-4"
+                >
+                  <Loader />
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
