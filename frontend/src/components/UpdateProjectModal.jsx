@@ -221,19 +221,28 @@ const UpdateProjectModal = ({
 
   // Add filtered project phases similar to ProjectModal
   const filteredProjectPhases = useMemo(() => {
-    if (!projectType) return projectPhases;
-    
-    const isInternal = projectType === "1";
-    const isProofOfConcept = projectType === "4";
-    
-    if (isInternal || isProofOfConcept) {
-      return projectPhases.filter(phase => 
-        ["Implementation", "Maintenance", "Completed"].includes(phase.name)
+    if (!projectType || !projectPhases.length) return projectPhases;
+
+    // Find the project type name from the ID - standardize comparison
+    const selectedProjectType = projectTypes.find(
+      (type) => type.id.toString() === projectType?.toString()
+    );
+
+    // If it's "Internal Project" or "Proof of Concept", filter phases
+    if (
+      selectedProjectType &&
+      ["Internal Project", "Proof of Concept"].includes(
+        selectedProjectType.name
+      )
+    ) {
+      return projectPhases.filter((phase) =>
+        ["Planning", "Execution", "Closed"].includes(phase.name)
       );
     }
-    
+
+    // Otherwise, return all phases
     return projectPhases;
-  }, [projectType, projectPhases]);
+  }, [projectType, projectPhases, projectTypes]);
 
   const isVendorDisabled = useMemo(() => {
     const restrictedTypes = ["Internal Project", "Proof of Concept"];
@@ -269,6 +278,14 @@ const UpdateProjectModal = ({
   }, [projectType, projectTypes]);
 
   const isBudgetRequired = useMemo(() => {
+    const currentType = projectTypes.find(
+      (type) => type.id.toString() === projectType?.toString()
+    );
+    return !["Internal Project", "Proof of Concept"].includes(currentType?.name || "");
+  }, [projectType, projectTypes]);
+
+  // Helper function to determine if beneficiary departments are required
+  const isBeneficiaryDepartmentRequired = useMemo(() => {
     const currentType = projectTypes.find(
       (type) => type.id.toString() === projectType?.toString()
     );
@@ -568,7 +585,9 @@ const UpdateProjectModal = ({
       const selectedDepartmentIds = departments
         .filter((dept) => dept.checked)
         .map((dept) => dept.id);
-      if (selectedDepartmentIds.length === 0) {
+      
+      // Only require beneficiary departments for non-Internal/non-PoC projects
+      if (isBeneficiaryDepartmentRequired && selectedDepartmentIds.length === 0) {
         toast.error("At least one beneficiary department must be selected");
         return;
       }
@@ -635,7 +654,11 @@ const UpdateProjectModal = ({
         );
         console.log("✅ Toast shown:", sendForApproval ? "approval" : "update");
         onUpdate(updatedProjectData);
-        onClose();
+        
+        // Only close modal if sending for approval
+        if (sendForApproval) {
+          onClose();
+        }
         return response;
       } else {
         throw new Error(response.data.message || "Failed to update project");
@@ -811,13 +834,9 @@ const UpdateProjectModal = ({
     setIsProjectDocumentsModalOpen(true);
   };
 
+  // Replace handleOpenSchedulePlan to save project details before opening schedule plan
   const handleOpenSchedulePlan = () => {
-    console.log("Opening schedule plan modal with project data:", {
-      execution_start_date: projectData.execution_start_date,
-      execution_duration: projectData.execution_duration,
-      maintenance_duration: projectData.maintenance_duration,
-      project_type_id: projectData.project_type_id
-    });
+    console.log("🔄 Opening schedule plan modal without form validation");
     setIsProjectSchedulePlanModalOpen(true);
   };
 
@@ -833,13 +852,20 @@ const UpdateProjectModal = ({
 
   const shouldShowSection = (section) => {
     if (activeSection === "all") return true;
+    
+    // Get the current project type name
+    const currentType = projectTypes.find(
+      (type) => type.id.toString() === projectType?.toString()
+    );
+    const isInternalOrPoC = ["Internal Project", "Proof of Concept"].includes(currentType?.name || "");
+    
     switch (section) {
       case "category":
-        return !["1", "4"].includes(projectType);
+        return !isInternalOrPoC;
       case "vendor":
-        return !["1", "4"].includes(projectType);
+        return !isInternalOrPoC;
       case "budget":
-        return !["1", "4"].includes(projectType);
+        return !isInternalOrPoC;
       default:
         return true;
     }
@@ -1294,7 +1320,11 @@ const UpdateProjectModal = ({
               </div>
               <div>
                 <label className="block text-sm font-semibold mb-1">
-                  Beneficiary Department <span className="text-red-500">*</span>
+                  Beneficiary Department 
+                  {isBeneficiaryDepartmentRequired ? 
+                    <span className="text-red-500"> *</span> : 
+                    " (Optional for this project type)"
+                  }
                 </label>
                 <div className="border border-gray-300 rounded p-2 max-h-40 overflow-y-auto">
                   {departments.map((dept) => (
@@ -1486,6 +1516,17 @@ const UpdateProjectModal = ({
             </div>
           </div>
 
+          {/* Update Project Button */}
+          <div className="mb-6 flex justify-end">
+            <button
+              type="button"
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              onClick={handleSubmit((data) => onSubmit(data, false))}
+            >
+              Update Project
+            </button>
+          </div>
+
           {/* Upload Status and Actions */}
           <div className="mb-6 border-t pt-4">
             <div className="grid grid-cols-2 gap-6">
@@ -1671,14 +1712,6 @@ const UpdateProjectModal = ({
                   onClick={onClose}
                 >
                   Cancel
-                </button>
-                <button
-                  type="button"
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                  title="Save project changes without sending for approval"
-                  onClick={handleSubmit((data) => onSubmit(data, false))}
-                >
-                  Update Project
                 </button>
               </div>
               
