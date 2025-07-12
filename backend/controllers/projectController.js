@@ -1312,9 +1312,11 @@ const getProjectDetailsWithVendor = async (req, res) => {
     const result = await sql`
       SELECT 
         project.*,
-        vendor.name AS vendor_name
+        vendor.name AS vendor_name,
+        project_type.name AS project_type_name
       FROM project
       LEFT JOIN vendor ON project.vendor_id = vendor.id
+      LEFT JOIN project_type ON project.project_type_id = project_type.id
       WHERE project.id = ${projectId};
     `;
 
