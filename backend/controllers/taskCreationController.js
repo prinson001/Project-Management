@@ -5,11 +5,13 @@ const createProjectCreationTaskForDeputy = async (req, res) => {
   let { projectId } = req.body;
   console.log("Deputy project Id", projectId);
   try {
-    // First, check if project has both document and schedule plan uploaded
+    // First, check if project exists and get project details with phase info
     const projectCheck = await sql`
-      SELECT project_documents_uploaded, project_schedule_uploaded 
-      FROM project 
-      WHERE id = ${projectId};
+      SELECT p.project_documents_uploaded, p.project_schedule_uploaded, p.current_phase_id,
+             ph.name as phase_name
+      FROM project p
+      JOIN project_phase ph ON p.current_phase_id = ph.id
+      WHERE p.id = ${projectId};
     `;
 
     if (projectCheck.length === 0) {
@@ -21,13 +23,37 @@ const createProjectCreationTaskForDeputy = async (req, res) => {
     }
 
     const project = projectCheck[0];
-    if (!project.project_documents_uploaded || !project.project_schedule_uploaded) {
+    
+    // Always require schedule plan to be uploaded
+    if (!project.project_schedule_uploaded) {
       return res.status(400).json({
         status: "failure",
-        message: "Cannot send for approval: Both project document and schedule plan must be uploaded first",
+        message: "Cannot send for approval: Schedule plan must be uploaded first",
         result: {
           project_documents_uploaded: project.project_documents_uploaded,
           project_schedule_uploaded: project.project_schedule_uploaded,
+        },
+      });
+    }
+
+    // Check if document templates exist for the current phase
+    const documentTemplates = await sql`
+      SELECT * FROM document_template 
+      WHERE LOWER(phase::text) LIKE ${'%' + project.phase_name.toLowerCase() + '%'}
+    `;
+
+    const hasDocumentTemplates = documentTemplates.length > 0;
+    console.log(`Document templates found for phase ${project.phase_name}:`, hasDocumentTemplates);
+
+    // Only require documents if templates exist for this phase
+    if (hasDocumentTemplates && !project.project_documents_uploaded) {
+      return res.status(400).json({
+        status: "failure",
+        message: "Cannot send for approval: Project documents must be uploaded for this phase",
+        result: {
+          project_documents_uploaded: project.project_documents_uploaded,
+          project_schedule_uploaded: project.project_schedule_uploaded,
+          has_document_templates: hasDocumentTemplates,
         },
       });
     }

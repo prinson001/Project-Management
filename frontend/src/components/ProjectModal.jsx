@@ -1019,13 +1019,16 @@ const ProjectModal = ({
         return;
       }
 
-      // Convert execution_duration to days
+      // Convert execution_duration to proper interval format for PostgreSQL
       let durationValue = parseInt(data.execution_duration, 10) || 0;
       let durationType = data.execution_duration_type || "weeks";
       let durationInDays = durationValue;
       if (durationType === "weeks") durationInDays = durationValue * 7;
       else if (durationType === "months") durationInDays = durationValue * 30;
       // else days, keep as is
+
+      // Format as PostgreSQL interval: "30 days"
+      const executionDurationInterval = `${durationInDays} days`;
 
       const projectData = {
         name: data.name,
@@ -1050,7 +1053,7 @@ const ProjectModal = ({
           ? parseFloat(data.approved_budget)
           : null,
         execution_start_date: data.execution_start_date?.startDate || null,
-        execution_duration: durationInDays,
+        execution_duration: executionDurationInterval,
         maintenance_duration: data.maintenance_duration || null,
         approval_status: data.approval_status || "Not initiated",
       };

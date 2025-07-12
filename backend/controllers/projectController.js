@@ -69,21 +69,24 @@ const addProject = async (req, res) => {
       }
     }
 
-    // Fix execution_duration format if it contains "weeks days"
-    if (
-      projectData.execution_duration &&
-      typeof projectData.execution_duration !== "string"
-    ) {
-      projectData.execution_duration = String(projectData.execution_duration);
-    }
-    if (
-      projectData.execution_duration &&
-      projectData.execution_duration.includes("weeks days")
-    ) {
-      projectData.execution_duration = projectData.execution_duration.replace(
-        "weeks days",
-        "weeks"
-      );
+    // Ensure execution_duration is in proper PostgreSQL interval format
+    if (projectData.execution_duration) {
+      if (typeof projectData.execution_duration === "number") {
+        // Convert number to interval string (e.g., 30 -> "30 days")
+        projectData.execution_duration = `${projectData.execution_duration} days`;
+      } else if (typeof projectData.execution_duration === "string") {
+        // Handle existing string formats
+        if (projectData.execution_duration.includes("weeks days")) {
+          projectData.execution_duration = projectData.execution_duration.replace(
+            "weeks days",
+            "weeks"
+          );
+        }
+        // If it's just a number string, convert to days
+        if (/^\d+$/.test(projectData.execution_duration.trim())) {
+          projectData.execution_duration = `${projectData.execution_duration} days`;
+        }
+      }
     }
 
     // Check if project is Internal (1) or Proof of Concept (4)
@@ -286,6 +289,26 @@ const updateProject = async (req, res) => {
         message: "Invalid id format: must be a number",
         result: null,
       });
+    }
+
+    // Ensure execution_duration is in proper PostgreSQL interval format
+    if (data.execution_duration) {
+      if (typeof data.execution_duration === "number") {
+        // Convert number to interval string (e.g., 30 -> "30 days")
+        data.execution_duration = `${data.execution_duration} days`;
+      } else if (typeof data.execution_duration === "string") {
+        // Handle existing string formats
+        if (data.execution_duration.includes("weeks days")) {
+          data.execution_duration = data.execution_duration.replace(
+            "weeks days",
+            "weeks"
+          );
+        }
+        // If it's just a number string, convert to days
+        if (/^\d+$/.test(data.execution_duration.trim())) {
+          data.execution_duration = `${data.execution_duration} days`;
+        }
+      }
     }
 
     const columns = Object.keys(data);
