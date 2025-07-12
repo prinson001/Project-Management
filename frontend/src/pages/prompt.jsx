@@ -519,7 +519,7 @@ const TableData = ({
     
       {/* Edit Form Modal */}
       {showForm != null && (
-        <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 z-50">
+        <div className="fixed inset-0 flex justify-center items-center bg-black/50 z-50">
           <div className="max-w-3xl bg-white p-6 rounded-lg shadow-lg w-full mx-4 dark:bg-gray-800 dark:text-white">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Edit {tableName}</h2>

@@ -29,8 +29,9 @@ async function validateStartup() {
 }
 
 const app = express();
-console.log(process.env.PORT);
-const port = process.env.PORT || 5000;
+console.log('Environment PORT:', process.env.PORT);
+console.log('NODE_ENV:', process.env.NODE_ENV);
+const port = process.env.PORT || 4001; // Use Render's assigned port or fallback to 4001
 
 // Configure CORS with environment-based origins
 const allowedOrigins = process.env.NODE_ENV === 'production' 

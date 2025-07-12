@@ -1,12 +1,15 @@
 import axios from "axios";
-// const PORT = import.meta.env.VITE_PORT;
+
+// Use environment variable or default to production URL
+const baseURL = import.meta.env.VITE_API_BASE_URL || "https://projectmanagement-naje.onrender.com";
+
 const axiosInstance = axios.create({
-  // baseURL: `https://projectmanagement-naje.onrender.com`, // Add your base URL here
-  baseURL: `http://localhost:4001`,
-  //  timeout: 10000, // Optional: Request timeout (in ms)
+  baseURL: baseURL,
+  timeout: 30000, // 30 seconds timeout for production
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true, // Important for CORS with credentials
 });
 
 export default axiosInstance;
