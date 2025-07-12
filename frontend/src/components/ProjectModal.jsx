@@ -21,8 +21,8 @@ const ProjectModal = ({
     useAuthStore();
   // Initialize react-hook-form
   const [departments, setDepartments] = useState([]);
-  const [initiatives, setInitiatives] = useState([]);
-  const [portfolios, setPortfolios] = useState([]);
+  // const [initiatives, setInitiatives] = useState([]); // No longer needed - Portfolio/Initiative are readonly
+  // const [portfolios, setPortfolios] = useState([]); // No longer needed - Portfolio/Initiative are readonly
   const [programs, setPrograms] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [objectives, setObjectives] = useState([]);
@@ -249,45 +249,45 @@ const ProjectModal = ({
     fetchDepartments();
   }, []);
 
-  // Fetch initiatives
-  useEffect(() => {
-    const fetchInitiatives = async () => {
-      try {
-        const response = await axiosInstance.post(
-          `/data-management/getInitiatives`
-        );
-        if (response.data && response.data.status === "success") {
-          setInitiatives(response.data.result);
-          console.log("Initiatives loaded:", response.data.result);
-        }
-      } catch (error) {
-        console.error("Error fetching initiatives:", error);
-        toast.error("Failed to load initiatives");
-      }
-    };
+  // Fetch initiatives - No longer needed since Portfolio/Initiative are readonly
+  // useEffect(() => {
+  //   const fetchInitiatives = async () => {
+  //     try {
+  //       const response = await axiosInstance.post(
+  //         `/data-management/getInitiatives`
+  //       );
+  //       if (response.data && response.data.status === "success") {
+  //         setInitiatives(response.data.result);
+  //         console.log("Initiatives loaded:", response.data.result);
+  //       }
+  //     } catch (error) {
+  //       console.error("Error fetching initiatives:", error);
+  //       toast.error("Failed to load initiatives");
+  //     }
+  //   };
 
-    fetchInitiatives();
-  }, []);
+  //   fetchInitiatives();
+  // }, []);
 
-  // Fetch portfolios
-  useEffect(() => {
-    const fetchPortfolios = async () => {
-      try {
-        const response = await axiosInstance.post(
-          `/data-management/getPortfolios`
-        );
-        if (response.data && response.data.status === "success") {
-          setPortfolios(response.data.result);
-          console.log("Portfolios loaded:", response.data.result);
-        }
-      } catch (error) {
-        console.error("Error fetching portfolios:", error);
-        toast.error("Failed to load portfolios");
-      }
-    };
+  // Fetch portfolios - No longer needed since Portfolio/Initiative are readonly
+  // useEffect(() => {
+  //   const fetchPortfolios = async () => {
+  //     try {
+  //       const response = await axiosInstance.post(
+  //         `/data-management/getPortfolios`
+  //       );
+  //       if (response.data && response.data.status === "success") {
+  //         setPortfolios(response.data.result);
+  //         console.log("Portfolios loaded:", response.data.result);
+  //       }
+  //     } catch (error) {
+  //       console.error("Error fetching portfolios:", error);
+  //       toast.error("Failed to load portfolios");
+  //     }
+  //   };
 
-    fetchPortfolios();
-  }, []);
+  //   fetchPortfolios();
+  // }, []);
 
   // Fetch programs
   useEffect(() => {
@@ -746,10 +746,101 @@ const ProjectModal = ({
     toast.success("Documents uploaded successfully!");
   };
 
+  // Function to check if document templates exist for the current project phase and type
+  const checkDocumentTemplatesExist = async (phaseId, projectTypeId) => {
+    try {
+      // Get current phase name
+      const phase = projectPhases.find(p => String(p.id) === String(phaseId));
+      if (!phase) {
+        console.error("Phase not found for ID:", phaseId);
+        return false;
+      }
+
+      // Get project type name
+      const projectType = projectTypes.find(p => String(p.id) === String(projectTypeId));
+      if (!projectType) {
+        console.error("Project type not found for ID:", projectTypeId);
+        return false;
+      }
+
+      console.log("Checking document templates for:", {
+        phase: phase.name,
+        projectType: projectType.name
+      });
+
+      // Fetch document templates for this phase
+      const response = await axiosInstance.post(
+        "/data-management/getCurrentPhaseDocumentTemplates",
+        { phase: phase.name }
+      );
+
+      if (response.data.status === "success" && response.data.data) {
+        const templates = response.data.data || [];
+        
+        // Filter templates based on project type
+        const filteredTemplates = templates.filter(template => {
+          const isInternalProject = projectType.name === "Internal Project" || projectType.name === "Proof of Concept";
+          
+          if (isInternalProject) {
+            // For internal projects, only include templates that allow internal projects
+            return template.is_internal === true;
+          } else {
+            // For external projects, include templates that allow external projects
+            return template.is_external === true;
+          }
+        });
+
+        console.log("Document templates check result:", {
+          totalTemplates: templates.length,
+          filteredTemplates: filteredTemplates.length,
+          hasTemplates: filteredTemplates.length > 0
+        });
+
+        return filteredTemplates.length > 0;
+      }
+
+      return false;
+    } catch (error) {
+      console.error("Error checking document templates:", error);
+      return false;
+    }
+  };
+
   const handleSendForApproval = async () => {
     if (!savedProjectData) {
       toast.error("No project data available to send for approval");
       return;
+    }
+
+    // Check if document templates exist for this project type and phase
+    const currentPhaseId = savedProjectData.current_phase_id || savedProjectData.phase_id;
+    const projectTypeId = savedProjectData.project_type_id;
+    
+    const hasDocumentTemplates = await checkDocumentTemplatesExist(currentPhaseId, projectTypeId);
+    
+    console.log("Pre-approval checks:", {
+      scheduleUploaded: scheduleUploadedSuccessfully,
+      documentsUploaded: documentsUploadedSuccessfully,
+      hasDocumentTemplates,
+      requiresDocuments: hasDocumentTemplates
+    });
+
+    // Modified validation: Only require documents if templates exist for this project type/phase
+    const canProceedWithoutDocuments = !hasDocumentTemplates;
+    const documentsRequirementMet = documentsUploadedSuccessfully || canProceedWithoutDocuments;
+
+    if (!scheduleUploadedSuccessfully) {
+      toast.error("Schedule plan must be uploaded before sending for approval");
+      return;
+    }
+
+    if (!documentsRequirementMet) {
+      toast.error("Project documents must be uploaded before sending for approval");
+      return;
+    }
+
+    if (canProceedWithoutDocuments && !documentsUploadedSuccessfully) {
+      toast.info("No document templates are configured for this project type and phase. Proceeding with schedule plan only.");
     }
 
     try {
@@ -1212,7 +1303,7 @@ const ProjectModal = ({
       </div>
       {/* Main Form - Scrollable */}
       <div className="flex-1 overflow-y-auto p-4">
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={(e) => e.preventDefault()}>
           {/* Project Information */}
           <div className="grid grid-cols-2 gap-6 mb-6">
             <div>
@@ -1408,55 +1499,33 @@ const ProjectModal = ({
                   <label className="block text-sm font-semibold mb-1">
                     Portfolio Name
                   </label>
-                  <div className="relative">
-                    <Controller
-                      name="portfolio_id"
-                      control={control}
-                      render={({ field }) => (
-                        <select
-                          className="w-full p-2 border border-gray-300 rounded appearance-none bg-white"
-                          {...field}
-                        >
-                          <option value="">Select Portfolio</option>
-                          {portfolios.map((portfolio) => (
-                            <option key={portfolio.id} value={portfolio.id}>
-                              {portfolio.name}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    />
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                      <ChevronDown size={16} />
-                    </div>
-                  </div>
+                  <input
+                    type="text"
+                    className="w-full p-2 border border-gray-300 rounded bg-gray-100"
+                    value={selectedProgramDetails?.portfolio_name || ""}
+                    readOnly
+                  />
+                  {/* Hidden field for portfolio_id */}
+                  <input
+                    type="hidden"
+                    {...register("portfolio_id")}
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold mb-1">
                     Initiative Name
                   </label>
-                  <div className="relative">
-                    <Controller
-                      name="initiative_id"
-                      control={control}
-                      render={({ field }) => (
-                        <select
-                          className="w-full p-2 border border-gray-300 rounded appearance-none bg-white"
-                          {...field}
-                        >
-                          <option value="">Select Initiative</option>
-                          {initiatives.map((initiative) => (
-                            <option key={initiative.id} value={initiative.id}>
-                              {initiative.name}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    />
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                      <ChevronDown size={16} />
-                    </div>
-                  </div>
+                  <input
+                    type="text"
+                    className="w-full p-2 border border-gray-300 rounded bg-gray-100"
+                    value={selectedProgramDetails?.initiative_name || ""}
+                    readOnly
+                  />
+                  {/* Hidden field for initiative_id */}
+                  <input
+                    type="hidden"
+                    {...register("initiative_id")}
+                  />
                 </div>
               </div>
               {/* Rest of the category section (e.g., Project Category radio buttons) */}
@@ -1973,14 +2042,27 @@ const ProjectModal = ({
                 <h3 className="font-semibold">Send for Approval</h3>
               </div>
               <div className={`p-4 border rounded-lg ${
-                scheduleUploadedSuccessfully && documentsUploadedSuccessfully
+                scheduleUploadedSuccessfully && (documentsUploadedSuccessfully || (() => {
+                  // Check if we need documents for this project type/phase
+                  const currentPhaseId = savedProjectData.current_phase_id || savedProjectData.phase_id;
+                  const projectTypeId = savedProjectData.project_type_id;
+                  const projectType = projectTypes.find(p => String(p.id) === String(projectTypeId));
+                  const isInternalProject = projectType?.name === "Internal Project" || projectType?.name === "Proof of Concept";
+                  
+                  // For now, assume documents may not be required for some cases
+                  // The actual check will be done in handleSendForApproval
+                  return true;
+                })())
                   ? "border-green-200 bg-green-50" 
                   : "border-gray-200 bg-gray-50"
               }`}>
-                {scheduleUploadedSuccessfully && documentsUploadedSuccessfully ? (
+                {scheduleUploadedSuccessfully ? (
                   <div>
                     <p className="text-sm text-green-700 mb-3">
-                      Your project is ready for approval! Schedule plan and documents have been uploaded successfully.
+                      {documentsUploadedSuccessfully 
+                        ? "Your project is ready for approval! Schedule plan and documents have been uploaded successfully."
+                        : "Schedule plan uploaded successfully. Document requirements will be verified when you submit for approval."
+                      }
                     </p>
                     <button
                       type="button"
@@ -1993,16 +2075,16 @@ const ProjectModal = ({
                 ) : (
                   <div>
                     <p className="text-sm text-gray-600 mb-3">
-                      To send for approval, please complete both the schedule plan and document uploads.
+                      Schedule plan is required to send for approval. Document requirements depend on your project type and phase.
                     </p>
                     <div className="text-xs text-gray-500 mb-3">
                       <p>Requirements:</p>
                       <ul className="list-disc list-inside ml-2 space-y-1">
                         <li className={scheduleUploadedSuccessfully ? "text-green-600" : ""}>
-                          {scheduleUploadedSuccessfully ? "✓" : "○"} Schedule plan uploaded
+                          {scheduleUploadedSuccessfully ? "✓" : "○"} Schedule plan uploaded (Required)
                         </li>
-                        <li className={documentsUploadedSuccessfully ? "text-green-600" : ""}>
-                          {documentsUploadedSuccessfully ? "✓" : "○"} Project documents uploaded
+                        <li className={documentsUploadedSuccessfully ? "text-green-600" : "text-blue-600"}>
+                          {documentsUploadedSuccessfully ? "✓" : "○"} Project documents uploaded (If applicable for your project type)
                         </li>
                       </ul>
                     </div>
@@ -2042,16 +2124,16 @@ const ProjectModal = ({
                     Add schedule plan {scheduleUploadedSuccessfully && '(completed)'}
                   </li>
                   <li className="flex items-center">
-                    <span className={`mr-2 ${documentsUploadedSuccessfully ? 'text-green-600' : 'text-gray-400'}`}>
+                    <span className={`mr-2 ${documentsUploadedSuccessfully ? 'text-green-600' : 'text-blue-600'}`}>
                       {documentsUploadedSuccessfully ? '✓' : '○'}
                     </span>
-                    Upload project documents {documentsUploadedSuccessfully && '(completed)'}
+                    Upload project documents {documentsUploadedSuccessfully ? '(completed)' : '(if required for project type)'}
                   </li>
                   <li className="flex items-center">
-                    <span className={`mr-2 ${scheduleUploadedSuccessfully && documentsUploadedSuccessfully ? 'text-green-600' : 'text-gray-400'}`}>
-                      {scheduleUploadedSuccessfully && documentsUploadedSuccessfully ? '✓' : '○'}
+                    <span className={`mr-2 ${scheduleUploadedSuccessfully ? 'text-green-600' : 'text-gray-400'}`}>
+                      {scheduleUploadedSuccessfully ? '✓' : '○'}
                     </span>
-                    Send for approval {scheduleUploadedSuccessfully && documentsUploadedSuccessfully && '(ready)'}
+                    Send for approval {scheduleUploadedSuccessfully ? '(ready)' : '(schedule plan required)'}
                   </li>
                 </ul>
               </div>
@@ -2082,7 +2164,7 @@ const ProjectModal = ({
                   >
                     Complete Later
                   </button>
-                  {scheduleUploadedSuccessfully && documentsUploadedSuccessfully ? (
+                  {scheduleUploadedSuccessfully ? (
                     <button
                       type="button"
                       className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
@@ -2095,7 +2177,7 @@ const ProjectModal = ({
                       type="button"
                       className="px-4 py-2 bg-gray-300 text-gray-500 rounded cursor-not-allowed"
                       disabled
-                      title="Upload schedule plan and documents first"
+                      title="Upload schedule plan first - documents are checked automatically"
                     >
                       Send for Approval
                     </button>

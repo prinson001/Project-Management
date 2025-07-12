@@ -9,10 +9,7 @@ const convertDeliverableAmountToFullAmount = (amount) => {
   const numericAmount = parseFloat(amount);
   if (isNaN(numericAmount)) return 0;
   
-  // If the amount is small (typically <= 100), assume it's in millions format
-  if (numericAmount > 0 && numericAmount <= 100) {
-    return numericAmount * 1000000;
-  }
+  // No conversion needed - return the value as-is since we want direct number input
   return numericAmount;
 };
 

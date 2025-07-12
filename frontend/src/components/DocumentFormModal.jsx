@@ -24,6 +24,7 @@ const DocumentFormModal = ({ onClose }) => {
   const [internalSelected, setInternalSelected] = useState(false);
   const [externalSelected, setExternalSelected] = useState(false);
   const [documentFile, setDocumentFile] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Handles phase toggling (ensuring all below phases are selected when toggled on, or untoggled when toggled off)
   const handlePhaseToggle = (index) => {
@@ -57,6 +58,8 @@ const DocumentFormModal = ({ onClose }) => {
   };
 
   const handleSave = async () => {
+    if (isLoading) return; // Prevent multiple submissions
+    
     // Validate required fields
     if (!data.name || !data.arabic_name) {
       toast.error("Please fill in both English and Arabic names");
@@ -75,17 +78,19 @@ const DocumentFormModal = ({ onClose }) => {
       return;
     }
 
-    // Check if at least one project category is selected
-    if (!capexSelected && !opexSelected) {
-      toast.error("Please select either Capex or Opex project type");
-      return;
-    }
-
     // Check if at least one project type is selected
     if (!internalSelected && !externalSelected) {
       toast.error("Please select at least one project type (Internal or External)");
       return;
     }
+
+    // Check if project category is selected for external projects only
+    if (externalSelected && !capexSelected && !opexSelected) {
+      toast.error("Please select either Capex or Opex for external projects");
+      return;
+    }
+
+    setIsLoading(true);
 
     let payloadData = { ...data, phase: [] };
     selectedPhases.forEach((p, index) => {
@@ -93,8 +98,16 @@ const DocumentFormModal = ({ onClose }) => {
         payloadData.phase.push(phasesList[index]);
       }
     });
-    payloadData["is_capex"] = capexSelected;
-    payloadData["is_opex"] = opexSelected;
+    
+    // For internal projects, set both capex and opex to false if not applicable
+    if (internalSelected && !externalSelected) {
+      payloadData["is_capex"] = false;
+      payloadData["is_opex"] = false;
+    } else {
+      payloadData["is_capex"] = capexSelected;
+      payloadData["is_opex"] = opexSelected;
+    }
+    
     payloadData["is_internal"] = internalSelected;
     payloadData["is_external"] = externalSelected;
 
@@ -141,6 +154,8 @@ const DocumentFormModal = ({ onClose }) => {
     } catch (e) {
       console.error("Error saving document:", e);
       toast.error("Failed to save document template."); // Optional: Error notification
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -239,56 +254,70 @@ const DocumentFormModal = ({ onClose }) => {
               <p className="font-semibold mb-2">
                 Select project Category availability
               </p>
-              <label className="flex items-center cursor-pointer mb-2">
-                <input
-                  type="checkbox"
-                  className="sr-only peer"
-                  checked={capexSelected}
-                  onChange={() => {
-                    setCapexSelected(!capexSelected);
-                    if (!capexSelected) {
-                      setOpexSelected(false); // Deselect opex when capex is selected
-                    }
-                  }}
-                />
-                <div
-                  className={`relative w-11 h-6 bg-gray-200 rounded-full transition-all ${
-                    capexSelected ? "peer-checked:bg-blue-600" : ""
-                  }`}
-                >
-                  <div
-                    className={`absolute top-[2px] left-[2px] bg-white border-gray-300 border rounded-full h-5 w-5 transition-all ${
-                      capexSelected ? "translate-x-full bg-white" : ""
-                    }`}
-                  />
+              {/* Only show Capex/Opex selection if external projects are selected */}
+              {externalSelected && (
+                <>
+                  <label className="flex items-center cursor-pointer mb-2">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={capexSelected}
+                      onChange={() => {
+                        setCapexSelected(!capexSelected);
+                        if (!capexSelected) {
+                          setOpexSelected(false); // Deselect opex when capex is selected
+                        }
+                      }}
+                    />
+                    <div
+                      className={`relative w-11 h-6 bg-gray-200 rounded-full transition-all ${
+                        capexSelected ? "peer-checked:bg-blue-600" : ""
+                      }`}
+                    >
+                      <div
+                        className={`absolute top-[2px] left-[2px] bg-white border-gray-300 border rounded-full h-5 w-5 transition-all ${
+                          capexSelected ? "translate-x-full bg-white" : ""
+                        }`}
+                      />
+                    </div>
+                    <span className="ml-3 text-sm font-medium">Capex projects</span>
+                  </label>
+                  <label className="flex items-center cursor-pointer mb-4">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={opexSelected}
+                      onChange={() => {
+                        setOpexSelected(!opexSelected);
+                        if (!opexSelected) {
+                          setCapexSelected(false); // Deselect capex when opex is selected
+                        }
+                      }}
+                    />
+                    <div
+                      className={`relative w-11 h-6 bg-gray-200 rounded-full transition-all ${
+                        opexSelected ? "peer-checked:bg-blue-600" : ""
+                      }`}
+                    >
+                      <div
+                        className={`absolute top-[2px] left-[2px] bg-white border-gray-300 border rounded-full h-5 w-5 transition-all ${
+                          opexSelected ? "translate-x-full bg-white" : ""
+                        }`}
+                      />
+                    </div>
+                    <span className="ml3 text-sm font-medium">Opex projects</span>
+                  </label>
+                </>
+              )}
+              
+              {/* Show message for internal projects */}
+              {internalSelected && !externalSelected && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-700">
+                    Internal projects don't require Capex/Opex categorization.
+                  </p>
                 </div>
-                <span className="ml-3 text-sm font-medium">Capex projects</span>
-              </label>
-              <label className="flex items-center cursor-pointer mb-4">
-                <input
-                  type="checkbox"
-                  className="sr-only peer"
-                  checked={opexSelected}
-                  onChange={() => {
-                    setOpexSelected(!opexSelected);
-                    if (!opexSelected) {
-                      setCapexSelected(false); // Deselect capex when opex is selected
-                    }
-                  }}
-                />
-                <div
-                  className={`relative w-11 h-6 bg-gray-200 rounded-full transition-all ${
-                    opexSelected ? "peer-checked:bg-blue-600" : ""
-                  }`}
-                >
-                  <div
-                    className={`absolute top-[2px] left-[2px] bg-white border-gray-300 border rounded-full h-5 w-5 transition-all ${
-                      opexSelected ? "translate-x-full bg-white" : ""
-                    }`}
-                  />
-                </div>
-                <span className="ml3 text-sm font-medium">Opex projects</span>
-              </label>
+              )}
 
               {/* Document Template Section */}
               <div className="mt-6">
@@ -380,10 +409,25 @@ const DocumentFormModal = ({ onClose }) => {
         {/* Save Button */}
         <div className="mt-4 pt-4 border-t">
           <button
-            className="bg-blue-500 text-white py-2 px-4 rounded w-32"
+            className={`py-2 px-4 rounded w-32 flex items-center justify-center ${
+              isLoading 
+                ? "bg-gray-400 cursor-not-allowed" 
+                : "bg-blue-500 hover:bg-blue-600"
+            } text-white transition-colors`}
             onClick={handleSave}
+            disabled={isLoading}
           >
-            Save
+            {isLoading ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Saving...
+              </>
+            ) : (
+              "Save"
+            )}
           </button>
         </div>
       </div>

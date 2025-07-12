@@ -17,8 +17,8 @@ const UpdateProjectModal = ({
 }) => {
   const [activeSection, setActiveSection] = useState("all");
   const [departments, setDepartments] = useState([]);
-  const [initiatives, setInitiatives] = useState([]);
-  const [portfolios, setPortfolios] = useState([]);
+  // const [initiatives, setInitiatives] = useState([]); // No longer needed - Portfolio/Initiative are readonly
+  // const [portfolios, setPortfolios] = useState([]); // No longer needed - Portfolio/Initiative are readonly
   const [programs, setPrograms] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [objectives, setObjectives] = useState([]);
@@ -39,6 +39,9 @@ const UpdateProjectModal = ({
   const [scheduleUploadedSuccessfully, setScheduleUploadedSuccessfully] = useState(
     projectData?.project_schedule_uploaded === true
   );
+  
+  // State to track document template existence for approval requirements
+  const [hasDocumentTemplates, setHasDocumentTemplates] = useState(true); // Default to true to avoid hiding documents initially
   
   // Debug initial upload state
   console.log("🏁 Initial upload state:", {
@@ -66,6 +69,53 @@ const UpdateProjectModal = ({
 
   const { users, projectTypes, projectPhases, setDocuments, documents } =
     useAuthStore();
+
+  // Helper function to parse PostgreSQL interval strings
+  const parseExecutionDuration = useCallback((durationStr) => {
+    if (!durationStr) return { duration: 4, type: 'weeks' };
+    
+    const str = String(durationStr).toLowerCase().trim();
+    console.log("🔧 Parsing execution duration:", str);
+    
+    // Handle PostgreSQL interval formats like "21 days", "4 weeks", "00:01:10"
+    if (str.includes('day')) {
+      const match = str.match(/(\d+)\s*days?/);
+      const days = match ? parseInt(match[1]) : 4;
+      return { duration: days, type: 'days' };
+    } else if (str.includes('week')) {
+      const match = str.match(/(\d+)\s*weeks?/);
+      const weeks = match ? parseInt(match[1]) : 4;
+      return { duration: weeks, type: 'weeks' };
+    } else if (str.includes('month')) {
+      const match = str.match(/(\d+)\s*months?/);
+      const months = match ? parseInt(match[1]) : 4;
+      return { duration: months, type: 'months' };
+    } else if (str.includes(':')) {
+      // Handle time format like "00:01:10" - convert to days (this seems like bad data)
+      console.warn("⚠️ Found time interval format, converting to default:", str);
+      return { duration: 4, type: 'weeks' };
+    } else {
+      // Try to parse as "number type" format like "4 weeks"
+      const parts = str.split(' ');
+      if (parts.length >= 2) {
+        const duration = parseInt(parts[0]) || 4;
+        const type = parts[1].toLowerCase();
+        if (type.includes('day')) return { duration, type: 'days' };
+        if (type.includes('week')) return { duration, type: 'weeks' };
+        if (type.includes('month')) return { duration, type: 'months' };
+      }
+      
+      // Fallback: try to parse as just a number
+      const numericValue = parseInt(str);
+      if (!isNaN(numericValue)) {
+        return { duration: numericValue, type: 'weeks' };
+      }
+    }
+    
+    // Ultimate fallback
+    console.warn("⚠️ Could not parse execution duration, using default:", str);
+    return { duration: 4, type: 'weeks' };
+  }, []);
 
   // Helper function to get form default values
   const getFormDefaultValues = useCallback((data) => {
@@ -104,21 +154,13 @@ const UpdateProjectModal = ({
       };
     }
 
-    // Process execution duration
-    let executionDuration = 4;
-    if (data.execution_duration) {
-      if (typeof data.execution_duration === 'string') {
-        const durationParts = data.execution_duration.split(" ");
-        executionDuration = parseInt(durationParts[0]) || 4;
-      } else {
-        executionDuration = parseInt(data.execution_duration) || 4;
-      }
-    }
+    // Process execution duration using the new parser
+    const { duration: executionDuration } = parseExecutionDuration(data.execution_duration);
 
     // Process maintenance duration
     let maintenanceDuration = 30;
     if (data.maintenance_duration) {
-      maintenanceDuration = parseInt(data.maintenance_duration) || 30;
+      maintenanceDuration = parseInt(String(data.maintenance_duration)) || 30;
     }
 
     // Process dates safely
@@ -161,7 +203,7 @@ const UpdateProjectModal = ({
 
     console.log("✅ Form default values created:", formValues);
     return formValues;
-  }, []);
+  }, [parseExecutionDuration]);
 
   const {
     register,
@@ -344,37 +386,41 @@ const UpdateProjectModal = ({
     fetchDepartmentsAndBeneficiaries();
   }, [projectData?.id, setValue]);
 
-  // Fetch other dropdown data
+  // Fetch other dropdown data - Initiatives and Portfolios no longer needed since they're readonly
   useEffect(() => {
-    const fetchInitiatives = async () => {
-      try {
-        const response = await axiosInstance.post(`/data-management/getInitiatives`);
-        if (response.data.status === "success") {
-          setInitiatives(response.data.result);
-        }
-        setDataLoadedFlags(prev => ({ ...prev, initiatives: true }));
-      } catch (error) {
-        console.error("❌ Error fetching initiatives:", error);
-        setDataLoadedFlags(prev => ({ ...prev, initiatives: true }));
-      }
-    };
-    fetchInitiatives();
+    // Mark initiatives as loaded since we don't need to fetch them anymore
+    setDataLoadedFlags(prev => ({ ...prev, initiatives: true }));
+    // const fetchInitiatives = async () => {
+    //   try {
+    //     const response = await axiosInstance.post(`/data-management/getInitiatives`);
+    //     if (response.data.status === "success") {
+    //       setInitiatives(response.data.result);
+    //     }
+    //     setDataLoadedFlags(prev => ({ ...prev, initiatives: true }));
+    //   } catch (error) {
+    //     console.error("❌ Error fetching initiatives:", error);
+    //     setDataLoadedFlags(prev => ({ ...prev, initiatives: true }));
+    //   }
+    // };
+    // fetchInitiatives();
   }, []);
 
   useEffect(() => {
-    const fetchPortfolios = async () => {
-      try {
-        const response = await axiosInstance.post(`/data-management/getPortfolios`);
-        if (response.data.status === "success") {
-          setPortfolios(response.data.result);
-        }
-        setDataLoadedFlags(prev => ({ ...prev, portfolios: true }));
-      } catch (error) {
-        console.error("❌ Error fetching portfolios:", error);
-        setDataLoadedFlags(prev => ({ ...prev, portfolios: true }));
-      }
-    };
-    fetchPortfolios();
+    // Mark portfolios as loaded since we don't need to fetch them anymore
+    setDataLoadedFlags(prev => ({ ...prev, portfolios: true }));
+    // const fetchPortfolios = async () => {
+    //   try {
+    //     const response = await axiosInstance.post(`/data-management/getPortfolios`);
+    //     if (response.data.status === "success") {
+    //       setPortfolios(response.data.result);
+    //     }
+    //     setDataLoadedFlags(prev => ({ ...prev, portfolios: true }));
+    //   } catch (error) {
+    //     console.error("❌ Error fetching portfolios:", error);
+    //     setDataLoadedFlags(prev => ({ ...prev, portfolios: true }));
+    //   }
+    // };
+    // fetchPortfolios();
   }, []);
 
   useEffect(() => {
@@ -573,6 +619,32 @@ const UpdateProjectModal = ({
     checkUploadAndApprovalStatus();
   }, [projectData?.id, documentsRefreshTrigger, scheduleRefreshTrigger]);
 
+  // Effect to check document template existence for conditional approval requirements
+  useEffect(() => {
+    const checkDocumentTemplates = async () => {
+      if (!projectData?.current_phase_id || !projectData?.project_type_id) {
+        console.log("⚠️ Missing phase or project type for template check");
+        return;
+      }
+
+      try {
+        console.log("🔍 Checking document templates existence for UI...");
+        const templatesExist = await checkDocumentTemplatesExist(
+          projectData.current_phase_id, 
+          projectData.project_type_id
+        );
+        setHasDocumentTemplates(templatesExist);
+        console.log("📋 Document templates check result for UI:", { templatesExist });
+      } catch (error) {
+        console.error("❌ Error checking document templates for UI:", error);
+        // Default to true to avoid hiding document requirements on error
+        setHasDocumentTemplates(true);
+      }
+    };
+
+    checkDocumentTemplates();
+  }, [projectData?.current_phase_id, projectData?.project_type_id]);
+
   const onSubmit = async (data, sendForApproval = false) => {
     console.log("🚀 onSubmit called with:", { 
       sendForApproval, 
@@ -754,6 +826,66 @@ const UpdateProjectModal = ({
     }
   };
 
+  // Function to check if document templates exist for the current project phase and type
+  const checkDocumentTemplatesExist = async (phaseId, projectTypeId) => {
+    try {
+      // Get current phase name
+      const phase = projectPhases.find(p => String(p.id) === String(phaseId));
+      if (!phase) {
+        console.error("Phase not found for ID:", phaseId);
+        return false;
+      }
+
+      // Get project type name
+      const projectType = projectTypes.find(p => String(p.id) === String(projectTypeId));
+      if (!projectType) {
+        console.error("Project type not found for ID:", projectTypeId);
+        return false;
+      }
+
+      console.log("Checking document templates for:", {
+        phase: phase.name,
+        projectType: projectType.name
+      });
+
+      // Fetch document templates for this phase
+      const response = await axiosInstance.post(
+        "/data-management/getCurrentPhaseDocumentTemplates",
+        { phase: phase.name }
+      );
+
+      if (response.data.status === "success" && response.data.data) {
+        const templates = response.data.data || [];
+        
+        // Filter templates based on project type
+        const filteredTemplates = templates.filter(template => {
+          const isInternalProject = projectType.name === "Internal Project" || projectType.name === "Proof of Concept";
+          
+          if (isInternalProject) {
+            // For internal projects, only include templates that allow internal projects
+            return template.is_internal === true;
+          } else {
+            // For external projects, include templates that allow external projects
+            return template.is_external === true;
+          }
+        });
+
+        console.log("Document templates check result:", {
+          totalTemplates: templates.length,
+          filteredTemplates: filteredTemplates.length,
+          hasTemplates: filteredTemplates.length > 0
+        });
+
+        return filteredTemplates.length > 0;
+      }
+
+      return false;
+    } catch (error) {
+      console.error("Error checking document templates:", error);
+      return false;
+    }
+  };
+
   const checkProjectReadyForApproval = async () => {
     try {
       // Validate that we have a valid project ID
@@ -783,17 +915,36 @@ const UpdateProjectModal = ({
       const hasSchedulePlan = currentProject.project_schedule_uploaded === true;
       const hasDocuments = currentProject.project_documents_uploaded === true;
 
-      console.log("Validation results:", { hasDocuments, hasSchedulePlan });
+      // Check if document templates exist for this project type and phase
+      const currentPhaseId = currentProject.current_phase_id || projectData.current_phase_id;
+      const projectTypeId = currentProject.project_type_id || projectData.project_type_id;
+      
+      const hasDocumentTemplates = await checkDocumentTemplatesExist(currentPhaseId, projectTypeId);
+      
+      console.log("Validation results:", { 
+        hasDocuments, 
+        hasSchedulePlan, 
+        hasDocumentTemplates,
+        documentsRequired: hasDocumentTemplates
+      });
 
-      // Check if both requirements are met
-      if (!hasDocuments || !hasSchedulePlan) {
-        let missingItems = [];
-        if (!hasDocuments) missingItems.push("project documents");
-        if (!hasSchedulePlan) missingItems.push("schedule plan");
-        
-        const message = `Cannot send for approval: ${missingItems.join(" and ")} must be uploaded first.`;
-        toast.error(message);
+      // Modified validation: Only require documents if templates exist for this project type/phase
+      const documentsRequirementMet = hasDocuments || !hasDocumentTemplates;
+
+      // Check if requirements are met
+      if (!hasSchedulePlan) {
+        toast.error("Cannot send for approval: schedule plan must be uploaded first.");
         return false;
+      }
+
+      if (!documentsRequirementMet) {
+        toast.error("Cannot send for approval: project documents must be uploaded first.");
+        return false;
+      }
+
+      // Show informative message if proceeding without documents
+      if (!hasDocumentTemplates && !hasDocuments) {
+        console.log("No document templates found for this project type and phase. Proceeding with schedule plan only.");
       }
 
       return true;
@@ -836,7 +987,20 @@ const UpdateProjectModal = ({
 
   // Replace handleOpenSchedulePlan to save project details before opening schedule plan
   const handleOpenSchedulePlan = () => {
-    console.log("🔄 Opening schedule plan modal without form validation");
+    console.log("🔄 Opening schedule plan modal");
+    console.log("📊 Project data for schedule modal:", {
+      id: projectData?.id,
+      name: projectData?.name,
+      execution_start_date: projectData?.execution_start_date,
+      execution_duration: projectData?.execution_duration,
+      maintenance_duration: projectData?.maintenance_duration,
+      project_type_id: projectData?.project_type_id
+    });
+    
+    // Parse and log the execution duration
+    const parsed = parseExecutionDuration(projectData?.execution_duration);
+    console.log("🔧 Parsed execution duration:", parsed);
+    
     setIsProjectSchedulePlanModalOpen(true);
   };
 
@@ -987,7 +1151,7 @@ const UpdateProjectModal = ({
         )}
       </div>
       <div className="flex-1 overflow-y-auto p-4">
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={(e) => e.preventDefault()}>
           {/* Project Information */}
           <div className="grid grid-cols-2 gap-6 mb-6">
             <div>
@@ -1186,6 +1350,11 @@ const UpdateProjectModal = ({
                     value={selectedProgramDetails?.portfolio_name || ""}
                     readOnly
                   />
+                  {/* Hidden field for portfolio_id */}
+                  <input
+                    type="hidden"
+                    {...register("portfolio_id")}
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold mb-1">
@@ -1196,6 +1365,11 @@ const UpdateProjectModal = ({
                     className="w-full p-2 border border-gray-300 rounded bg-gray-100"
                     value={selectedProgramDetails?.initiative_name || ""}
                     readOnly
+                  />
+                  {/* Hidden field for initiative_id */}
+                  <input
+                    type="hidden"
+                    {...register("initiative_id")}
                   />
                 </div>
               </div>
@@ -1684,13 +1858,19 @@ const UpdateProjectModal = ({
                       <p className="mb-2">Requirements:</p>
                       <ul className="list-disc list-inside ml-2 space-y-1">
                         <li className={scheduleUploadedSuccessfully ? "text-green-600" : "text-gray-500"}>
-                          {scheduleUploadedSuccessfully ? "✓" : "○"} Schedule plan uploaded
+                          {scheduleUploadedSuccessfully ? "✓" : "○"} Schedule plan uploaded (required)
                         </li>
-                        <li className={documentsUploadedSuccessfully ? "text-green-600" : "text-gray-500"}>
-                          {documentsUploadedSuccessfully ? "✓" : "○"} Project documents uploaded
-                        </li>
+                        {hasDocumentTemplates ? (
+                          <li className={documentsUploadedSuccessfully ? "text-green-600" : "text-gray-500"}>
+                            {documentsUploadedSuccessfully ? "✓" : "○"} Project documents uploaded (required)
+                          </li>
+                        ) : (
+                          <li className="text-blue-600">
+                            ℹ No document templates configured for this project type/phase - documents not required
+                          </li>
+                        )}
                       </ul>
-                      {documentsUploadedSuccessfully && scheduleUploadedSuccessfully && (
+                      {((hasDocumentTemplates && documentsUploadedSuccessfully) || !hasDocumentTemplates) && scheduleUploadedSuccessfully && (
                         <p className="text-green-600 mt-2 font-medium">
                           ✓ All requirements met - Use "Send for Approval" button below to submit
                         </p>
@@ -1719,13 +1899,17 @@ const UpdateProjectModal = ({
               <div className="flex items-center space-x-4">
                 {/* Determine button state and styling */}
                 {(() => {
-                  const isEnabled = canSendForApproval && !approvalTaskExists && documentsUploadedSuccessfully && scheduleUploadedSuccessfully;
+                  // Documents are required only if templates exist
+                  const documentsRequirementMet = !hasDocumentTemplates || documentsUploadedSuccessfully;
+                  const isEnabled = canSendForApproval && !approvalTaskExists && documentsRequirementMet && scheduleUploadedSuccessfully;
                   
                   // Debug the button state
                   console.log("🔘 Send for Approval Button State:", {
                     canSendForApproval,
                     approvalTaskExists,
+                    hasDocumentTemplates,
                     documentsUploadedSuccessfully,
+                    documentsRequirementMet,
                     scheduleUploadedSuccessfully,
                     isEnabled
                   });
@@ -1737,10 +1921,14 @@ const UpdateProjectModal = ({
                     if (approvalTaskExists) {
                       return "Project is already submitted for approval";
                     }
-                    if (!documentsUploadedSuccessfully && !scheduleUploadedSuccessfully) {
-                      return "Upload required documents and schedule plan before sending for approval";
+                    if (!scheduleUploadedSuccessfully && !documentsRequirementMet) {
+                      if (hasDocumentTemplates) {
+                        return "Upload required documents and schedule plan before sending for approval";
+                      } else {
+                        return "Upload schedule plan before sending for approval";
+                      }
                     }
-                    if (!documentsUploadedSuccessfully) {
+                    if (!documentsRequirementMet && hasDocumentTemplates) {
                       return "Upload required project documents before sending for approval";
                     }
                     if (!scheduleUploadedSuccessfully) {
@@ -1794,26 +1982,35 @@ const UpdateProjectModal = ({
           projectName={projectData.name}
           projectType={projectData.project_type_id}
           projectBudget={projectData.project_budget}
-          executionStartDate={
-            projectData.execution_start_date
+          executionStartDate={(() => {
+            const startDate = projectData?.execution_start_date
               ? new Date(projectData.execution_start_date)
-              : null
-          }
-          executionDuration={
-            projectData.execution_duration
-              ? parseInt(String(projectData.execution_duration).split(" ")[0], 10)
-              : null
-          }
-          maintenanceDuration={
-            projectData.maintenance_duration
+              : null;
+            console.log("🔧 Parsed execution start date for modal props:", startDate);
+            console.log("📊 Raw execution_start_date value:", projectData?.execution_start_date);
+            console.log("📊 Is valid date:", startDate && !isNaN(startDate.getTime()));
+            return startDate;
+          })()}
+          executionDuration={(() => {
+            const parsed = parseExecutionDuration(projectData?.execution_duration);
+            console.log("🔧 Parsed execution duration for modal props:", parsed);
+            console.log("📊 Raw execution_duration value:", projectData?.execution_duration);
+            console.log("📊 Type of execution_duration:", typeof projectData?.execution_duration);
+            return parsed.duration;
+          })()}
+          maintenanceDuration={(() => {
+            const maintenance = projectData?.maintenance_duration
               ? parseInt(String(projectData.maintenance_duration), 10)
-              : 30
-          }
-          executionDurationType={
-            projectData.execution_duration
-              ? String(projectData.execution_duration).split(" ")[1] || 'weeks'
-              : 'weeks'
-          }
+              : 30;
+            console.log("🔧 Parsed maintenance duration for modal props:", maintenance);
+            console.log("📊 Raw maintenance_duration value:", projectData?.maintenance_duration);
+            return maintenance;
+          })()}
+          executionDurationType={(() => {
+            const parsed = parseExecutionDuration(projectData?.execution_duration);
+            console.log("🔧 Parsed execution duration type for modal props:", parsed.type);
+            return parsed.type;
+          })()}
           onSave={handleSchedulePlanSave}
         />
       )}

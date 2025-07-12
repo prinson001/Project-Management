@@ -9,10 +9,7 @@ const convertDeliverableAmountToFullAmount = (amount) => {
   const numericAmount = parseFloat(amount);
   if (isNaN(numericAmount)) return 0;
   
-  // If the amount is small (typically <= 100), assume it's in millions format
-  if (numericAmount > 0 && numericAmount <= 100) {
-    return numericAmount * 1000000;
-  }
+  // No conversion needed - return the value as-is since we want direct number input
   return numericAmount;
 };
 
@@ -21,10 +18,7 @@ const convertFullAmountToDeliverableAmount = (fullAmount) => {
   const numericAmount = parseFloat(fullAmount);
   if (isNaN(numericAmount)) return 0;
   
-  // If the amount is >= 1 million, convert to millions format for storage
-  if (numericAmount >= 1000000) {
-    return numericAmount / 1000000;
-  }
+  // No conversion needed - store the value as-is since we want direct number input
   return numericAmount;
 };
 
@@ -33,10 +27,7 @@ const convertItemUnitAmountToFullAmount = (unitAmount) => {
   const numericAmount = parseFloat(unitAmount);
   if (isNaN(numericAmount)) return 0;
   
-  // If the unit amount is small (typically <= 100), assume it's in millions format
-  if (numericAmount > 0 && numericAmount <= 100) {
-    return numericAmount * 1000000;
-  }
+  // No conversion needed - return the value as-is since we want direct number input
   return numericAmount;
 };
 

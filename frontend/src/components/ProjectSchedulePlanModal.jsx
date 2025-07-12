@@ -27,6 +27,20 @@ const ProjectSchedulePlanModal = ({
   executionDurationType: initialDurationType,
   onSave
 }) => {
+  // Debug props received
+  console.log("🎯 ProjectSchedulePlanModal received props:", {
+    isOpen,
+    projectId,
+    projectName,
+    projectType,
+    projectBudget,
+    initialStartDate,
+    initialDuration,
+    initialMaintenanceDuration,
+    initialDurationType,
+    initialMaintenanceDate
+  });
+  
   const [scheduleData, setScheduleData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -644,7 +658,7 @@ const ProjectSchedulePlanModal = ({
 
   useEffect(() => {
     if (isOpen) {
-      console.log('ProjectSchedulePlanModal opened with initial values:', { 
+      console.log('🔄 ProjectSchedulePlanModal opened with initial values:', { 
         initialStartDate, 
         initialDuration, 
         initialMaintenanceDuration, 
@@ -652,14 +666,19 @@ const ProjectSchedulePlanModal = ({
         projectType 
       });
       
-      // Reset the form with new values
-      reset({
+      // Prepare form values with proper type conversion
+      const formValues = {
         executionStartDate: initialStartDate || null,
         executionDuration: initialDuration?.toString() || '4',
         maintenanceDuration: initialMaintenanceDuration?.toString() || '30',
         execution_duration_type: initialDurationType || 'weeks',
         maintenance_duration_type: 'days'
-      });
+      };
+      
+      console.log('🔧 Resetting form with values:', formValues);
+      
+      // Reset the form with new values
+      reset(formValues);
     }
   }, [isOpen, initialStartDate, initialDuration, initialMaintenanceDuration, initialDurationType, reset]);
 
