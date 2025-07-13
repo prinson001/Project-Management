@@ -4,6 +4,61 @@ import axiosInstance from "../axiosInstance";
 import { toast } from "sonner";
 import { formatCurrency, formatAmount, parseCurrency, convertToFullAmount, formatAmountForInput, parseInputAmount } from "../utils/currencyUtils";
 
+// Helper function to parse duration values (handles PostgreSQL intervals and numbers)
+const parseDurationDays = (duration) => {
+  if (!duration) return null;
+  
+  // If it's already a number, return it
+  if (typeof duration === 'number') return duration;
+  
+  // If it's a string, try to parse it
+  if (typeof duration === 'string') {
+    // Handle PostgreSQL interval format like "30 days" or "4 weeks"
+    const match = duration.match(/(\d+)\s*(day|week|month|year)s?/i);
+    if (match) {
+      const value = parseInt(match[1]);
+      const unit = match[2].toLowerCase();
+      
+      switch (unit) {
+        case 'day':
+          return value;
+        case 'week':
+          return value * 7;
+        case 'month':
+          return value * 30;
+        case 'year':
+          return value * 365;
+        default:
+          return value;
+      }
+    }
+    
+    // Try to parse as plain number
+    const numValue = parseInt(duration);
+    if (!isNaN(numValue)) return numValue;
+  }
+  
+  return null;
+};
+
+// Helper function to safely calculate date with duration
+const calculateEndDate = (startDate, durationValue) => {
+  if (!startDate || !durationValue) return null;
+  
+  const parsedDuration = parseDurationDays(durationValue);
+  if (!parsedDuration) return null;
+  
+  try {
+    return new Date(
+      new Date(startDate).getTime() + 
+      parsedDuration * 24 * 60 * 60 * 1000
+    ).toLocaleDateString();
+  } catch (error) {
+    console.error('Error calculating end date:', error);
+    return null;
+  }
+};
+
 // Helper function to convert deliverable amount from database format to full amount
 const convertDeliverableAmountToFullAmount = (amount) => {
   const numericAmount = parseFloat(amount);
@@ -118,6 +173,15 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
       console.error("Fetch error:", err);
     }
   };
+
+  useEffect(() => {
+    console.log("***********************");
+    console.log("Project Details:", projectDetails);
+    console.log("Execution Duration:", projectDetails.execution_duration, typeof projectDetails.execution_duration);
+    console.log("Maintenance Duration:", projectDetails.maintenance_duration, typeof projectDetails.maintenance_duration);
+    console.log("Project Type Name:", projectDetails.project_type_name);
+  }, [projectDetails]);
+
   useEffect(() => {
     console.log("the project id is ", projectId);
     // console.log("the project phase is ", projectPhase);
@@ -652,21 +716,11 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
             </p>
           </div>
 
-          {/* Execution End Date - Needs calculation */}
+          {/* Execution End Date */}
           <div className="space-y-1">
             <p className="text-sm font-medium text-gray-500">Execution End</p>
             <p className="font-semibold">
-              {projectDetails.execution_start_date &&
-              projectDetails.execution_duration
-                ? new Date(
-                    new Date(projectDetails.execution_start_date).getTime() +
-                      parseInt(projectDetails.execution_duration) *
-                        24 *
-                        60 *
-                        60 *
-                        1000
-                  ).toLocaleDateString()
-                : "N/A"}
+              {calculateEndDate(projectDetails.execution_start_date, projectDetails.execution_duration) || "N/A"}
             </p>
           </div>
 
@@ -676,7 +730,21 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
               Execution Duration
             </p>
             <p className="font-semibold">
-              {projectDetails.execution_duration || "N/A"}
+              {projectDetails.execution_duration 
+                ? (() => {
+                    const durationInDays = parseDurationDays(projectDetails.execution_duration);
+                    if (durationInDays) {
+                      if (durationInDays < 30) {
+                        return `${durationInDays} days`;
+                      } else if (durationInDays < 365) {
+                        return `${Math.round(durationInDays / 30)} months`;
+                      } else {
+                        return `${Math.round(durationInDays / 365)} years`;
+                      }
+                    }
+                    return projectDetails.execution_duration;
+                  })()
+                : "N/A"}
             </p>
           </div>
 
@@ -684,7 +752,7 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
           <div className="space-y-1">
             <p className="text-sm font-medium text-gray-500">Project Type</p>
             <p className="font-semibold">
-              {projectDetails.project_type_id || "N/A"}
+              {projectDetails.project_type_name || "N/A"}
             </p>
           </div>
 
@@ -692,49 +760,62 @@ const DeliverablesAccordion2 = ({ project, closeAccordion }) => {
           <div className="space-y-1">
             <p className="text-sm font-medium text-gray-500">Approved Budget</p>
             <p className="font-semibold">
-              ${projectDetails.approved_project_budget || "0"}
+              {formatCurrency(projectDetails.approved_project_budget || 0)}
             </p>
           </div>
 
-          {/* Operation Start Date - Add your actual field name if different */}
+          {/* Maintenance Start Date */}
           <div className="space-y-1">
-            <p className="text-sm font-medium text-gray-500">Operation Start</p>
+            <p className="text-sm font-medium text-gray-500">Maintenance Start</p>
             <p className="font-semibold">
-              {/* Add your actual operation start date field here */}
-              {projectDetails.operation_start_date
-                ? new Date(
-                    projectDetails.operation_start_date
-                  ).toLocaleDateString()
-                : "N/A"}
+              {calculateEndDate(projectDetails.execution_start_date, projectDetails.execution_duration) || "N/A"}
             </p>
           </div>
 
-          {/* Operation End Date - Needs calculation */}
+          {/* Maintenance End Date */}
           <div className="space-y-1">
-            <p className="text-sm font-medium text-gray-500">Operation End</p>
+            <p className="text-sm font-medium text-gray-500">Maintenance End</p>
             <p className="font-semibold">
-              {/* Add your actual operation duration field here */}
-              {projectDetails.operation_start_date &&
-              projectDetails.operation_duration
-                ? new Date(
-                    new Date(projectDetails.operation_start_date).getTime() +
-                      parseInt(projectDetails.operation_duration) *
-                        24 *
-                        60 *
-                        60 *
-                        1000
-                  ).toLocaleDateString()
-                : "N/A"}
+              {(() => {
+                const maintenanceStart = calculateEndDate(projectDetails.execution_start_date, projectDetails.execution_duration);
+                if (maintenanceStart && projectDetails.maintenance_duration) {
+                  const maintenanceDays = parseDurationDays(projectDetails.maintenance_duration);
+                  if (maintenanceDays) {
+                    // Calculate maintenance end date
+                    const executionDays = parseDurationDays(projectDetails.execution_duration);
+                    const totalDays = (executionDays || 0) + maintenanceDays;
+                    return new Date(
+                      new Date(projectDetails.execution_start_date).getTime() + 
+                      totalDays * 24 * 60 * 60 * 1000
+                    ).toLocaleDateString();
+                  }
+                }
+                return "N/A";
+              })()}
             </p>
           </div>
 
-          {/* Operation Duration - Add your actual field name if different */}
+          {/* Maintenance Duration */}
           <div className="space-y-1">
             <p className="text-sm font-medium text-gray-500">
-              Operation Duration
+              Maintenance Duration
             </p>
             <p className="font-semibold">
-              {projectDetails.operation_duration || "N/A"}
+              {projectDetails.maintenance_duration 
+                ? (() => {
+                    const durationInDays = parseDurationDays(projectDetails.maintenance_duration);
+                    if (durationInDays) {
+                      if (durationInDays < 30) {
+                        return `${durationInDays} days`;
+                      } else if (durationInDays < 365) {
+                        return `${Math.round(durationInDays / 30)} months`;
+                      } else {
+                        return `${Math.round(durationInDays / 365)} years`;
+                      }
+                    }
+                    return projectDetails.maintenance_duration;
+                  })()
+                : "N/A"}
             </p>
           </div>
         </div>
